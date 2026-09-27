@@ -422,8 +422,8 @@ fn push_horizontal_sections(
             &settings.layout_keys,
             &state,
             85.0,
-            280.0,
-            1.0,
+            300.0,
+            0.95,
             "now-",
         ));
         if let Some(next) = timeline.next_index_after(now) {
@@ -608,13 +608,45 @@ fn push_change_cue(
             }
         }
         CueAnchor::UnderNowLabel => {
-            let _ = write!(
-                svg,
-                r##"<text x="460" y="245" font-family="{FONT_FAMILY}" font-size="28" font-weight="800" fill="{colour}" text-anchor="middle">{title}: {text}</text>"##,
-                title = cue.title,
-                text = xml_escape(&cue.lines.join("  ·  ")),
-            );
+            let text = format!("{}: {}", cue.title, cue.lines.join(" · "));
+            let rows = horizontal_cue_rows(&text);
+            let longest = rows
+                .iter()
+                .map(|row| row.chars().count())
+                .max()
+                .unwrap_or(1);
+            let size = (870.0 / (longest as f32 * 0.75)).clamp(14.0, 28.0);
+            for (index, row) in rows.iter().enumerate() {
+                let y = if rows.len() == 1 {
+                    245
+                } else {
+                    233 + index * 28
+                };
+                let _ = write!(
+                    svg,
+                    r##"<text x="460" y="{y}" font-family="{FONT_FAMILY}" font-size="{size}" font-weight="800" fill="{colour}" text-anchor="middle">{}</text>"##,
+                    xml_escape(row)
+                );
+            }
         }
+    }
+}
+
+/// Keep the entire cue readable without colliding with the instrument heading.
+fn horizontal_cue_rows(text: &str) -> Vec<String> {
+    if text.chars().count() <= 52 {
+        return vec![text.into()];
+    }
+    let middle = text.chars().count() / 2;
+    let split = text
+        .char_indices()
+        .enumerate()
+        .filter(|(_, (_, c))| *c == ' ')
+        .min_by_key(|(i, _)| i.abs_diff(middle))
+        .map(|(_, (byte, _))| byte);
+    match split {
+        Some(byte) => vec![text[..byte].trim().into(), text[byte..].trim().into()],
+        None => vec![text.into()],
     }
 }
 
@@ -948,7 +980,7 @@ mod title_tests {
             None,
             CuePhase::Prepare,
         );
-        assert!(svg.contains("NEXT: STRING 3 OPEN"));
+        assert!(svg.contains("NEXT: D STRING OPEN"));
         assert!(
             !svg.contains("LIFT 1 · PLACE 1"),
             "next open string must not become a current-finger re-placement"

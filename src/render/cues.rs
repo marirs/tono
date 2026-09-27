@@ -48,16 +48,76 @@ pub fn change_cue(
             is_repeat: false,
         };
     }
+    // Register / breath markers describe technique, not pressable keys.
+    // A recorder's full/vented thumb states also describe one physical hole.
+    let technique = |id: &str| {
+        id.starts_with("register_")
+            || id.starts_with("breath_")
+            || (instrument.is_recorder() && matches!(id, "0" | "0_vent"))
+    };
     let label = |id: &String| key_label(layout_keys, id);
+    let lift: Vec<_> = transition
+        .lift
+        .iter()
+        .filter(|id| !technique(id))
+        .map(label)
+        .collect();
+    let press: Vec<_> = transition
+        .press
+        .iter()
+        .filter(|id| !technique(id))
+        .map(label)
+        .collect();
     let mut lines = Vec::new();
-    if !transition.lift.is_empty() {
-        lines.push(format!("LIFT {}", list(transition.lift.iter().map(label))));
-    }
-    if !transition.press.is_empty() {
+    if !lift.is_empty() {
         lines.push(format!(
-            "PRESS {}",
-            list(transition.press.iter().map(label))
+            "{} {}",
+            if instrument.is_recorder() {
+                "UNCOVER"
+            } else {
+                "LIFT"
+            },
+            list(lift.into_iter())
         ));
+    }
+    if !press.is_empty() {
+        lines.push(format!(
+            "{} {}",
+            if instrument.is_recorder() {
+                "COVER"
+            } else {
+                "PRESS"
+            },
+            list(press.into_iter())
+        ));
+    }
+    for id in &transition.press {
+        let cue = match id.as_str() {
+            "register_low" => Some("AIR: LOW REGISTER"),
+            "register_middle" => Some("AIR: MIDDLE REGISTER"),
+            "register_high" => Some("AIR: HIGH REGISTER"),
+            "breath_upper" => Some("BLOW UPPER; COVER LOWER HOLE"),
+            "breath_both" => Some("BLOW BOTH HOLES"),
+            "0_vent" if instrument.is_recorder() => Some("THUMB: VENT 1/4"),
+            "0" if instrument.is_recorder() => Some("THUMB: SEAL"),
+            _ => None,
+        };
+        if let Some(cue) = cue {
+            lines.push(cue.into());
+        }
+    }
+    if instrument.is_recorder()
+        && transition
+            .lift
+            .iter()
+            .any(|id| matches!(id.as_str(), "0" | "0_vent"))
+        && !upcoming
+            .fingering
+            .keys
+            .iter()
+            .any(|id| matches!(id.as_str(), "0" | "0_vent"))
+    {
+        lines.push("THUMB: OPEN".into());
     }
     ChangeCue {
         title: if held.is_some() {
@@ -138,6 +198,19 @@ fn describe_position(instrument: Instrument, upcoming: &FingeringTimelineEntry) 
     if instrument.keyboard_range().is_some() {
         return format!("KEY {}", note_name(upcoming.midi));
     }
+    if instrument == Instrument::Violin {
+        if let Some((string, offset, finger)) = crate::instruments::violin::position(id) {
+            let name = ["E", "A", "D", "G"][string - 1];
+            return if finger == 0 {
+                format!("{name} STRING OPEN")
+            } else {
+                format!(
+                    "{name} STRING - {}",
+                    crate::instruments::violin::placement(offset, finger)
+                )
+            };
+        }
+    }
     let parts: Vec<&str> = id.split('_').collect();
     let number = |prefix: char| {
         parts
@@ -182,6 +255,35 @@ mod tests {
                 shape: "circle".into(),
             })
             .collect()
+    }
+
+    #[test]
+    fn technique_markers_are_not_described_as_pressable_keys() {
+        use crate::instruments::fingering::FingeringTable;
+        let table = FingeringTable::load_instrument(Instrument::Flute).unwrap();
+        let mut held = entry(64, &[]);
+        held.fingering = table.lookup(64).unwrap().clone();
+        let mut next = entry(76, &[]);
+        next.fingering = table.lookup(76).unwrap().clone();
+        let cue = change_cue(Instrument::Flute, &table.layout_keys, Some(&held), &next);
+        assert_eq!(cue.lines, ["AIR: MIDDLE REGISTER"]);
+        let held = entry(83, &["0", "1"]);
+        let next = entry(88, &["0_vent", "1", "2", "3", "4", "5"]);
+        let cue = change_cue(Instrument::RecorderBaroque, &[], Some(&held), &next);
+        assert!(cue.lines.iter().any(|line| line == "THUMB: VENT 1/4"));
+        assert!(!cue
+            .lines
+            .iter()
+            .any(|line| line.contains("PRESS") || line.contains("LIFT 0")));
+        let cue = change_cue(
+            Instrument::AeBrisa,
+            &[],
+            Some(&entry(60, &["breath_both"])),
+            &entry(72, &["breath_upper"]),
+        );
+        assert_eq!(cue.lines, ["BLOW UPPER; COVER LOWER HOLE"]);
+        let cue = change_cue(Instrument::Violin, &[], None, &entry(70, &["s2_p1_n1"]));
+        assert_eq!(cue.lines, ["A STRING - LOW 1"]);
     }
 
     #[test]
@@ -237,7 +339,7 @@ mod tests {
         );
         assert_eq!(cue.lines, vec!["STRING 6 - FRET 3"]);
         let cue = change_cue(Instrument::Violin, &[], None, &entry(62, &["s3_p0_n0"]));
-        assert_eq!(cue.lines, vec!["STRING 3 OPEN"]);
+        assert_eq!(cue.lines, vec!["D STRING OPEN"]);
         let cue = change_cue(Instrument::Piano, &[], None, &entry(63, &["key_63"]));
         assert_eq!(cue.lines, vec!["KEY D#4"]);
     }

@@ -100,7 +100,7 @@ What the NOW panel does so you can follow it without looking elsewhere:
   rest of the note (and any rest before the next one) wind-key rings switch to
   the *next* change, and the **NEXT CHANGE** box names it: `LIFT Eb · PRESS C`
   on winds (AE-01 uses its printed 1-7, #, b), `STRING 2 - FRET 3` on
-  fretted instruments, `STRING 3 - FINGER 1` on violin, `KEY D#4` on keyboards.
+  fretted instruments, `D STRING - LOW 1` on violin, `KEY D#4` on keyboards.
   Fretted and violin diagrams retain the current placement; their NEXT text
   provides the advance cue.
 - **Countdown to the change.** The bar under NOW fills from one note onset to
@@ -585,3 +585,20 @@ Without it, the input filename without its final extension becomes the title
 `project.json`; long video headings are shortened to fit. This also works with
 `tono prep`. Titles do not change output filenames. No online recognition or API
 key is needed.
+
+## Development status
+
+The source-to-video CLI is implemented and has been exercised on real music.
+The remaining v0 acceptance work is a human play-through and physical fingering
+verification; see [the M4 checklist](docs/M4_TEST_LOG.md).
+
+Pitch evidence is checked at the ML boundary before cleanup. Malformed evidence
+fails clearly; older analysis data without a pitch track still uses duration
+rules. Practice cues distinguish physical keys from flute air/register changes,
+Brisa breath holes and recorder thumb venting.
+
+Known limits: cleanup thresholds need more songs and musician feedback;
+`--part lead` assumes Demucs's `other` stem and stays low-confidence. macOS is the
+tested platform; Windows/Linux packaging and full-pipeline validation remain
+future work. A GUI, automatic song recognition and a Rust ML rewrite are separate
+projects, not prerequisites for this CLI's v0 play-through.

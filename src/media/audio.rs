@@ -221,13 +221,21 @@ fn calibration_click_train(rate: f64) -> (Vec<f64>, Vec<f64>) {
 /// processed audio runs EARLY by that many seconds. `None` when too few
 /// clicks survive to trust the measurement.
 pub fn click_train_offset(processed: &[f32], rate: f64, expected_peaks: &[f64]) -> Option<f64> {
-    let window = (CALIBRATION_SEARCH_SECONDS * rate) as isize;
+    if processed.is_empty()
+        || expected_peaks.is_empty()
+        || !rate.is_finite()
+        || rate <= 0.0
+        || expected_peaks.iter().any(|t| !t.is_finite() || *t < 0.0)
+        || processed.iter().any(|sample| !sample.is_finite())
+    {
+        return None;
+    }
     let mut offsets: Vec<f64> = expected_peaks
         .iter()
         .filter_map(|&expected| {
-            let centre = (expected * rate) as isize;
-            let range = (centre - window).max(0) as usize
-                ..((centre + window).max(0) as usize).min(processed.len());
+            let bound = |time: f64| (time * rate).clamp(0.0, processed.len() as f64) as usize;
+            let range = bound(expected - CALIBRATION_SEARCH_SECONDS)
+                ..bound(expected + CALIBRATION_SEARCH_SECONDS);
             let (index, peak) = range
                 .map(|i| (i, processed[i].abs()))
                 .max_by(|a, b| a.1.total_cmp(&b.1))?;
@@ -338,6 +346,16 @@ mod calibration_tests {
         // Peak picking on a windowed sine is within half a tone period (<0.3 ms).
         let aligned = click_train_offset(&shifted(0), rate, &peaks).unwrap();
         assert!(aligned.abs() < 0.0003, "{aligned}");
+    }
+
+    #[test]
+    fn invalid_calibration_inputs_return_no_measurement() {
+        assert!(click_train_offset(&[0.1], 44100.0, &[]).is_none());
+        assert!(click_train_offset(&[], 44100.0, &[1.0]).is_none());
+        assert!(click_train_offset(&[0.1], 0.0, &[1.0]).is_none());
+        assert!(click_train_offset(&[0.1], f64::NAN, &[1.0]).is_none());
+        assert!(click_train_offset(&[0.1], 44100.0, &[f64::MAX]).is_none());
+        assert!(click_train_offset(&[f32::NAN], 44100.0, &[0.0]).is_none());
     }
 
     #[test]

@@ -168,6 +168,37 @@ fn validate_analysis(analysis: &Analysis, expected_duration: f64) -> Result<()> 
     if analysis.version != SUPPORTED_CONTRACT_VERSION {
         bail!("analysis contract version {} unsupported", analysis.version);
     }
+    if !expected_duration.is_finite()
+        || expected_duration <= 0.0
+        || !analysis.duration.is_finite()
+        || analysis.duration <= 0.0
+        || analysis.sample_rate != 44_100
+    {
+        bail!("invalid analysis duration or sample rate (expected 44100 Hz)");
+    }
+    if analysis
+        .bpm
+        .is_some_and(|bpm| !bpm.is_finite() || bpm <= 0.0)
+        || analysis
+            .beat_times
+            .iter()
+            .any(|t| !t.is_finite() || *t < 0.0 || *t > analysis.duration + DURATION_SLACK_SECONDS)
+        || analysis
+            .beat_times
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+    {
+        bail!("worker produced invalid tempo or beat timestamps");
+    }
+    if let Some(track) = &analysis.pitch_track {
+        let covered = track.f0_midi.len() as f64 * track.hop_seconds;
+        if !track.is_consistent()
+            || !covered.is_finite()
+            || (covered - analysis.duration).abs() > 2.0 * track.hop_seconds
+        {
+            bail!("worker produced an invalid pitch track (values, lengths or region coverage)");
+        }
+    }
     if (analysis.duration - expected_duration).abs() > DURATION_SLACK_SECONDS {
         bail!(
             "worker analysed {:.3}s but the selected region is {:.3}s",
@@ -185,7 +216,17 @@ fn validate_analysis(analysis: &Analysis, expected_duration: f64) -> Result<()> 
     }
     for note in &analysis.notes {
         let in_bounds = note.start >= 0.0 && note.end <= analysis.duration + DURATION_SLACK_SECONDS;
-        if !in_bounds || note.end <= note.start || note.midi > 127 {
+        if !in_bounds
+            || note.end <= note.start
+            || note.midi > 127
+            || !note.start.is_finite()
+            || !note.end.is_finite()
+            || !note.confidence.is_finite()
+            || !(0.0..=1.0).contains(&note.confidence)
+            || note
+                .attack
+                .is_some_and(|v| !v.is_finite() || !(0.0..=1.0).contains(&v))
+        {
             bail!("worker produced an invalid note event {note:?}");
         }
     }
@@ -230,6 +271,59 @@ pub fn analysis_for_tests(duration: f64, notes: Vec<RawNoteEvent>) -> Analysis {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_malformed_pitch_evidence_instead_of_silently_ignoring_it() {
+        use crate::analysis::evidence::test_support::track;
+        let mut valid = analysis_for_tests(1.0, vec![]);
+        valid.pitch_track = Some(track(&[(1.0, Some(60.0), -12.0)]));
+        validate_analysis(&valid, 1.0).unwrap();
+        for case in 0..6 {
+            let mut bad = valid.clone();
+            let t = bad.pitch_track.as_mut().unwrap();
+            match case {
+                0 => {
+                    t.level_db.pop();
+                }
+                1 => t.hop_seconds = f64::INFINITY,
+                2 => t.voiced_probability[0] = 1.1,
+                3 => t.f0_midi[0] = Some(f64::NAN),
+                4 => t.level_db[0] = f64::INFINITY,
+                _ => t.hop_seconds = 0.001, // track no longer covers region
+            }
+            assert!(validate_analysis(&bad, 1.0).is_err(), "case {case}");
+        }
+        // Older worker contracts can still omit the new evidence field.
+        valid.pitch_track = None;
+        validate_analysis(&valid, 1.0).unwrap();
+    }
+
+    #[test]
+    fn rejects_invalid_numbers_probabilities_and_beats() {
+        let valid = analysis_for_tests(
+            1.0,
+            vec![RawNoteEvent {
+                start: 0.0,
+                end: 0.5,
+                midi: 60,
+                confidence: 0.8,
+                attack: Some(0.9),
+            }],
+        );
+        for case in 0..7 {
+            let mut bad = valid.clone();
+            match case {
+                0 => bad.duration = f64::NAN,
+                1 => bad.sample_rate = 0,
+                2 => bad.notes[0].confidence = 2.0,
+                3 => bad.notes[0].attack = Some(-1.0),
+                4 => bad.bpm = Some(f64::INFINITY),
+                5 => bad.beat_times = vec![0.5, 0.4],
+                _ => bad.beat_times = vec![2.0],
+            }
+            assert!(validate_analysis(&bad, 1.0).is_err(), "case {case}");
+        }
+    }
 
     #[test]
     fn accepts_consistent_analysis() {

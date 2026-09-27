@@ -39,9 +39,21 @@ pub struct NoteEvidence {
 
 impl PitchTrack {
     pub fn is_consistent(&self) -> bool {
-        self.hop_seconds > 0.0
+        self.hop_seconds.is_finite()
+            && self.hop_seconds > 0.0
+            && !self.f0_midi.is_empty()
             && self.f0_midi.len() == self.voiced_probability.len()
             && self.f0_midi.len() == self.level_db.len()
+            && self
+                .f0_midi
+                .iter()
+                .flatten()
+                .all(|v| v.is_finite() && (0.0..=127.0).contains(v))
+            && self
+                .voiced_probability
+                .iter()
+                .all(|v| v.is_finite() && (0.0..=1.0).contains(v))
+            && self.level_db.iter().all(|v| v.is_finite())
     }
 
     pub fn loud_reference_db(&self) -> f64 {
@@ -51,7 +63,7 @@ impl PitchTrack {
     /// Frames whose centre lies in [start, end); at least the nearest frame.
     fn frame_range(&self, start: f64, end: f64) -> std::ops::Range<usize> {
         let frame_count = self.f0_midi.len();
-        if frame_count == 0 {
+        if frame_count == 0 || start >= frame_count as f64 * self.hop_seconds {
             return 0..0;
         }
         let first = ((start / self.hop_seconds).ceil().max(0.0) as usize).min(frame_count - 1);
@@ -64,6 +76,20 @@ impl PitchTrack {
     }
 
     pub fn evidence(&self, start: f64, end: f64, loud_reference_db: f64) -> Option<NoteEvidence> {
+        // Cheap structural checks also protect direct library callers; full
+        // value validation happens once at the worker boundary / cleanup entry.
+        if !self.hop_seconds.is_finite()
+            || self.hop_seconds <= 0.0
+            || self.f0_midi.len() != self.voiced_probability.len()
+            || self.f0_midi.len() != self.level_db.len()
+            || !start.is_finite()
+            || !end.is_finite()
+            || start < 0.0
+            || end <= start
+            || !loud_reference_db.is_finite()
+        {
+            return None;
+        }
         let frames = self.frame_range(start, end);
         if frames.is_empty() {
             return None;
@@ -148,6 +174,15 @@ mod tests {
         assert!((sung.f0_center.unwrap() - 62.6).abs() < 1e-9);
         assert!(sung.voiced_fraction > 0.99 && sung.f0_spread.unwrap() < 1e-9);
         assert!(sung.level_below_loud_db.abs() < 1e-9);
+    }
+
+    #[test]
+    fn direct_queries_with_bad_shapes_or_outside_coverage_are_safe() {
+        let mut t = track(&[(1.0, Some(60.0), -12.0)]);
+        assert!(t.evidence(2.0, 3.0, -12.0).is_none());
+        assert!(t.evidence(f64::NAN, 0.5, -12.0).is_none());
+        t.level_db.clear();
+        assert!(t.evidence(0.0, 0.5, -12.0).is_none());
     }
 
     #[test]

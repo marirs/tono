@@ -85,11 +85,17 @@ text is only as good as the profile's control labels:
 
 | Profiles | Next-change cue | Repeated note |
 | --- | --- | --- |
-| Winds with `layout_keys` (AE-05/10/20, YDS, Brisa, recorders, flutes) | `LIFT <labels> · PRESS <labels>` from `layout_keys[].label`; more than 4 keys are counted | `SAME KEYS - RE-TONGUE` |
+| Winds with `layout_keys` | `LIFT <labels> · PRESS <labels>` from `layout_keys[].label`; more than 4 keys are counted | `SAME KEYS - RE-TONGUE` |
 | AE-01 (dedicated drawing) | Printed key numbers: 1-3, 4-7, `#`, `b`, `OCT UP/DOWN` | `SAME KEYS - RE-TONGUE` |
 | Guitar, bass, ukulele | `STRING n - FRET m` / `STRING n OPEN` from `s<n>_f<m>` | `SAME NOTE - PLAY AGAIN` |
-| Violin | `STRING n - FINGER f` / `STRING n OPEN` from `s<n>_p<p>_n<f>` | `SAME NOTE - PLAY AGAIN` |
+| Violin | Named string with low/high finger placement, e.g. `A STRING - LOW 1`, or `D STRING OPEN` | `SAME NOTE - PLAY AGAIN` |
 | Piano and keyboards | `KEY <note>` | `SAME KEY - RELEASE AND PLAY AGAIN` |
+
+Flute `register_*` markers produce air/register instructions, not PRESS/LIFT.
+Brisa breath markers describe which hole(s) to blow through; recorder holes use
+COVER/UNCOVER and thumb states use SEAL, OPEN or VENT 1/4. These cues describe
+technique without changing the charted fingering. Long horizontal cues wrap so
+they stay above the diagram.
 
 Wind-key rings on NOW confirm the change just made for the first 0.35 s
 of a note (at most half the time to the next note), then show the next change.

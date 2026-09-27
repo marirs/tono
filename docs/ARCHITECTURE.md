@@ -52,7 +52,9 @@ validation → output publication.
 The worker also returns a pYIN pitch track (`pitch_track` in analysis.json:
 f0, voicing probability and level per 23 ms frame on the lead stem). Rust
 turns it into per-note evidence and applies the cleanup decisions; Python
-only measures. Older analysis files without it fall back to duration rules.
+only measures. The boundary checks finite values, probability ranges, aligned
+arrays and region coverage. Present-but-malformed tracks fail; older analysis
+files without a track fall back to duration rules.
 
 `demo` constructs a known melody and uses the same instrument and rendering
 modules without ML. `doctor` checks the environment independently.

@@ -28,7 +28,7 @@ pub fn position(key: &str) -> Option<(usize, u8, u8)> {
     .then_some((string, offset, finger))
 }
 
-fn placement(offset: u8, finger: u8) -> String {
+pub(crate) fn placement(offset: u8, finger: u8) -> String {
     match (offset, finger) {
         (0, _) => "OPEN STRING".into(),
         (1, 1) | (3, 2) | (6, 4) => format!("LOW {finger}"),
