@@ -388,3 +388,16 @@ The **Tono** name, `tono.love`, logos, and other branding are not licensed for u
 **Play what you love.**
 
 https://tono.love
+
+### Aerophone Brisa
+
+AE-BRISA requires an explicit mode matching the physical instrument:
+
+```sh
+tono song.mp3 --instrument ae-brisa --fingering-mode brisa
+tono song.mp3 --instrument ae-brisa --fingering-mode flute
+```
+
+Omitting `--fingering-mode` fails before processing. The horizontal diagram
+shows the mode-specific rear keys and, for Flute mode, breath-hole instructions.
+See [instrument profiles](instruments/README.md) for coverage, setup and sources.

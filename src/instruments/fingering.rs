@@ -58,6 +58,8 @@ impl Fingering {
 pub struct FingeringTable {
     pub instrument: String,
     #[serde(default)]
+    pub fingering_mode: Option<super::brisa::FingeringMode>,
+    #[serde(default)]
     pub layout_keys: Vec<crate::instruments::LayoutKey>,
     #[serde(default)]
     pub required_settings: String,
@@ -81,7 +83,26 @@ pub struct FingeringTable {
 
 impl FingeringTable {
     pub fn load_instrument(instrument: crate::instruments::Instrument) -> Result<Self> {
-        let table = Self::load_from_file(&instrument.profile_path())?;
+        Self::load_for_mode(instrument, None)
+    }
+
+    pub fn load_for_mode(
+        instrument: crate::instruments::Instrument,
+        mode: Option<super::brisa::FingeringMode>,
+    ) -> Result<Self> {
+        super::brisa::validate_mode(instrument, mode)?;
+        let table = if let Some(mode) = mode {
+            let document: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(instrument.profile_path())?)?;
+            let table: Self = serde_json::from_value(document["modes"][mode.id()].clone())?;
+            table.validate()?;
+            table
+        } else {
+            Self::load_from_file(&instrument.profile_path())?
+        };
+        if table.fingering_mode != mode {
+            bail!("profile fingering mode does not match requested mode");
+        }
         if table.instrument != instrument.table_id() {
             bail!("profile identity does not match {}", instrument.id());
         }
@@ -105,7 +126,13 @@ impl FingeringTable {
             "roland-ae05",
             "roland-ae10",
             "roland-ae20",
+            "roland-ae-brisa",
             "guitar",
+            "guitar-bass",
+            "guitar-bass-5string",
+            "piano",
+            "keyboard-76",
+            "keyboard-61",
         ]
         .contains(&self.instrument.as_str())
         {
@@ -130,10 +157,29 @@ impl FingeringTable {
                 bail!("invalid or duplicate layout key {}", key.id);
             }
         }
-        if self.instrument == "guitar"
-            && (self.tuning_midi != [64, 59, 55, 50, 45, 40] || self.fret_count != 19)
-        {
-            bail!("guitar profile requires standard six-string tuning and 19 frets");
+        let expected_tuning: Option<&[u8]> = match self.instrument.as_str() {
+            "guitar" => Some(&[64, 59, 55, 50, 45, 40]),
+            "guitar-bass" => Some(&[43, 38, 33, 28]),
+            "guitar-bass-5string" => Some(&[43, 38, 33, 28, 23]),
+            _ => None,
+        };
+        if let Some(tuning) = expected_tuning {
+            if self.tuning_midi != tuning || self.fret_count != 19 {
+                bail!("profile requires its documented tuning and 19 frets");
+            }
+        }
+        let keyboard_range = match self.instrument.as_str() {
+            "piano" => Some((21, 108)),
+            "keyboard-76" => Some((28, 103)),
+            "keyboard-61" => Some((36, 96)),
+            _ => None,
+        };
+        if let Some((low, high)) = keyboard_range {
+            if self.charted_range() != Some((low, high))
+                || self.fingerings.len() != usize::from(high - low + 1)
+            {
+                bail!("keyboard profile must include every key in its documented range");
+            }
         }
         for (midi_key, fingering) in &self.fingerings {
             let midi: u8 = midi_key
@@ -156,18 +202,42 @@ impl FingeringTable {
     }
 
     fn validate_fingering(&self, midi: u8, fingering: &Fingering) -> Result<()> {
-        if self.instrument == "guitar" {
+        if ["piano", "keyboard-76", "keyboard-61"].contains(&self.instrument.as_str()) {
+            if fingering.octave != OctaveShift::Normal || fingering.keys != [format!("key_{midi}")]
+            {
+                bail!("MIDI {midi}: keyboard key must match sounding pitch");
+            }
+        } else if self.instrument.starts_with("guitar") {
             if fingering.octave != OctaveShift::Normal || fingering.keys.len() != 1 {
                 bail!("MIDI {midi}: expected one guitar position");
             }
             let (string, fret) = crate::instruments::guitar::guitar_position(&fingering.keys[0])
                 .context("invalid string/fret")?;
-            if fret > self.fret_count
+            if string > self.tuning_midi.len()
+                || fret > self.fret_count
                 || self.tuning_midi[string - 1] as u16 + fret as u16 != midi as u16
             {
                 bail!("MIDI {midi}: guitar pitch does not match string/fret");
             }
         } else {
+            if self.instrument == "roland-ae-brisa" {
+                if fingering.octave != OctaveShift::Normal {
+                    bail!("Brisa requires explicit rear-key states, not sax octave controls");
+                }
+                let both = fingering.keys.iter().any(|k| k == "breath_both");
+                let upper = fingering.keys.iter().any(|k| k == "breath_upper");
+                match self.fingering_mode {
+                    Some(super::brisa::FingeringMode::Flute) if both != upper => {}
+                    Some(super::brisa::FingeringMode::Brisa) if !both && !upper => {
+                        if fingering.keys.iter().any(|k| k == "thumb_left")
+                            && !fingering.keys.iter().any(|k| k == "thumb_right")
+                        {
+                            bail!("Brisa +2 requires BOTH rear keys");
+                        }
+                    }
+                    _ => bail!("missing or incompatible mode/breath cue in Brisa profile"),
+                }
+            }
             if fingering.keys.iter().collect::<BTreeSet<_>>().len() != fingering.keys.len() {
                 bail!("MIDI {midi}: duplicate key");
             }
@@ -280,6 +350,18 @@ mod tests {
             "72": {"octave": "up", "keys": ["left_1", "left_2", "left_3"]}
         }
     }"#;
+
+    #[test]
+    fn keyboard_and_bass_profiles_reject_wrong_physical_positions() {
+        let mut piano =
+            FingeringTable::load_instrument(crate::instruments::Instrument::Piano).unwrap();
+        piano.fingerings.get_mut("60").unwrap().keys = vec!["key_61".into()];
+        assert!(piano.validate().is_err());
+        let mut bass =
+            FingeringTable::load_instrument(crate::instruments::Instrument::Bass).unwrap();
+        bass.fingerings.get_mut("28").unwrap().keys = vec!["s5_f0".into()];
+        assert!(bass.validate().is_err());
+    }
 
     #[test]
     fn lookup_known_and_missing_notes() {

@@ -24,6 +24,7 @@ pub const TEMPO_SCALE_RANGE: std::ops::RangeInclusive<f64> = 0.5..=2.0;
 
 pub struct PracticeRequest<'a> {
     pub instrument: crate::instruments::Instrument,
+    pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub cleaned_notes: &'a [NoteEvent],
     pub analysis: &'a Analysis,
     pub region_duration_seconds: f64,
@@ -60,7 +61,7 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     }
     let mut warnings = Vec::new();
 
-    let table = FingeringTable::load_instrument(request.instrument)?;
+    let table = FingeringTable::load_for_mode(request.instrument, request.fingering_mode)?;
     println!(
         "· {} setup: {}",
         request.instrument.name(),
@@ -302,6 +303,7 @@ fn write_fingering_json(
     let document = json!({
         "version": 1,
         "instrument": table.instrument,
+            "fingering_mode": request.fingering_mode,
         "verified": table.verified,
         "required_settings": table.required_settings,
         "sources": table.sources,

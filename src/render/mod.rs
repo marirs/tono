@@ -285,8 +285,11 @@ fn static_layer_svg(
     );
 
     push_header(&mut svg, settings);
-    if settings.instrument == crate::instruments::Instrument::Guitar {
-        push_guitar_sections(&mut svg, timeline, now_state, settings, count);
+    if settings.instrument.is_fretted()
+        || settings.instrument.keyboard_range().is_some()
+        || settings.instrument == crate::instruments::Instrument::AeBrisa
+    {
+        push_horizontal_sections(&mut svg, timeline, now_state, settings, count);
     } else {
         push_next_section(&mut svg, timeline, now_state, settings);
         push_now_section(&mut svg, timeline, now_state, settings, count);
@@ -324,7 +327,7 @@ fn push_header(svg: &mut String, settings: &RenderSettings) {
     }
 }
 
-fn push_guitar_sections(
+fn push_horizontal_sections(
     svg: &mut String,
     timeline: &PracticeTimeline,
     now: NowState,
@@ -357,8 +360,14 @@ fn push_guitar_sections(
             },
             transition_hint: Some(&transition),
         };
-        svg.push_str(&crate::instruments::guitar::render(
-            &state, 85.0, 260.0, 1.0, "now-",
+        svg.push_str(&crate::instruments::horizontal_svg(
+            settings.instrument,
+            &settings.layout_keys,
+            &state,
+            85.0,
+            260.0,
+            1.0,
+            "now-",
         ));
         if let Some(next) = timeline.next_index_after(now) {
             let keys = timeline.entries[next].fingering.pressed_key_ids();
@@ -376,8 +385,14 @@ fn push_guitar_sections(
                 svg,
                 r##"<text x="460" y="710" font-family="{FONT_FAMILY}" font-size="24" fill="#8a93a3" text-anchor="middle">NEXT</text>"##
             );
-            svg.push_str(&crate::instruments::guitar::render(
-                &state, 245.0, 740.0, 0.45, "next-",
+            svg.push_str(&crate::instruments::horizontal_svg(
+                settings.instrument,
+                &settings.layout_keys,
+                &state,
+                245.0,
+                740.0,
+                0.45,
+                "next-",
             ));
         }
     }

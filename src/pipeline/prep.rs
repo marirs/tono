@@ -41,6 +41,7 @@ impl Part {
 #[derive(Clone)]
 pub struct PrepOptions {
     pub instrument: crate::instruments::Instrument,
+    pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub input: PathBuf,
     pub from_timecode: Option<String>,
     pub to_timecode: Option<String>,
@@ -71,7 +72,10 @@ pub fn run_prep(options: &PrepOptions) -> Result<()> {
 }
 
 pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<()> {
-    crate::instruments::fingering::FingeringTable::load_instrument(options.instrument)?;
+    crate::instruments::fingering::FingeringTable::load_for_mode(
+        options.instrument,
+        options.fingering_mode,
+    )?;
     if !options.input.is_file() {
         bail!("input not found: {}", options.input.display());
     }
@@ -162,6 +166,7 @@ fn prepare_project(
 
     let practice = build_practice_video(&PracticeRequest {
         instrument: options.instrument,
+        fingering_mode: options.fingering_mode,
         cleaned_notes: &cleaned,
         analysis: &analysis,
         region_duration_seconds: range.duration_seconds(),
@@ -477,6 +482,7 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
         "version": 1,
         "tono": env!("CARGO_PKG_VERSION"),
         "instrument": options.instrument,
+        "fingering_mode": options.fingering_mode,
         "part": options.part.worker_name(),
         "source": { "path": options.input.canonicalize().unwrap_or_else(|_| options.input.clone()), "duration": source_duration },
         "source_duration": source_duration,

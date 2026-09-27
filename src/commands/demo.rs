@@ -20,6 +20,7 @@ use crate::render::{render_practice_video, AudioBed, MediaTools, MetronomeMode, 
 
 pub struct DemoOptions {
     pub instrument: crate::instruments::Instrument,
+    pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub output_directory: PathBuf,
     pub beats_per_minute: f64,
     /// Optional audio to mux instead of the synthesized guide. Its first
@@ -32,6 +33,7 @@ pub struct DemoOptions {
 const TAIL_SECONDS: f64 = 1.5;
 
 pub fn run_demo(options: &DemoOptions) -> Result<()> {
+    crate::instruments::brisa::validate_mode(options.instrument, options.fingering_mode)?;
     if !(20.0..=300.0).contains(&options.beats_per_minute) {
         bail!("--bpm must be between 20 and 300");
     }
@@ -69,7 +71,14 @@ fn build_demo_outputs(
 ) -> Result<()> {
     let out = &options.output_directory;
 
-    let notes = demo_melody(options.beats_per_minute);
+    let table = FingeringTable::load_for_mode(options.instrument, options.fingering_mode)?;
+    let source_notes = demo_melody(options.beats_per_minute);
+    let fitted = crate::music::range::fit_melody_to_table(
+        &source_notes,
+        &table,
+        crate::music::range::RangePolicy::Strict,
+    )?;
+    let notes = fitted.notes;
     validate_monophonic_sequence(&notes)?;
     println!(
         "✓ {} hard-coded notes at {} bpm",
@@ -77,7 +86,6 @@ fn build_demo_outputs(
         options.beats_per_minute
     );
 
-    let table = FingeringTable::load_instrument(options.instrument)?;
     let entries = map_notes_to_fingerings(&notes, &table)?;
     println!(
         "✓ fingerings mapped ({})",
@@ -97,6 +105,7 @@ fn build_demo_outputs(
         &json!({
             "version": 1,
             "instrument": table.instrument,
+            "fingering_mode": options.fingering_mode,
             "verified": table.verified,
             "timeline": entries,
         }),

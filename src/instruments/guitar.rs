@@ -12,7 +12,16 @@ pub fn guitar_position(key: &str) -> Option<(usize, u8)> {
 
 /// Horizontal single-note guitar view: string 1 (high E) at the top, nut left.
 /// A five-fret window keeps the active position readable on a phone.
-pub fn render(state: &DiagramState, x: f32, y: f32, scale: f32, prefix: &str) -> String {
+pub fn render(
+    instrument: super::Instrument,
+    state: &DiagramState,
+    x: f32,
+    y: f32,
+    scale: f32,
+    prefix: &str,
+) -> String {
+    let tuning = instrument.tuning();
+    let spacing = 220.0 / (tuning.len() - 1) as f32;
     let selected = state
         .pressed_keys
         .iter()
@@ -24,7 +33,7 @@ pub fn render(state: &DiagramState, x: f32, y: f32, scale: f32, prefix: &str) ->
     );
     let _ = write!(
         svg,
-        r##"<text x="115" y="0" fill="#c8cfdb" font-size="24">FRETS {first}–{} · HIGH E AT TOP</text>"##,
+        r##"<text x="115" y="0" fill="#c8cfdb" font-size="24">FRETS {first}–{} · HIGHEST STRING AT TOP</text>"##,
         first + 4
     );
     for col in 0..=5 {
@@ -42,15 +51,13 @@ pub fn render(state: &DiagramState, x: f32, y: f32, scale: f32, prefix: &str) ->
             );
         }
     }
-    for (i, label) in ["1 e", "2 B", "3 G", "4 D", "5 A", "6 E"]
-        .iter()
-        .enumerate()
-    {
-        let yy = 50 + i * 44;
+    for (i, midi) in tuning.iter().enumerate() {
+        let label = format!("{} {}", i + 1, super::piano::note_name(*midi));
+        let yy = 50.0 + i as f32 * spacing;
         let _ = write!(
             svg,
             r##"<text x="55" y="{}" font-size="24" text-anchor="end" fill="#c8cfdb">{label}</text><path d="M75 {yy} H770" stroke="#a4a9b3" stroke-width="{}"/>"##,
-            yy + 8,
+            yy + 8.0,
             1.5 + i as f32 * 0.35
         );
     }
@@ -62,7 +69,7 @@ pub fn render(state: &DiagramState, x: f32, y: f32, scale: f32, prefix: &str) ->
         } else {
             return None;
         };
-        Some((xx, 50.0 + (string - 1) as f32 * 44.0))
+        Some((xx, 50.0 + (string - 1) as f32 * spacing))
     };
     if let Some((string, f)) = selected {
         let (xx, yy) = point(string, f).expect("active fret always visible");

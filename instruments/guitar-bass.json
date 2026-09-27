@@ -1,0 +1,554 @@
+{
+  "version": 1,
+  "instrument": "guitar-bass",
+  "verified": false,
+  "renderer": "guitar",
+  "required_settings": "Standard E1 A1 D2 G2; no capo; frets 0-19; melody, not bass-part extraction",
+  "sources": [
+    {
+      "url": "https://hub.yamaha.com/guitars/bass/choosing-the-right-bass-part-1-four-string-or-five-string/",
+      "method": "standard bass tuning plus one semitone per fret; sounding MIDI"
+    }
+  ],
+  "tuning_midi": [
+    43,
+    38,
+    33,
+    28
+  ],
+  "fret_count": 19,
+  "fingerings": {
+    "28": {
+      "octave": "normal",
+      "keys": [
+        "s4_f0"
+      ]
+    },
+    "29": {
+      "octave": "normal",
+      "keys": [
+        "s4_f1"
+      ]
+    },
+    "30": {
+      "octave": "normal",
+      "keys": [
+        "s4_f2"
+      ]
+    },
+    "31": {
+      "octave": "normal",
+      "keys": [
+        "s4_f3"
+      ]
+    },
+    "32": {
+      "octave": "normal",
+      "keys": [
+        "s4_f4"
+      ]
+    },
+    "33": {
+      "octave": "normal",
+      "keys": [
+        "s3_f0"
+      ]
+    },
+    "34": {
+      "octave": "normal",
+      "keys": [
+        "s3_f1"
+      ]
+    },
+    "35": {
+      "octave": "normal",
+      "keys": [
+        "s3_f2"
+      ]
+    },
+    "36": {
+      "octave": "normal",
+      "keys": [
+        "s3_f3"
+      ]
+    },
+    "37": {
+      "octave": "normal",
+      "keys": [
+        "s3_f4"
+      ]
+    },
+    "38": {
+      "octave": "normal",
+      "keys": [
+        "s2_f0"
+      ]
+    },
+    "39": {
+      "octave": "normal",
+      "keys": [
+        "s2_f1"
+      ]
+    },
+    "40": {
+      "octave": "normal",
+      "keys": [
+        "s2_f2"
+      ]
+    },
+    "41": {
+      "octave": "normal",
+      "keys": [
+        "s2_f3"
+      ]
+    },
+    "42": {
+      "octave": "normal",
+      "keys": [
+        "s2_f4"
+      ]
+    },
+    "43": {
+      "octave": "normal",
+      "keys": [
+        "s1_f0"
+      ]
+    },
+    "44": {
+      "octave": "normal",
+      "keys": [
+        "s1_f1"
+      ]
+    },
+    "45": {
+      "octave": "normal",
+      "keys": [
+        "s1_f2"
+      ]
+    },
+    "46": {
+      "octave": "normal",
+      "keys": [
+        "s1_f3"
+      ]
+    },
+    "47": {
+      "octave": "normal",
+      "keys": [
+        "s1_f4"
+      ]
+    },
+    "48": {
+      "octave": "normal",
+      "keys": [
+        "s1_f5"
+      ]
+    },
+    "49": {
+      "octave": "normal",
+      "keys": [
+        "s1_f6"
+      ]
+    },
+    "50": {
+      "octave": "normal",
+      "keys": [
+        "s1_f7"
+      ]
+    },
+    "51": {
+      "octave": "normal",
+      "keys": [
+        "s1_f8"
+      ]
+    },
+    "52": {
+      "octave": "normal",
+      "keys": [
+        "s1_f9"
+      ]
+    },
+    "53": {
+      "octave": "normal",
+      "keys": [
+        "s1_f10"
+      ]
+    },
+    "54": {
+      "octave": "normal",
+      "keys": [
+        "s1_f11"
+      ]
+    },
+    "55": {
+      "octave": "normal",
+      "keys": [
+        "s1_f12"
+      ]
+    },
+    "56": {
+      "octave": "normal",
+      "keys": [
+        "s1_f13"
+      ]
+    },
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "s1_f14"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "s1_f15"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "s1_f16"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "s1_f17"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "s1_f18"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "s1_f19"
+      ]
+    }
+  },
+  "alternatives": {
+    "33": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f5"
+        ]
+      }
+    ],
+    "34": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f6"
+        ]
+      }
+    ],
+    "35": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f7"
+        ]
+      }
+    ],
+    "36": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f8"
+        ]
+      }
+    ],
+    "37": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f9"
+        ]
+      }
+    ],
+    "38": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f5"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f10"
+        ]
+      }
+    ],
+    "39": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f6"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f11"
+        ]
+      }
+    ],
+    "40": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f7"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f12"
+        ]
+      }
+    ],
+    "41": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f8"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f13"
+        ]
+      }
+    ],
+    "42": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f9"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f14"
+        ]
+      }
+    ],
+    "43": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f5"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f10"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f15"
+        ]
+      }
+    ],
+    "44": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f6"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f11"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f16"
+        ]
+      }
+    ],
+    "45": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f7"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f12"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f17"
+        ]
+      }
+    ],
+    "46": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f8"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f13"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f18"
+        ]
+      }
+    ],
+    "47": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f9"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f14"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f19"
+        ]
+      }
+    ],
+    "48": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f10"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f15"
+        ]
+      }
+    ],
+    "49": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f11"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f16"
+        ]
+      }
+    ],
+    "50": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f12"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f17"
+        ]
+      }
+    ],
+    "51": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f13"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f18"
+        ]
+      }
+    ],
+    "52": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f14"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f19"
+        ]
+      }
+    ],
+    "53": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f15"
+        ]
+      }
+    ],
+    "54": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f16"
+        ]
+      }
+    ],
+    "55": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f17"
+        ]
+      }
+    ],
+    "56": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f18"
+        ]
+      }
+    ],
+    "57": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f19"
+        ]
+      }
+    ]
+  }
+}

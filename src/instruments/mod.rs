@@ -3,9 +3,11 @@ pub mod ae01;
 pub mod ae05;
 pub mod ae10;
 pub mod ae20;
+pub mod brisa;
 pub mod diagram;
 pub mod fingering;
 pub mod guitar;
+pub mod piano;
 mod sax;
 
 use self::diagram::UpperHand;
@@ -22,7 +24,36 @@ pub enum Instrument {
     Ae05,
     Ae10,
     Ae20,
+    #[value(name = "ae-brisa")]
+    #[serde(rename = "ae-brisa")]
+    AeBrisa,
+    #[value(
+        alias = "guitar-6string",
+        alias = "guitar-acoustic",
+        alias = "guitar-classical",
+        alias = "guitar-electric"
+    )]
     Guitar,
+    #[value(
+        name = "guitar-bass",
+        alias = "bass",
+        alias = "guitar-4string",
+        alias = "bass-4string"
+    )]
+    #[serde(rename = "guitar-bass")]
+    Bass,
+    #[value(name = "guitar-bass-5string", alias = "bass-5string")]
+    #[serde(rename = "guitar-bass-5string")]
+    Bass5,
+    #[value(name = "piano", alias = "piano-88")]
+    #[serde(rename = "piano")]
+    Piano,
+    #[value(name = "keyboard-76", alias = "piano-76")]
+    #[serde(rename = "keyboard-76")]
+    Keyboard76,
+    #[value(name = "keyboard-61", alias = "piano-61")]
+    #[serde(rename = "keyboard-61")]
+    Keyboard61,
 }
 
 impl Instrument {
@@ -32,7 +63,13 @@ impl Instrument {
             Self::Ae05 => "ae05",
             Self::Ae10 => "ae10",
             Self::Ae20 => "ae20",
+            Self::AeBrisa => "ae-brisa",
             Self::Guitar => "guitar",
+            Self::Bass => "guitar-bass",
+            Self::Bass5 => "guitar-bass-5string",
+            Self::Piano => "piano",
+            Self::Keyboard76 => "keyboard-76",
+            Self::Keyboard61 => "keyboard-61",
         }
     }
     pub fn name(self) -> &'static str {
@@ -41,12 +78,18 @@ impl Instrument {
             Self::Ae05 => "AE-05",
             Self::Ae10 => "AE-10",
             Self::Ae20 => "AE-20",
+            Self::AeBrisa => "AE-BRISA",
             Self::Guitar => "Guitar",
+            Self::Bass => "Bass (4 strings)",
+            Self::Bass5 => "Bass (5 strings)",
+            Self::Piano => "Piano (88 keys)",
+            Self::Keyboard76 => "Keyboard (76 keys)",
+            Self::Keyboard61 => "Keyboard (61 keys)",
         }
     }
     pub fn table_id(self) -> String {
-        if self == Self::Guitar {
-            "guitar".to_owned()
+        if self.is_fretted() || self.keyboard_range().is_some() {
+            self.id().to_owned()
         } else {
             format!("roland-{}", self.id())
         }
@@ -55,6 +98,27 @@ impl Instrument {
         crate::paths::project_root()
             .join("instruments")
             .join(format!("{}.json", self.id()))
+    }
+    pub fn is_fretted(self) -> bool {
+        matches!(self, Self::Guitar | Self::Bass | Self::Bass5)
+    }
+    /// Sounding MIDI range, with middle C = 60 (C4).
+    pub fn keyboard_range(self) -> Option<(u8, u8)> {
+        match self {
+            Self::Piano => Some((21, 108)),
+            Self::Keyboard76 => Some((28, 103)),
+            Self::Keyboard61 => Some((36, 96)),
+            _ => None,
+        }
+    }
+    /// String 1 is the highest-pitched string. Profiles use a conservative 19 frets.
+    pub fn tuning(self) -> &'static [u8] {
+        match self {
+            Self::Guitar => &[64, 59, 55, 50, 45, 40],
+            Self::Bass => &[43, 38, 33, 28],
+            Self::Bass5 => &[43, 38, 33, 28, 23],
+            _ => &[],
+        }
     }
     pub fn default_upper_hand(self) -> UpperHand {
         if self == Self::Ae01 {
@@ -89,11 +153,19 @@ mod tests {
             (Instrument::Ae10, 34, 97),
             (Instrument::Ae20, 34, 97),
             (Instrument::Guitar, 40, 83),
+            (Instrument::Bass, 28, 62),
+            (Instrument::Bass5, 23, 62),
+            (Instrument::Piano, 21, 108),
+            (Instrument::Keyboard76, 28, 103),
+            (Instrument::Keyboard61, 36, 96),
         ] {
             let table = FingeringTable::load_instrument(instrument).unwrap();
             assert_eq!(table.charted_range(), Some((low, high)));
             assert!(!table.verified);
             assert!(!table.sources.is_empty() && !table.required_settings.is_empty());
+            if instrument.is_fretted() {
+                assert_eq!(table.tuning_midi, instrument.tuning());
+            }
             for midi in low..=high {
                 table.lookup(midi).unwrap();
             }
@@ -209,7 +281,7 @@ mod diagram_tests {
                 pressed_style: PressedStyle::Sounding,
                 transition_hint: None,
             };
-            let svg = guitar::render(&state, 0.0, 0.0, 1.0, "now-");
+            let svg = guitar::render(Instrument::Guitar, &state, 0.0, 0.0, 1.0, "now-");
             assert!(svg.contains(&format!("id=\"now-{key}\"")));
             assert!(svg.contains(if key.ends_with("f0") {
                 "OPEN"
@@ -233,6 +305,25 @@ pub fn wind_svg(
         Instrument::Ae05 => ae05::render(keys, state, transform, prefix),
         Instrument::Ae10 => ae10::render(keys, state, transform, prefix),
         Instrument::Ae20 => ae20::render(keys, state, transform, prefix),
-        Instrument::Guitar => unreachable!("guitar uses its horizontal renderer"),
+        _ => unreachable!("keyboards and fretted instruments use horizontal rendering"),
+    }
+}
+
+/// Shared placement for horizontal keyboards and fretboards.
+pub fn horizontal_svg(
+    instrument: Instrument,
+    keys: &[LayoutKey],
+    state: &diagram::DiagramState,
+    x: f32,
+    y: f32,
+    scale: f32,
+    prefix: &str,
+) -> String {
+    if instrument == Instrument::AeBrisa {
+        brisa::render(keys, state, x, y, scale, prefix)
+    } else if let Some(range) = instrument.keyboard_range() {
+        piano::render(range, state, x, y, scale, prefix)
+    } else {
+        guitar::render(instrument, state, x, y, scale, prefix)
     }
 }

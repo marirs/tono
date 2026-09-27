@@ -5,6 +5,7 @@ use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
 
 use tono::commands::{demo, doctor};
+use tono::instruments::brisa::{validate_mode, FingeringMode};
 use tono::instruments::diagram::UpperHand;
 use tono::instruments::Instrument;
 use tono::music::range::RangePolicy;
@@ -19,7 +20,7 @@ use tono::render::MetronomeMode;
     about = "Turn a song into an instrument practice video",
     args_conflicts_with_subcommands = true,
     subcommand_negates_reqs = true,
-    after_help = "Example: tono song.mp3 --instrument ae01\nThe default preserves melodic intervals using a whole-melody octave shift, or reports that it cannot fit.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4; reruns replace matching outputs."
+    after_help = "Example: tono song.mp3 --instrument ae01\nPiano: --piano or --instrument piano (alias piano-88). Guitar: guitar-6string; bass: guitar-bass or guitar-bass-5string.\nThe default preserves melodic intervals using a whole-melody octave shift, or reports that it cannot fit.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4; reruns replace matching outputs."
 )]
 struct Cli {
     /// Local audio/video file (mp3/m4a/wav/flac/mov/mp4).
@@ -40,8 +41,19 @@ struct Cli {
 #[derive(Args)]
 struct PreparationArgs {
     /// Instrument profile, fingering table and diagram.
-    #[arg(long, required = true, value_enum)]
+    #[arg(
+        long,
+        required_unless_present = "piano",
+        conflicts_with = "piano",
+        value_enum
+    )]
     instrument: Option<Instrument>,
+    /// Required for AE-BRISA; must match the instrument's Fingering Mode.
+    #[arg(long, value_enum, required_if_eq("instrument", "ae-brisa"))]
+    fingering_mode: Option<FingeringMode>,
+    /// Full-size 88-key piano (shorthand for --instrument piano).
+    #[arg(long, conflicts_with = "instrument")]
+    piano: bool,
     /// Manual start (HH:MM:SS); overrides auto detection.
     #[arg(long = "from")]
     from_time: Option<String>,
@@ -74,6 +86,14 @@ struct PreparationArgs {
 }
 
 impl PreparationArgs {
+    fn selected_instrument(&self) -> Result<Instrument> {
+        if self.piano {
+            Ok(Instrument::Piano)
+        } else {
+            self.instrument
+                .context("--instrument or --piano is required")
+        }
+    }
     fn into_options(
         self,
         input: PathBuf,
@@ -83,13 +103,15 @@ impl PreparationArgs {
         if self.range_policy == Some(RangePolicy::Fold) {
             bail!("individual octave folding is disabled; use --range-policy strict to preserve the melody");
         }
-        let instrument = self.instrument.context("--instrument is required")?;
+        let instrument = self.selected_instrument()?;
+        validate_mode(instrument, self.fingering_mode)?;
         if !(0.0..=1.0).contains(&self.min_note_confidence) {
             bail!("--min-note-confidence must be between 0 and 1");
         }
         Ok(prep::PrepOptions {
             input,
             instrument,
+            fingering_mode: self.fingering_mode,
             from_timecode: self.from_time,
             to_timecode: self.to_time,
             part: self.part,
@@ -121,6 +143,9 @@ enum Commands {
     Demo {
         #[arg(long, value_enum, default_value_t = Instrument::Ae01)]
         instrument: Instrument,
+        /// Required for AE-BRISA: brisa or flute.
+        #[arg(long, value_enum, required_if_eq("instrument", "ae-brisa"))]
+        fingering_mode: Option<FingeringMode>,
         #[arg(long, default_value = "./tono-demo")]
         out: PathBuf,
         #[arg(long, default_value_t = 100.0)]
@@ -167,6 +192,7 @@ pub fn run() -> Result<()> {
         Some(Commands::Doctor { ml }) => doctor::run_doctor(ml),
         Some(Commands::Demo {
             instrument,
+            fingering_mode,
             out,
             bpm,
             backing,
@@ -174,6 +200,7 @@ pub fn run() -> Result<()> {
             keep_work,
         }) => demo::run_demo(&demo::DemoOptions {
             instrument,
+            fingering_mode,
             output_directory: out,
             beats_per_minute: bpm,
             backing_audio: backing,
@@ -189,9 +216,10 @@ pub fn run() -> Result<()> {
             let input = cli.input.expect("required by clap");
             let destination = match cli.output {
                 Some(path) => path,
-                None => output::automatic_path(
+                None => output::automatic_path_for_mode(
                     &input,
-                    cli.options.instrument.expect("required by clap"),
+                    cli.options.selected_instrument()?,
+                    cli.options.fingering_mode,
                     cli.practice_dir.as_deref(),
                     &output::local_date()?,
                 )?,
@@ -207,8 +235,113 @@ mod cli_tests {
     use super::*;
 
     #[test]
+    fn brisa_requires_a_mode_in_direct_prep_and_demo_commands() {
+        for args in [
+            vec!["tono", "song.mp3", "--instrument", "ae-brisa"],
+            vec!["tono", "prep", "song.mp3", "--instrument", "ae-brisa"],
+            vec!["tono", "demo", "--instrument", "ae-brisa"],
+        ] {
+            let error = Cli::try_parse_from(args.clone()).err().unwrap().to_string();
+            assert!(error.contains("--fingering-mode"), "{error}");
+            for mode in ["brisa", "flute"] {
+                let mut with_mode = args.clone();
+                with_mode.extend(["--fingering-mode", mode]);
+                assert!(Cli::try_parse_from(with_mode).is_ok());
+            }
+        }
+        let cli = Cli::try_parse_from([
+            "tono",
+            "song.mp3",
+            "--instrument",
+            "ae20",
+            "--fingering-mode",
+            "flute",
+        ])
+        .unwrap();
+        assert!(cli
+            .options
+            .into_options(PathBuf::from("song.mp3"), PathBuf::from("out"), None)
+            .is_err());
+        assert!(Cli::try_parse_from([
+            "tono",
+            "song.mp3",
+            "--instrument",
+            "ae-brisa",
+            "--fingering-mode",
+            "trumpet"
+        ])
+        .is_err());
+        let input = std::path::Path::new("song.mp3");
+        let brisa = output::automatic_path_for_mode(
+            input,
+            Instrument::AeBrisa,
+            Some(FingeringMode::Brisa),
+            None,
+            "20260927",
+        )
+        .unwrap();
+        let flute = output::automatic_path_for_mode(
+            input,
+            Instrument::AeBrisa,
+            Some(FingeringMode::Flute),
+            None,
+            "20260927",
+        )
+        .unwrap();
+        assert_ne!(brisa, flute);
+        assert!(flute.ends_with("song_ae-brisa_flute_20260927.mp4"));
+    }
+
+    #[test]
+    fn piano_shorthand_and_profile_aliases_are_unambiguous() {
+        for (name, expected) in [
+            ("piano", Instrument::Piano),
+            ("piano-88", Instrument::Piano),
+            ("piano-76", Instrument::Keyboard76),
+            ("piano-61", Instrument::Keyboard61),
+            ("guitar-6string", Instrument::Guitar),
+            ("guitar-electric", Instrument::Guitar),
+            ("guitar-acoustic", Instrument::Guitar),
+            ("guitar-classical", Instrument::Guitar),
+            ("guitar-4string", Instrument::Bass),
+            ("bass", Instrument::Bass),
+            ("bass-5string", Instrument::Bass5),
+        ] {
+            let cli = Cli::try_parse_from(["tono", "song.mp3", "--instrument", name]).unwrap();
+            assert_eq!(cli.options.selected_instrument().unwrap(), expected);
+        }
+        let cli =
+            Cli::try_parse_from(["tono", "song.mp3", "--piano", "--tempo-scale", "0.75"]).unwrap();
+        assert_eq!(
+            cli.options.selected_instrument().unwrap(),
+            Instrument::Piano
+        );
+        let options = cli
+            .options
+            .into_options(cli.input.unwrap(), PathBuf::from("out.tono"), None)
+            .unwrap();
+        assert_eq!(options.instrument, Instrument::Piano);
+        assert_eq!(options.tempo_scale, 0.75);
+        assert!(
+            Cli::try_parse_from(["tono", "song.mp3", "--piano", "--instrument", "ae01"]).is_err()
+        );
+        assert!(Cli::try_parse_from(["tono", "prep", "song.mp3", "--piano"]).is_ok());
+    }
+
+    #[test]
     fn every_instrument_keeps_the_shared_cli_controls() {
-        for name in ["ae01", "ae05", "ae10", "ae20", "guitar"] {
+        for name in [
+            "ae01",
+            "ae05",
+            "ae10",
+            "ae20",
+            "guitar",
+            "guitar-bass",
+            "guitar-bass-5string",
+            "piano",
+            "keyboard-76",
+            "keyboard-61",
+        ] {
             let cli = Cli::try_parse_from([
                 "tono",
                 "song.mp3",

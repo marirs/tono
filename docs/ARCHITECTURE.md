@@ -22,9 +22,11 @@ Tests remain next to the implementation they exercise.
 
 - `mod.rs`: instrument identifiers, profile paths, layout schema and wind dispatch.
 - `ae01.rs`: AE-01 control geometry and drawing.
+- `brisa.rs`: AE-BRISA mode validation, horizontal keys and breath/register cues.
 - `ae05.rs`, `ae10.rs`, `ae20.rs`: model entry points using the shared sax renderer.
 - `sax.rs`: common sax drawing, parameterized by each profile's key layout.
-- `guitar.rs`: horizontal fretboard, string/fret decoding and playing cues.
+- `guitar.rs`: horizontal guitar/bass fretboards, string/fret decoding and playing cues.
+- `piano.rs`: full keyboard overview, active-key detail and press/release cues.
 - `diagram.rs`: shared drawing state, grip labels and display primitives.
 - `fingering.rs`: profile loading/validation, note mapping and key transitions.
 
@@ -67,4 +69,10 @@ UI thread. Structured progress events and cancellation are future API work.
 
 CLI tests live in the binary's `cli.rs`; engine tests live in the library modules.
 
-All project Markdown lives in `docs/`; start with [README.md](README.md).
+The main [README](../README.md) stays at the repository root; the
+[instrument guide](../instruments/README.md) lives with its profiles. The build
+specification and architecture/testing documents live in `docs/`.
+
+For AE-BRISA, frontends must set `PrepOptions::fingering_mode` to `Brisa` or
+`Flute`; other instruments must leave it `None`. Profiles are selected with
+`FingeringTable::load_for_mode`. Mode selection is validated before ML work.

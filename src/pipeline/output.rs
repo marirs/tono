@@ -36,6 +36,28 @@ pub fn automatic_path(
         .join(filename))
 }
 
+pub fn automatic_path_for_mode(
+    input: &Path,
+    instrument: Instrument,
+    mode: Option<crate::instruments::brisa::FingeringMode>,
+    directory: Option<&Path>,
+    date: &str,
+) -> Result<PathBuf> {
+    crate::instruments::brisa::validate_mode(instrument, mode)?;
+    if let Some(mode) = mode {
+        let mut filename = input
+            .file_stem()
+            .context("input needs a filename")?
+            .to_os_string();
+        filename.push(format!("_{}_{}_{date}.mp4", instrument.id(), mode.id()));
+        Ok(directory
+            .unwrap_or_else(|| Path::new("./tono-practices"))
+            .join(filename))
+    } else {
+        automatic_path(input, instrument, directory, date)
+    }
+}
+
 pub fn validate_destination(input: &Path, video: &Path) -> Result<()> {
     let project = video.with_extension("tono");
     for (path, directory) in [(video, false), (project.as_path(), true)] {

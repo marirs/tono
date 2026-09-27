@@ -1,0 +1,1169 @@
+{
+  "version": 1,
+  "instrument": "roland-ae-brisa",
+  "modes": {
+    "brisa": {
+      "version": 1,
+      "instrument": "roland-ae-brisa",
+      "fingering_mode": "brisa",
+      "verified": false,
+      "renderer": "brisa",
+      "layout_keys": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 110,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 190,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "x": 270,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "gsharp",
+          "label": "G#",
+          "x": 300,
+          "y": 85,
+          "shape": "rect"
+        },
+        {
+          "id": "4",
+          "label": "4",
+          "x": 420,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "5",
+          "label": "5",
+          "x": 500,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "6",
+          "label": "6",
+          "x": 580,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "trill1",
+          "label": "T1",
+          "x": 380,
+          "y": 225,
+          "shape": "rect"
+        },
+        {
+          "id": "trill2",
+          "label": "T2",
+          "x": 465,
+          "y": 225,
+          "shape": "rect"
+        },
+        {
+          "id": "trill3",
+          "label": "T3",
+          "x": 545,
+          "y": 225,
+          "shape": "rect"
+        },
+        {
+          "id": "foot_eb",
+          "label": "Eb",
+          "x": 650,
+          "y": 180,
+          "shape": "rect"
+        },
+        {
+          "id": "foot_cs",
+          "label": "C#",
+          "x": 710,
+          "y": 155,
+          "shape": "rect"
+        },
+        {
+          "id": "foot_c",
+          "label": "C",
+          "x": 710,
+          "y": 220,
+          "shape": "rect"
+        },
+        {
+          "id": "thumb_left",
+          "label": "L",
+          "x": 100,
+          "y": 285,
+          "shape": "rect"
+        },
+        {
+          "id": "thumb_right",
+          "label": "R",
+          "x": 175,
+          "y": 285,
+          "shape": "rect"
+        },
+        {
+          "id": "breath_both",
+          "label": "BOTH",
+          "x": 355,
+          "y": 310,
+          "shape": "rect"
+        },
+        {
+          "id": "breath_upper",
+          "label": "UPPER",
+          "x": 520,
+          "y": 310,
+          "shape": "rect"
+        }
+      ],
+      "required_settings": "AE-BRISA: Fingering Mode Brisa; transpose 0; tone octave 0; factory key/breath mapping",
+      "coverage": "Chart C4-C#5 plus documented +1/+2 octave buttons: MIDI 60-97; extra trill-derived pitches not added",
+      "key_semantics": "1-6 and named levers are physical keys; thumb_left/right are rear keys as viewed in Roland chart; breath_* are breath instructions, NOT keys",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/AE-BRISA_Fingering_Chart_multi01_W.pdf",
+          "pages": [
+            1
+          ],
+          "method": "reviewed chart diagrams; only Brisa octave-button expansion is derived"
+        },
+        {
+          "url": "https://static.roland.com/manuals/ae-brisa_reference/en-US/334327947338651915.html",
+          "method": "rear octave-key operations"
+        }
+      ],
+      "fingerings": {
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_c",
+            "foot_cs"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_c"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        "63": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_eb"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "5"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "gsharp"
+          ]
+        },
+        "69": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2"
+          ]
+        },
+        "70": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "trill1"
+          ]
+        },
+        "71": {
+          "octave": "normal",
+          "keys": [
+            "1"
+          ]
+        },
+        "72": {
+          "octave": "normal",
+          "keys": [
+            "2"
+          ]
+        },
+        "73": {
+          "octave": "normal",
+          "keys": []
+        },
+        "74": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "thumb_right"
+          ]
+        },
+        "75": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_eb",
+            "thumb_right"
+          ]
+        },
+        "76": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "thumb_right"
+          ]
+        },
+        "77": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "thumb_right"
+          ]
+        },
+        "78": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "5",
+            "thumb_right"
+          ]
+        },
+        "79": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "thumb_right"
+          ]
+        },
+        "80": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "gsharp",
+            "thumb_right"
+          ]
+        },
+        "81": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "thumb_right"
+          ]
+        },
+        "82": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "trill1",
+            "thumb_right"
+          ]
+        },
+        "83": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "thumb_right"
+          ]
+        },
+        "84": {
+          "octave": "normal",
+          "keys": [
+            "2",
+            "thumb_right"
+          ]
+        },
+        "85": {
+          "octave": "normal",
+          "keys": [
+            "thumb_right"
+          ]
+        },
+        "86": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "87": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_eb",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "88": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "89": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "90": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "5",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "91": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "92": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "gsharp",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "93": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "94": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "trill1",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "95": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "96": {
+          "octave": "normal",
+          "keys": [
+            "2",
+            "thumb_left",
+            "thumb_right"
+          ]
+        },
+        "97": {
+          "octave": "normal",
+          "keys": [
+            "thumb_left",
+            "thumb_right"
+          ]
+        }
+      },
+      "alternatives": {
+        "72": [
+          {
+            "octave": "normal",
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "foot_c",
+              "foot_cs",
+              "thumb_right"
+            ]
+          }
+        ],
+        "73": [
+          {
+            "octave": "normal",
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "foot_c",
+              "thumb_right"
+            ]
+          }
+        ],
+        "84": [
+          {
+            "octave": "normal",
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "foot_c",
+              "foot_cs",
+              "thumb_left",
+              "thumb_right"
+            ]
+          }
+        ],
+        "85": [
+          {
+            "octave": "normal",
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "foot_c",
+              "thumb_left",
+              "thumb_right"
+            ]
+          }
+        ]
+      }
+    },
+    "flute": {
+      "version": 1,
+      "instrument": "roland-ae-brisa",
+      "fingering_mode": "flute",
+      "verified": false,
+      "renderer": "brisa",
+      "layout_keys": [
+        {
+          "id": "1",
+          "label": "1",
+          "x": 110,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "2",
+          "label": "2",
+          "x": 190,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "3",
+          "label": "3",
+          "x": 270,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "gsharp",
+          "label": "G#",
+          "x": 300,
+          "y": 85,
+          "shape": "rect"
+        },
+        {
+          "id": "4",
+          "label": "4",
+          "x": 420,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "5",
+          "label": "5",
+          "x": 500,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "6",
+          "label": "6",
+          "x": 580,
+          "y": 150,
+          "shape": "circle"
+        },
+        {
+          "id": "trill1",
+          "label": "T1",
+          "x": 380,
+          "y": 225,
+          "shape": "rect"
+        },
+        {
+          "id": "trill2",
+          "label": "T2",
+          "x": 465,
+          "y": 225,
+          "shape": "rect"
+        },
+        {
+          "id": "trill3",
+          "label": "T3",
+          "x": 545,
+          "y": 225,
+          "shape": "rect"
+        },
+        {
+          "id": "foot_eb",
+          "label": "Eb",
+          "x": 650,
+          "y": 180,
+          "shape": "rect"
+        },
+        {
+          "id": "foot_cs",
+          "label": "C#",
+          "x": 710,
+          "y": 155,
+          "shape": "rect"
+        },
+        {
+          "id": "foot_c",
+          "label": "C",
+          "x": 710,
+          "y": 220,
+          "shape": "rect"
+        },
+        {
+          "id": "thumb_left",
+          "label": "L",
+          "x": 100,
+          "y": 285,
+          "shape": "rect"
+        },
+        {
+          "id": "thumb_right",
+          "label": "R",
+          "x": 175,
+          "y": 285,
+          "shape": "rect"
+        },
+        {
+          "id": "breath_both",
+          "label": "BOTH",
+          "x": 355,
+          "y": 310,
+          "shape": "rect"
+        },
+        {
+          "id": "breath_upper",
+          "label": "UPPER",
+          "x": 520,
+          "y": 310,
+          "shape": "rect"
+        }
+      ],
+      "required_settings": "AE-BRISA: Fingering Mode Flute; transpose 0; tone octave 0; factory key/breath mapping",
+      "coverage": "Charted C4-C7 (MIDI 60-96); lower-register C5/C#5 primary, upper-hole alternatives preserved; uncharted alternatives excluded",
+      "key_semantics": "1-6 and named levers are physical keys; thumb_left/right are rear keys as viewed in Roland chart; breath_* are breath instructions, NOT keys",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/AE-BRISA_Fingering_Chart_multi01_W.pdf",
+          "pages": [
+            2
+          ],
+          "method": "reviewed chart diagrams; only Brisa octave-button expansion is derived"
+        },
+        {
+          "url": "https://static.roland.com/manuals/ae-brisa_reference/en-US/334327947338651915.html",
+          "method": "rear octave-key operations"
+        }
+      ],
+      "fingerings": {
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_c",
+            "foot_cs",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_c",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "63": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "6",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "foot_eb",
+            "gsharp",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "69": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "70": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "4",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "71": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "foot_eb",
+            "thumb_right",
+            "breath_both"
+          ]
+        },
+        "72": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "foot_eb",
+            "breath_both"
+          ]
+        },
+        "73": {
+          "octave": "normal",
+          "keys": [
+            "foot_eb",
+            "breath_both"
+          ]
+        },
+        "74": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "75": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "76": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "77": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "78": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "6",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "79": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "80": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "foot_eb",
+            "gsharp",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "81": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "82": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "4",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "83": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "84": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "foot_eb",
+            "breath_upper"
+          ]
+        },
+        "85": {
+          "octave": "normal",
+          "keys": [
+            "foot_eb",
+            "breath_upper"
+          ]
+        },
+        "86": {
+          "octave": "normal",
+          "keys": [
+            "2",
+            "3",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "87": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "foot_eb",
+            "gsharp",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "88": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "4",
+            "5",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "89": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "3",
+            "4",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "90": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "3",
+            "6",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "91": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "foot_eb",
+            "breath_upper"
+          ]
+        },
+        "92": {
+          "octave": "normal",
+          "keys": [
+            "2",
+            "3",
+            "foot_eb",
+            "gsharp",
+            "breath_upper"
+          ]
+        },
+        "93": {
+          "octave": "normal",
+          "keys": [
+            "2",
+            "4",
+            "foot_eb",
+            "thumb_right",
+            "breath_upper"
+          ]
+        },
+        "94": {
+          "octave": "normal",
+          "keys": [
+            "4",
+            "thumb_right",
+            "trill2",
+            "breath_upper"
+          ]
+        },
+        "95": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "3",
+            "thumb_right",
+            "trill3",
+            "breath_upper"
+          ]
+        },
+        "96": {
+          "octave": "normal",
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "gsharp",
+            "breath_upper"
+          ]
+        }
+      },
+      "alternatives": {
+        "72": [
+          {
+            "octave": "normal",
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "foot_c",
+              "foot_cs",
+              "thumb_right",
+              "breath_upper"
+            ]
+          }
+        ],
+        "73": [
+          {
+            "octave": "normal",
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "foot_c",
+              "thumb_right",
+              "breath_upper"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

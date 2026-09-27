@@ -32,7 +32,7 @@ fn pitch_y(midi: u8, bottom: f32) -> f32 {
 fn staff_register(midi: u8) -> (u8, &'static str) {
     let mut written = midi as i32;
     let mut octaves = 0;
-    while written < 55 {
+    while written < 59 {
         written += 12;
         octaves -= 1;
     }
@@ -41,10 +41,14 @@ fn staff_register(midi: u8) -> (u8, &'static str) {
         octaves += 1;
     }
     let mark = match octaves {
+        -4 => "29mb",
+        -3 => "22mb",
         -2 => "15mb",
         -1 => "8vb",
         1 => "8va",
         2 => "15ma",
+        3 => "22ma",
+        4 => "29ma",
         _ => "",
     };
     (written as u8, mark)
@@ -168,11 +172,15 @@ mod tests {
     use super::*;
     #[test]
     fn full_profile_ranges_keep_staff_visible_without_changing_pitch_class() {
-        for midi in 34..=97 {
+        for midi in 21..=108 {
             let (written, mark) = staff_register(midi);
             assert_eq!(written % 12, midi % 12);
-            assert!((55..=84).contains(&written));
+            assert!((59..=84).contains(&written));
             assert_eq!(mark.is_empty(), written == midi);
+            assert!(
+                pitch_y(written, 550.0) <= 580.0,
+                "ledger lines must not overlap pitch labels"
+            );
         }
         assert_eq!(staff_register(40), (64, "15mb"));
         assert_eq!(staff_register(97), (73, "15ma"));

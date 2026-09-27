@@ -1,0 +1,382 @@
+{
+  "version": 1,
+  "instrument": "keyboard-61",
+  "verified": false,
+  "renderer": "piano",
+  "required_settings": "61 keys; transpose 0; middle C = C4; single-note melody; no finger numbers",
+  "sources": [
+    {
+      "url": "https://uk.yamaha.com/files/download/other_assets/3/2291233/PSR-E383_reference_manual_En_B0_web.pdf",
+      "method": "documented keyboard endpoints mapped to sounding MIDI; Yamaha C3 = MIDI 60 / scientific C4"
+    }
+  ],
+  "fingerings": {
+    "36": {
+      "octave": "normal",
+      "keys": [
+        "key_36"
+      ]
+    },
+    "37": {
+      "octave": "normal",
+      "keys": [
+        "key_37"
+      ]
+    },
+    "38": {
+      "octave": "normal",
+      "keys": [
+        "key_38"
+      ]
+    },
+    "39": {
+      "octave": "normal",
+      "keys": [
+        "key_39"
+      ]
+    },
+    "40": {
+      "octave": "normal",
+      "keys": [
+        "key_40"
+      ]
+    },
+    "41": {
+      "octave": "normal",
+      "keys": [
+        "key_41"
+      ]
+    },
+    "42": {
+      "octave": "normal",
+      "keys": [
+        "key_42"
+      ]
+    },
+    "43": {
+      "octave": "normal",
+      "keys": [
+        "key_43"
+      ]
+    },
+    "44": {
+      "octave": "normal",
+      "keys": [
+        "key_44"
+      ]
+    },
+    "45": {
+      "octave": "normal",
+      "keys": [
+        "key_45"
+      ]
+    },
+    "46": {
+      "octave": "normal",
+      "keys": [
+        "key_46"
+      ]
+    },
+    "47": {
+      "octave": "normal",
+      "keys": [
+        "key_47"
+      ]
+    },
+    "48": {
+      "octave": "normal",
+      "keys": [
+        "key_48"
+      ]
+    },
+    "49": {
+      "octave": "normal",
+      "keys": [
+        "key_49"
+      ]
+    },
+    "50": {
+      "octave": "normal",
+      "keys": [
+        "key_50"
+      ]
+    },
+    "51": {
+      "octave": "normal",
+      "keys": [
+        "key_51"
+      ]
+    },
+    "52": {
+      "octave": "normal",
+      "keys": [
+        "key_52"
+      ]
+    },
+    "53": {
+      "octave": "normal",
+      "keys": [
+        "key_53"
+      ]
+    },
+    "54": {
+      "octave": "normal",
+      "keys": [
+        "key_54"
+      ]
+    },
+    "55": {
+      "octave": "normal",
+      "keys": [
+        "key_55"
+      ]
+    },
+    "56": {
+      "octave": "normal",
+      "keys": [
+        "key_56"
+      ]
+    },
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "key_57"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "key_58"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "key_59"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "key_60"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "key_61"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "key_62"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "key_63"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "key_64"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "key_65"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "key_66"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "key_67"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "key_68"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "key_69"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "key_70"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "key_71"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "key_72"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": [
+        "key_73"
+      ]
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "key_74"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "key_75"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "key_76"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "key_77"
+      ]
+    },
+    "78": {
+      "octave": "normal",
+      "keys": [
+        "key_78"
+      ]
+    },
+    "79": {
+      "octave": "normal",
+      "keys": [
+        "key_79"
+      ]
+    },
+    "80": {
+      "octave": "normal",
+      "keys": [
+        "key_80"
+      ]
+    },
+    "81": {
+      "octave": "normal",
+      "keys": [
+        "key_81"
+      ]
+    },
+    "82": {
+      "octave": "normal",
+      "keys": [
+        "key_82"
+      ]
+    },
+    "83": {
+      "octave": "normal",
+      "keys": [
+        "key_83"
+      ]
+    },
+    "84": {
+      "octave": "normal",
+      "keys": [
+        "key_84"
+      ]
+    },
+    "85": {
+      "octave": "normal",
+      "keys": [
+        "key_85"
+      ]
+    },
+    "86": {
+      "octave": "normal",
+      "keys": [
+        "key_86"
+      ]
+    },
+    "87": {
+      "octave": "normal",
+      "keys": [
+        "key_87"
+      ]
+    },
+    "88": {
+      "octave": "normal",
+      "keys": [
+        "key_88"
+      ]
+    },
+    "89": {
+      "octave": "normal",
+      "keys": [
+        "key_89"
+      ]
+    },
+    "90": {
+      "octave": "normal",
+      "keys": [
+        "key_90"
+      ]
+    },
+    "91": {
+      "octave": "normal",
+      "keys": [
+        "key_91"
+      ]
+    },
+    "92": {
+      "octave": "normal",
+      "keys": [
+        "key_92"
+      ]
+    },
+    "93": {
+      "octave": "normal",
+      "keys": [
+        "key_93"
+      ]
+    },
+    "94": {
+      "octave": "normal",
+      "keys": [
+        "key_94"
+      ]
+    },
+    "95": {
+      "octave": "normal",
+      "keys": [
+        "key_95"
+      ]
+    },
+    "96": {
+      "octave": "normal",
+      "keys": [
+        "key_96"
+      ]
+    }
+  },
+  "alternatives": {}
+}
