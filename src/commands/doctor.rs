@@ -144,15 +144,14 @@ fn component_outcome(status: ComponentStatus, require_ml: bool) -> CheckOutcome 
 /// Runs the worker's self-check. Returns the worker outcome plus one
 /// outcome per ML module/model it reported.
 fn check_ml_worker(require_ml: bool) -> (CheckOutcome, Vec<(String, CheckOutcome)>) {
-    let Some(python) = paths::python_executable() else {
-        return (CheckOutcome::Fail("no python".into()), Vec::new());
+    let Ok(mut command) = paths::python_command() else {
+        return (
+            CheckOutcome::Fail("no python; run tono setup".into()),
+            Vec::new(),
+        );
     };
     let script = paths::ml_worker_script();
-    let output = match Command::new(&python)
-        .arg(&script)
-        .arg("--self-check")
-        .output()
-    {
+    let output = match command.arg(&script).arg("--self-check").output() {
         Ok(output) => output,
         Err(error) => {
             return (

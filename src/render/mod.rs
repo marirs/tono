@@ -188,8 +188,14 @@ pub fn render_practice_video(
 
 fn svg_options_with_system_fonts() -> usvg::Options<'static> {
     let mut options = usvg::Options::default();
-    options.font_family = "Helvetica".to_owned();
+    options.font_family = "DejaVu Sans".to_owned();
     options.fontdb_mut().load_system_fonts();
+    if let Some(root) = crate::runtime::installed_root() {
+        options.fontdb_mut().load_fonts_dir(root.join("fonts"));
+        options
+            .fontdb_mut()
+            .load_fonts_dir(root.join("share/fonts"));
+    }
     options
 }
 

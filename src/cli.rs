@@ -147,6 +147,8 @@ impl PreparationArgs {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Prepare the private audio/ML runtime (also automatic on first render).
+    Setup,
     /// Check ffmpeg, python and the ML worker.
     Doctor {
         /// Treat missing ML packages/models as failures.
@@ -222,6 +224,11 @@ fn print_header(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
 pub fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        Some(Commands::Setup) => {
+            print_header(None, None)?;
+            tono::runtime::ensure_ready_cli()?;
+            doctor::run_doctor(true)
+        }
         Some(Commands::Doctor { ml }) => {
             print_header(None, None)?;
             doctor::run_doctor(ml)
@@ -280,6 +287,12 @@ pub fn run() -> Result<()> {
 #[cfg(test)]
 mod cli_tests {
     use super::*;
+
+    #[test]
+    fn setup_needs_no_song_or_instrument() {
+        let cli = Cli::try_parse_from(["tono", "setup"]).unwrap();
+        assert!(matches!(cli.command, Some(Commands::Setup)));
+    }
 
     #[test]
     fn title_override_reaches_direct_and_prep_options() {

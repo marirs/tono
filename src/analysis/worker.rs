@@ -71,8 +71,7 @@ pub struct WorkerPaths<'a> {
 }
 
 fn worker_command() -> Result<Command> {
-    let python = paths::python_executable().context("python not found; run `tono doctor --ml`")?;
-    let mut command = Command::new(python);
+    let mut command = paths::python_command()?;
     command
         .arg(paths::ml_worker_script())
         // Runs must never download models; setup_venv.sh does that.

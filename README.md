@@ -10,6 +10,16 @@ Bring a song. Pick the part you want to play. Choose an instrument. Tono helps y
 
 ---
 
+## Downloads
+
+Portable release packaging is in development: a small executable that sets up
+its audio/ML tools automatically, plus an offline ZIP with everything included.
+Users will not need to install Python or FFmpeg themselves. The same setup API
+will serve a future GUI. No public portable release is published yet.
+
+See [download options and platform status](docs/DISTRIBUTION.md). Existing source
+installation and CLI options continue to work.
+
 ## Why Tono?
 
 A lot of music-learning software starts with lessons, exercises, scales, and a fixed song catalogue.

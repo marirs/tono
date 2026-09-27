@@ -1,0 +1,10 @@
+name: tono-release
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - setuptools>=77,<81
+  - ffmpeg
+  - font-ttf-dejavu-sans-mono
+  - conda-pack=0.8.1

@@ -4,20 +4,15 @@ use crate::{
     pipeline::prep::{self, PrepOptions},
 };
 use anyhow::{bail, Context, Result};
-use std::os::unix::fs::{DirBuilderExt, MetadataExt};
+#[cfg(unix)]
+use std::os::unix::fs::DirBuilderExt;
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 pub fn local_date() -> Result<String> {
-    let output = Command::new("/bin/date").arg("+%Y%m%d").output()?;
-    let date = String::from_utf8(output.stdout)?.trim().to_owned();
-    if !output.status.success() || date.len() != 8 || !date.bytes().all(|b| b.is_ascii_digit()) {
-        bail!("could not determine the local date for the output filename");
-    }
-    Ok(date)
+    Ok(chrono::Local::now().format("%Y%m%d").to_string())
 }
 
 pub fn automatic_path(
@@ -79,10 +74,8 @@ pub fn validate_destination(input: &Path, video: &Path) -> Result<()> {
     if input == video {
         bail!("output must not overwrite the input file");
     }
-    if let (Ok(source), Ok(target)) = (fs::metadata(input), fs::metadata(video)) {
-        if source.dev() == target.dev() && source.ino() == target.ino() {
-            bail!("output must not overwrite the input file");
-        }
+    if input.exists() && video.exists() && same_file::is_same_file(input, video)? {
+        bail!("output must not overwrite the input file");
     }
     if let (Ok(source), Ok(directory)) = (input.canonicalize(), project.canonicalize()) {
         if source.starts_with(directory) {
@@ -98,14 +91,24 @@ fn private_directory(parent: &Path, prefix: &str) -> Result<PathBuf> {
         .duration_since(std::time::UNIX_EPOCH)?
         .as_nanos();
     let path = parent.join(format!("{prefix}-{}-{nonce}", std::process::id()));
-    fs::DirBuilder::new().mode(0o700).create(&path)?;
+    let mut builder = fs::DirBuilder::new();
+    #[cfg(unix)]
+    builder.mode(0o700);
+    builder.create(&path)?;
     Ok(path)
 }
 
 fn copy_tree(source: &Path, target: &Path) -> Result<()> {
     let meta = fs::symlink_metadata(source)?;
     if meta.file_type().is_symlink() {
+        #[cfg(unix)]
         std::os::unix::fs::symlink(fs::read_link(source)?, target)?;
+        #[cfg(windows)]
+        if source.is_dir() {
+            std::os::windows::fs::symlink_dir(fs::read_link(source)?, target)?;
+        } else {
+            std::os::windows::fs::symlink_file(fs::read_link(source)?, target)?;
+        }
     } else if meta.is_dir() {
         fs::create_dir_all(target)?;
         for entry in fs::read_dir(source)? {
@@ -203,6 +206,7 @@ pub fn run(options: &PrepOptions) -> Result<()> {
         let home = std::env::var_os("CODEX_HOME")
             .map(PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|p| PathBuf::from(p).join(".codex")))
+            .or_else(|| directories::BaseDirs::new().map(|d| d.home_dir().join(".codex")))
             .context("cannot locate recovery directory")?;
         private_directory(&home.join("artifacts/tono"), "previous-practice")?
     } else {

@@ -38,4 +38,4 @@ pub struct DiagramState<'a> {
     pub transition_hint: Option<&'a KeyTransition>,
 }
 
-pub const FONT_FAMILY: &str = "Helvetica Neue, Helvetica, Arial, sans-serif";
+pub const FONT_FAMILY: &str = "Helvetica Neue, Helvetica, Arial, DejaVu Sans, sans-serif";

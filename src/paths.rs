@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 
 /// Root containing `instruments/` and `ml/`.
 ///
-/// v0 is a private prototype run from the source checkout, so we default to
-/// the crate directory baked in at compile time. `TONO_ROOT` overrides it for
-/// a relocated checkout.
+/// Release builds use their private runtime. Source builds retain the checkout;
+/// `TONO_ROOT` explicitly selects a developer/custom resource directory.
 pub fn project_root() -> PathBuf {
     env::var_os("TONO_ROOT")
         .map(PathBuf::from)
+        .or_else(crate::runtime::release_root)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")))
 }
 
@@ -25,13 +25,22 @@ pub fn find_executable(name: &str, override_env_var: &str) -> Option<PathBuf> {
         let explicit_path = PathBuf::from(explicit);
         return is_executable_file(&explicit_path).then_some(explicit_path);
     }
+    if let Some(root) = crate::runtime::installed_root() {
+        let path = crate::runtime::tool_at(&root, name);
+        if is_executable_file(&path) {
+            return Some(path);
+        }
+    }
+    if crate::runtime::release_manifest().ok().flatten().is_some() {
+        return None;
+    }
     let path_directories = env::var_os("PATH")
         .map(|raw| env::split_paths(&raw).collect::<Vec<_>>())
         .unwrap_or_default();
     path_directories
         .into_iter()
         .chain(FALLBACK_BINARY_DIRECTORIES.iter().map(PathBuf::from))
-        .map(|directory| directory.join(name))
+        .map(|directory| directory.join(format!("{name}{}", std::env::consts::EXE_SUFFIX)))
         .find(|candidate| is_executable_file(candidate))
 }
 
@@ -49,7 +58,17 @@ pub fn python_executable() -> Option<PathBuf> {
     if env::var_os("TONO_PYTHON").is_some() {
         return find_executable("python3", "TONO_PYTHON");
     }
-    let venv_python = ml_virtualenv_dir().join("bin/python");
+    if let Some(root) = crate::runtime::installed_root() {
+        return Some(crate::runtime::python_at(&root));
+    }
+    if crate::runtime::release_manifest().ok().flatten().is_some() {
+        return None;
+    }
+    let venv_python = ml_virtualenv_dir().join(if cfg!(windows) {
+        "Scripts/python.exe"
+    } else {
+        "bin/python"
+    });
     if is_executable_file(&venv_python) {
         return Some(venv_python);
     }
@@ -57,7 +76,7 @@ pub fn python_executable() -> Option<PathBuf> {
 }
 
 pub fn ml_virtualenv_dir() -> PathBuf {
-    project_root().join("ml/.venv")
+    crate::runtime::installed_root().unwrap_or_else(|| project_root().join("ml/.venv"))
 }
 
 /// The researched AE-01 fingering table (spec "AE-01 fingering").
@@ -71,8 +90,26 @@ pub fn ml_worker_script() -> PathBuf {
 }
 
 fn is_executable_file(path: &Path) -> bool {
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::metadata(path)
-        .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
-        .unwrap_or(false)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        return std::fs::metadata(path)
+            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false);
+    }
+    #[cfg(not(unix))]
+    {
+        path.is_file()
+    }
+}
+
+pub fn python_command() -> anyhow::Result<std::process::Command> {
+    use anyhow::Context;
+    let mut command = std::process::Command::new(
+        python_executable().context("Python unavailable; run tono setup")?,
+    );
+    if let Some(root) = crate::runtime::installed_root() {
+        crate::runtime::configure_command(&mut command, &root)?;
+    }
+    Ok(command)
 }

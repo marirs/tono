@@ -90,10 +90,6 @@ pub fn run_prep(options: &PrepOptions) -> Result<()> {
 }
 
 pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<()> {
-    crate::instruments::fingering::FingeringTable::load_for_mode(
-        options.instrument,
-        options.fingering_mode,
-    )?;
     if !options.input.is_file() {
         bail!("input not found: {}", options.input.display());
     }
@@ -101,6 +97,12 @@ pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<
     if !crate::pipeline::practice::TEMPO_SCALE_RANGE.contains(&options.tempo_scale) {
         bail!("--tempo-scale must be between 0.5 and 2.0");
     }
+    crate::instruments::brisa::validate_mode(options.instrument, options.fingering_mode)?;
+    crate::runtime::ensure_ready_cli()?;
+    crate::instruments::fingering::FingeringTable::load_for_mode(
+        options.instrument,
+        options.fingering_mode,
+    )?;
     let ffmpeg = paths::ffmpeg_executable().context("ffmpeg not found; run `tono doctor`")?;
     let ffprobe = paths::ffprobe_executable().context("ffprobe not found; run `tono doctor`")?;
 

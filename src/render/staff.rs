@@ -97,7 +97,7 @@ pub fn staff_svg(timeline: &PracticeTimeline, state: NowState, count: Option<u8>
         }
         let _ = write!(
             svg,
-            r##"<text x="1060" y="{y}" font-family="Apple Symbols" font-size="114" fill="#aab2bf">𝄞</text>"##,
+            r##"<text x="1060" y="{y}" font-family="Apple Symbols, Noto Music" font-size="114" fill="#aab2bf">𝄞</text>"##,
             y = bottom + 13.0
         );
         for column in 0..NOTES_PER_ROW {
@@ -156,7 +156,7 @@ pub fn staff_svg(timeline: &PracticeTimeline, state: NowState, count: Option<u8>
             let accidental = if sharp { "♯" } else { "♮" };
             let _ = write!(
                 svg,
-                r##"<g id="staff-note-{index}"><text x="{ax}" y="{ay}" font-family="Apple Symbols" font-size="35" fill="{color}" text-anchor="middle">{accidental}</text><ellipse cx="{x}" cy="{y}" rx="14" ry="10" transform="rotate(-18 {x} {y})" fill="{color}"/><text x="{x}" y="{label_y}" font-size="23" fill="{color}" text-anchor="middle">{name}{octave}</text></g>"##,
+                r##"<g id="staff-note-{index}"><text x="{ax}" y="{ay}" font-family="Apple Symbols, Noto Music" font-size="35" fill="{color}" text-anchor="middle">{accidental}</text><ellipse cx="{x}" cy="{y}" rx="14" ry="10" transform="rotate(-18 {x} {y})" fill="{color}"/><text x="{x}" y="{label_y}" font-size="23" fill="{color}" text-anchor="middle">{name}{octave}</text></g>"##,
                 ax = x - 32.0,
                 ay = y + 11.0,
                 label_y = bottom + 65.0

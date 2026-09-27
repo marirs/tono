@@ -1,0 +1,12 @@
+[
+  {
+    "name": "NotoMusic-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/f5fa328ce3f3db9edeebb0695b93ce639dd65177/ofl/notomusic/NotoMusic-Regular.ttf",
+    "sha256": "e913be269fe16723d1dea0afc3c31a28be6958f6a7f0e6d5be6e98506c4022bd"
+  },
+  {
+    "name": "OFL.txt",
+    "url": "https://raw.githubusercontent.com/google/fonts/f5fa328ce3f3db9edeebb0695b93ce639dd65177/ofl/notomusic/OFL.txt",
+    "sha256": "1679cb60544990b4c2445320c6d5298e4bb0c08ff00dbb5a526f3793fdaa1e6f"
+  }
+]

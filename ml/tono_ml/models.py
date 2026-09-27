@@ -14,7 +14,7 @@ DEMUCS_MODEL_NAME = "htdemucs"
 DEMUCS_HF_REPO = "adefossez/HTDemucs"  # demucs>=4.1 loads bags from the HF hub
 
 # PANNs Cnn14 with frame-level output (AudioSet sound event detection).
-PANNS_SED_CHECKPOINT = Path.home() / "panns_data" / "Cnn14_DecisionLevelMax.pth"
+PANNS_SED_CHECKPOINT = Path(os.environ.get("TONO_PANNS_DIR", Path.home() / "panns_data")) / "Cnn14_DecisionLevelMax.pth"
 PANNS_SED_URL = "https://zenodo.org/record/3987831/files/Cnn14_DecisionLevelMax_mAP%3D0.385.pth?download=1"
 PANNS_SED_MIN_BYTES = 3e8  # same sanity bound panns_inference uses
 

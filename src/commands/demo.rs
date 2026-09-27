@@ -42,6 +42,7 @@ pub fn run_demo(options: &DemoOptions) -> Result<()> {
             bail!("--backing file not found: {}", backing.display());
         }
     }
+    crate::runtime::ensure_ready_cli()?;
     let ffmpeg = paths::ffmpeg_executable().context("ffmpeg not found; run `tono doctor`")?;
     let ffprobe = paths::ffprobe_executable().context("ffprobe not found; run `tono doctor`")?;
 

@@ -87,3 +87,15 @@ specification and architecture/testing documents live in `docs/`.
 For AE-BRISA, frontends must set `PrepOptions::fingering_mode` to `Brisa` or
 `Flute`; other instruments must leave it `None`. Profiles are selected with
 `FingeringTable::load_for_mode`. Mode selection is validated before ML work.
+
+## Private release runtime
+
+`runtime::ensure_ready(callback)` installs a checksum-pinned runtime into OS user
+app data. The CLI calls it automatically before rendering; a GUI can call it on
+its background worker with structured setup progress. `tono setup` is optional;
+`doctor` stays read-only. Source builds retain the developer environment.
+
+Release builds embed their scripts/profiles and runtime manifest. The installed
+runtime supplies Python, FFmpeg, fonts and offline model caches. Python worker
+subprocesses get isolated environment variables; the host process is unchanged.
+See [distribution](DISTRIBUTION.md) for packaging, checks and platform limits.
