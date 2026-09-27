@@ -11,3 +11,8 @@ librosa
 # resampy<0.4.3 (pinned by basic-pitch) imports pkg_resources, removed from
 # setuptools >= 81; torch needs >= 77.
 setuptools>=77,<81
+
+# Numba 0.62.x is the last release with Intel macOS binary wheels.
+# Newer versions fall back to building llvmlite and require a separate LLVM SDK.
+numba==0.62.1; sys_platform == "darwin" and platform_machine == "x86_64"
+llvmlite==0.45.1; sys_platform == "darwin" and platform_machine == "x86_64"

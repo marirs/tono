@@ -128,6 +128,7 @@ impl FingeringTable {
             "roland-ae20",
             "roland-ae-brisa",
             "yamaha-yds120",
+            "yamaha-yvs120",
             "yamaha-yds150",
             "guitar",
             "guitar-bass",
@@ -280,6 +281,16 @@ impl FingeringTable {
                     if self.instrument == "flute" && fingering.keys.iter().any(|k| k == "B") {
                         bail!("C-foot flute has no low B key");
                     }
+                }
+            }
+            if self.instrument == "yamaha-yvs120" {
+                if fingering.octave != OctaveShift::Normal {
+                    bail!("Venova requires explicit thumb-hole and octave-key states");
+                }
+                if fingering.keys.iter().any(|k| k == "8vent")
+                    && fingering.keys.iter().any(|k| k == "8h" || k == "8key")
+                {
+                    bail!("Venova vented thumb requires the octave key released");
                 }
             }
             if self.instrument.starts_with("yamaha-yds") && fingering.octave != OctaveShift::Normal

@@ -10,6 +10,7 @@ validate a profile; invalid or missing data fails before processing the source.
 | ae05 | Vertical sax controls | 46–85 | Sax, transpose 0, tone octave shift 0 |
 | ae10 | Vertical sax controls | 34–97 | Sax, transpose 0, tone octave shift 0, Oct Key OCT2 |
 | ae20 | Vertical sax controls | 34–97 | Sax, transpose 0, tone octave shift 0, Octave Key Oct2 |
+| Yamaha YVS-120 (`yvs120`) | Vertical Alto Venova | MIDI 53–77 (F3–F5) | German fingering; sounding pitch; thumb-hole and octave-key cues |
 | yds120 | Vertical sax controls | 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
 | yds150 | Vertical sax controls | 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
 | guitar | Horizontal fretboard | 40–83 | Six strings, E2 A2 D3 G3 B3 E4, no capo, frets 0–19 |
@@ -329,3 +330,27 @@ Without it, the input filename without its final extension becomes the title
 `project.json`; long video headings are shortened to fit. This also works with
 `tono prep`. Titles do not change output filenames. No online recognition or API
 key is needed.
+
+## Yamaha YVS-120 Alto Venova
+
+```bash
+tono song.mp3 --instrument yvs120 --tempo-scale 0.75
+tono demo --instrument yvs120 --out /tmp/tono-venova-demo
+```
+
+Aliases: `yvs-120`, `alto-venova`. This acoustic instrument is distinct from the
+YDS digital saxophones. Its profile uses Yamaha’s **concert-pitch** chart, F3–F5
+(MIDI 53–77), so the melody and backing stay in the same pitch system. The staff
+shows sounding pitch, not transposed Venova-in-F notation.
+
+The vertical diagram uses Yamaha’s numbered controls, mouthpiece at the top:
+left-hand 7/6/5, right-hand 4/3/2/1, rear left-thumb 8. Paired lower keys and the
+separate hole and 4A/4B controls at 4 are shown individually. At thumb 8,
+partly covering the hole (3/4, key released) differs from sealing it and pressing
+the octave key. Charted alternatives are retained. Breath and embouchure still
+matter, especially for chromatic notes; the diagram cannot guarantee intonation.
+
+Source: [Yamaha YVS-120 Let’s Play Venova](https://data.yamaha.com/files/download/other_assets/0/1259560/venova_yvs-120_en_started_e0.pdf),
+printed pp. 102–103 (concert-pitch chart), 17 and 92–93 (controls). The JSON is a
+manual chart transcription, not generated from a recorder or sax table.
+`verified: false` remains until checked on a physical YVS-120.

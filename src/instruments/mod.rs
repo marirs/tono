@@ -11,6 +11,7 @@ pub mod guitar;
 pub mod piano;
 pub mod recorder;
 mod sax;
+pub mod venova;
 pub mod violin;
 pub mod yamaha;
 
@@ -30,6 +31,8 @@ pub enum Instrument {
     Ae20,
     #[value(name = "yds120", alias = "yds-120")]
     Yds120,
+    #[value(name = "yvs120", alias = "yvs-120", alias = "alto-venova")]
+    Yvs120,
     #[value(name = "yds150", alias = "yds-150")]
     Yds150,
     #[value(name = "ae-brisa")]
@@ -92,6 +95,7 @@ impl Instrument {
             Self::Ae10 => "ae10",
             Self::Ae20 => "ae20",
             Self::Yds120 => "yds120",
+            Self::Yvs120 => "yvs120",
             Self::Yds150 => "yds150",
             Self::AeBrisa => "ae-brisa",
             Self::Guitar => "guitar",
@@ -117,6 +121,7 @@ impl Instrument {
             Self::Ae10 => "AE-10",
             Self::Ae20 => "AE-20",
             Self::Yds120 => "Yamaha YDS-120",
+            Self::Yvs120 => "Yamaha YVS-120 Alto Venova",
             Self::Yds150 => "Yamaha YDS-150",
             Self::AeBrisa => "AE-BRISA",
             Self::Guitar => "Guitar",
@@ -143,7 +148,7 @@ impl Instrument {
             || self == Self::Violin
         {
             self.id().to_owned()
-        } else if matches!(self, Self::Yds120 | Self::Yds150) {
+        } else if matches!(self, Self::Yds120 | Self::Yds150 | Self::Yvs120) {
             format!("yamaha-{}", self.id())
         } else {
             format!("roland-{}", self.id())
@@ -240,6 +245,7 @@ mod tests {
             (Instrument::Ae10, 34, 97),
             (Instrument::Ae20, 34, 97),
             (Instrument::Yds120, 57, 90),
+            (Instrument::Yvs120, 53, 77),
             (Instrument::Yds150, 57, 90),
             (Instrument::Guitar, 40, 83),
             (Instrument::Bass, 28, 62),
@@ -437,6 +443,7 @@ pub fn wind_svg(
 ) -> String {
     match instrument {
         Instrument::Ae01 => ae01::instrument_group_svg(state, transform, prefix),
+        Instrument::Yvs120 => venova::render(keys, state, transform, prefix),
         Instrument::Ae05 => ae05::render(keys, state, transform, prefix),
         Instrument::Ae10 => ae10::render(keys, state, transform, prefix),
         Instrument::Ae20 => ae20::render(keys, state, transform, prefix),

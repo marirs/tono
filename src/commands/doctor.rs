@@ -97,7 +97,7 @@ fn check_python() -> CheckOutcome {
 
 fn check_virtualenv(require_ml: bool) -> CheckOutcome {
     let venv = paths::ml_virtualenv_dir();
-    if venv.join("bin/python").exists() {
+    if paths::ml_environment_python().is_file() {
         CheckOutcome::Pass(venv.display().to_string())
     } else if require_ml {
         CheckOutcome::Fail(format!("{} missing", venv.display()))

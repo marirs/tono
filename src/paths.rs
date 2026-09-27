@@ -64,11 +64,7 @@ pub fn python_executable() -> Option<PathBuf> {
     if crate::runtime::release_manifest().ok().flatten().is_some() {
         return None;
     }
-    let venv_python = ml_virtualenv_dir().join(if cfg!(windows) {
-        "Scripts/python.exe"
-    } else {
-        "bin/python"
-    });
+    let venv_python = ml_environment_python();
     if is_executable_file(&venv_python) {
         return Some(venv_python);
     }
@@ -77,6 +73,48 @@ pub fn python_executable() -> Option<PathBuf> {
 
 pub fn ml_virtualenv_dir() -> PathBuf {
     crate::runtime::installed_root().unwrap_or_else(|| project_root().join("ml/.venv"))
+}
+
+/// Interpreter inside the managed runtime or development virtualenv.
+/// Windows conda bundles use python.exe at root; venv uses Scripts/python.exe.
+pub fn ml_environment_python() -> PathBuf {
+    if let Some(root) = crate::runtime::installed_root() {
+        environment_python_at(&root, true, cfg!(windows))
+    } else {
+        environment_python_at(&ml_virtualenv_dir(), false, cfg!(windows))
+    }
+}
+
+fn environment_python_at(root: &Path, packaged: bool, windows: bool) -> PathBuf {
+    root.join(match (windows, packaged) {
+        (true, true) => "python.exe",
+        (true, false) => "Scripts/python.exe",
+        (false, _) => "bin/python",
+    })
+}
+
+#[cfg(test)]
+mod environment_tests {
+    use super::*;
+
+    #[test]
+    fn managed_and_development_python_layouts() {
+        let root = Path::new("runtime");
+        assert_eq!(
+            environment_python_at(root, true, true),
+            root.join("python.exe")
+        );
+        assert_eq!(
+            environment_python_at(root, false, true),
+            root.join("Scripts/python.exe")
+        );
+        for packaged in [true, false] {
+            assert_eq!(
+                environment_python_at(root, packaged, false),
+                root.join("bin/python")
+            );
+        }
+    }
 }
 
 /// The researched AE-01 fingering table (spec "AE-01 fingering").

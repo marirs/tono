@@ -1,0 +1,499 @@
+{
+  "instrument": "yamaha-yvs120",
+  "version": 1,
+  "verified": false,
+  "required_settings": "Alto Venova in F; German fingering; sounding-pitch guide. Follow thumb-hole / octave-key cues; adjust breath and embouchure.",
+  "sources": [
+    {
+      "url": "https://data.yamaha.com/files/download/other_assets/0/1259560/venova_yvs-120_en_started_e0.pdf",
+      "description": "Yamaha Let\u2019s Play Venova YVS-120, concert-pitch chart printed pp.102-103; controls pp.17,92-93. Manually transcribed; not instrument verified."
+    }
+  ],
+  "layout_keys": [
+    {
+      "id": "7",
+      "label": "7",
+      "x": 300,
+      "y": 190,
+      "shape": "circle"
+    },
+    {
+      "id": "6",
+      "label": "6",
+      "x": 300,
+      "y": 270,
+      "shape": "circle"
+    },
+    {
+      "id": "5",
+      "label": "5",
+      "x": 300,
+      "y": 350,
+      "shape": "circle"
+    },
+    {
+      "id": "4h",
+      "label": "4 HOLE",
+      "x": 300,
+      "y": 445,
+      "shape": "circle"
+    },
+    {
+      "id": "4upper",
+      "label": "4B",
+      "x": 400,
+      "y": 485,
+      "shape": "circle"
+    },
+    {
+      "id": "4lower",
+      "label": "4A",
+      "x": 400,
+      "y": 405,
+      "shape": "circle"
+    },
+    {
+      "id": "3",
+      "label": "3",
+      "x": 300,
+      "y": 550,
+      "shape": "circle"
+    },
+    {
+      "id": "2a",
+      "label": "2a",
+      "x": 285,
+      "y": 635,
+      "shape": "circle"
+    },
+    {
+      "id": "2b",
+      "label": "2b",
+      "x": 350,
+      "y": 635,
+      "shape": "circle"
+    },
+    {
+      "id": "1a",
+      "label": "1a",
+      "x": 285,
+      "y": 735,
+      "shape": "circle"
+    },
+    {
+      "id": "1b",
+      "label": "1b",
+      "x": 350,
+      "y": 735,
+      "shape": "circle"
+    },
+    {
+      "id": "8h",
+      "label": "HOLE",
+      "x": 545,
+      "y": 235,
+      "shape": "circle"
+    },
+    {
+      "id": "8key",
+      "label": "OCTAVE",
+      "x": 545,
+      "y": 335,
+      "shape": "circle"
+    },
+    {
+      "id": "8vent",
+      "label": "3/4",
+      "x": 545,
+      "y": 235,
+      "shape": "circle"
+    }
+  ],
+  "fingerings": {
+    "53": {
+      "octave": "normal",
+      "keys": [
+        "1a",
+        "1b",
+        "2a",
+        "2b",
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "54": {
+      "octave": "normal",
+      "keys": [
+        "1a",
+        "2a",
+        "2b",
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "55": {
+      "octave": "normal",
+      "keys": [
+        "2a",
+        "2b",
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "56": {
+      "octave": "normal",
+      "keys": [
+        "2a",
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "4lower",
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "5",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "3",
+        "4h",
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "6",
+        "7",
+        "8h"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "4h",
+        "5",
+        "7",
+        "8h"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "7",
+        "8h"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "6",
+        "8h"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "6",
+        "7"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "6"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "2a",
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8vent"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "3",
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8vent"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "4h",
+        "5",
+        "6",
+        "7",
+        "8vent"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "4lower",
+        "5",
+        "6",
+        "7",
+        "8h",
+        "8key"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "5",
+        "6",
+        "7",
+        "8vent"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": [
+        "4h",
+        "6",
+        "7",
+        "8h",
+        "8key"
+      ]
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "6",
+        "7",
+        "8h",
+        "8key"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "5",
+        "7",
+        "8h",
+        "8key"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "7",
+        "8h",
+        "8key"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "6",
+        "8h",
+        "8key"
+      ]
+    }
+  },
+  "alternatives": {
+    "59": [
+      {
+        "octave": "normal",
+        "keys": [
+          "4upper",
+          "5",
+          "6",
+          "7",
+          "8h"
+        ]
+      }
+    ],
+    "63": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2a",
+          "2b",
+          "3",
+          "4h",
+          "5",
+          "7",
+          "8h"
+        ]
+      }
+    ],
+    "67": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2a",
+          "2b",
+          "3",
+          "4h",
+          "5",
+          "6",
+          "7",
+          "8h",
+          "8key"
+        ]
+      }
+    ],
+    "68": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2a",
+          "3",
+          "4h",
+          "5",
+          "6",
+          "7",
+          "8h",
+          "8key"
+        ]
+      }
+    ],
+    "69": [
+      {
+        "octave": "normal",
+        "keys": [
+          "3",
+          "4h",
+          "5",
+          "6",
+          "7",
+          "8h",
+          "8key"
+        ]
+      }
+    ],
+    "70": [
+      {
+        "octave": "normal",
+        "keys": [
+          "4h",
+          "5",
+          "6",
+          "7",
+          "8h",
+          "8key"
+        ]
+      }
+    ],
+    "71": [
+      {
+        "octave": "normal",
+        "keys": [
+          "4lower",
+          "5",
+          "6",
+          "7",
+          "8vent"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "4upper",
+          "5",
+          "6",
+          "7",
+          "8h",
+          "8key"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "4upper",
+          "5",
+          "6",
+          "7",
+          "8vent"
+        ]
+      }
+    ],
+    "72": [
+      {
+        "octave": "normal",
+        "keys": [
+          "5",
+          "6",
+          "7",
+          "8h",
+          "8key"
+        ]
+      }
+    ]
+  },
+  "control_notes": {
+    "1a/2a": "Right-hand pad in Yamaha printed chart; 1b/2b is the left-hand pad in that chart. Chart is drawn mouthpiece-down; Tono is mouthpiece-up.",
+    "4h": "Central hole at control 4.",
+    "4lower": "4A: lower lobe in Yamaha printed chart (above hole in mouthpiece-up view).",
+    "4upper": "4B: upper lobe in Yamaha printed chart (below hole in mouthpiece-up view).",
+    "8h": "Rear thumb hole fully covered.",
+    "8vent": "Rear thumb hole covered 3/4; octave key released.",
+    "8key": "Rear octave lever pressed while hole is covered."
+  }
+}

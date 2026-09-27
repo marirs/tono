@@ -40,6 +40,10 @@ jobs:
           cargo fmt --check
           cargo test --locked
       - name: Install CPU ML dependencies
+        env:
+          # sphn builds audiopus_sys/Opus from source on Linux ARM64 and Intel macOS.
+          # Its bundled CMake project predates CMake 4 policy requirements.
+          CMAKE_POLICY_VERSION_MINIMUM: '3.5'
         run: |
           if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
             python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
