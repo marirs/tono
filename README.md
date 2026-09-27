@@ -1,7 +1,6 @@
 # Tono (Play what you love)
 
 A CLI that turns a song into an instrument practice video.
-Spec: [TONO_V0_BUILD_SPEC.md](TONO_V0_BUILD_SPEC.md) (v0.1). Implement milestone-by-milestone; no GUI until M4.
 
 ## Status
 
