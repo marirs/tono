@@ -1,236 +1,390 @@
-# Tono (Play what you love)
+# tono
 
-A CLI that turns a song into an instrument practice video.
+**Play what you love.**
 
-## Status
+Tono is a local-first music practice engine that turns music you already have into instrument-specific fingering guides, backing tracks, and guided practice videos.
 
-| Milestone | State |
-|-----------|-------|
-| M0 environment (`tono doctor`) | done |
-| M1 hard-coded fingering video (`tono demo`) | done; fingering table awaits on-instrument check |
-| M2 song region + BGM + transcription (`tono prep`) | implemented; automated + synthetic/TTS checks pass. **Real-song validation pending** |
-| M3 end-to-end `tono prep` with practice.mp4 | accepted after review; **real-song validation pending** |
-| M4 human test | pending test media + AE-01; log in [M4_TEST_LOG.md](M4_TEST_LOG.md) |
+Bring a song. Pick the part you want to play. Choose an instrument. Tono helps you play it.
 
-## Quick start
+**Website:** https://tono.love
 
-```bash
-tono ~/Downloads/song.mp3 --instrument ae01
+---
+
+## Why Tono?
+
+A lot of music-learning software starts with lessons, exercises, scales, and a fixed song catalogue.
+
+Tono starts somewhere else:
+
+> **I love this song. Help me play it.**
+
+The project began with a Roland Aerophone AE-01 and a simple frustration: the official learning experience is useful, but the available music is limited.
+
+Tono makes the *tool* independent of the catalogue.
+
+You bring the music. Tono analyzes it, prepares a backing track, maps the melody to your instrument, and creates a visual practice experience you can follow even if you do not read music yet.
+
+---
+
+## What it does
+
+Tono works toward a pipeline like this:
+
+```text
+your audio
+    │
+    ▼
+find the actual song region
+    │
+    ▼
+separate lead / vocal from accompaniment
+    │
+    ├──────────────► backing track / BGM
+    │
+    ▼
+transcribe the melody
+    │
+    ▼
+clean and time the notes
+    │
+    ▼
+load an instrument profile
+    │
+    ▼
+map notes to fingering / position
+    │
+    ▼
+render a guided practice video
+    │
+    ▼
+practice.mp4 + BGM
 ```
 
-Select `--instrument <profile>` or use `--piano` for the full 88-key piano.
-All processing options remain available.
+The generated practice video is meant to be directly usable:
 
-One command runs song detection, vocal separation, transcription, octave fitting,
-and the vertical AE-01 video render, then validates the MP4. A spoken four-count
-and matching on-screen numbers prepare you before the song begins. MP4/MOV video inputs
-work too. Defaults: vocal melody, original tempo, visual metronome, automatic
-whole-melody octave shifting with preserved intervals (`--range-policy strict`).
-If no octave shift fits, processing fails with the out-of-range notes. Individual
-folding is disabled; legacy `--range-policy fold` fails before processing.
-No interactive questions.
+**press play → hear the backing → follow the fingering → play.**
 
-Output defaults to `./tono-practices/song_ae01_YYYYMMDD.mp4`, using the input
-filename, selected instrument and local date. Use `--practice-dir DIRECTORY`
-(or `-d DIRECTORY`) to change that folder. The matching `.tono/` folder contains
-`backing.wav`, `lead.wav`, notes, fingerings and project metadata.
+---
 
-Reruns replace the matching video and supporting folder automatically after the
-new video passes validation. Failed preparation leaves previous outputs untouched;
-diagnostics stay in the printed temporary directory. Previous outputs are backed
-up under `$CODEX_HOME/artifacts/tono/` (default `~/.codex/artifacts/tono/`).
-An optional second positional argument still sets an exact MP4 filename; use it
-instead of `-d`. Source files cannot be overwritten. Quote paths containing spaces.
+## Beginner-first practice
 
-Optional overrides:
+Tono does not assume you already know note names.
 
-```bash
-tono song.mp3 --instrument ae20 -d ~/Music/Practices
-tono song.mp3 --instrument ae01 --tempo-scale 0.75 --metronome both
-tono song.mp3 slower.mp4 --tempo-scale 0.75 --metronome both --instrument ae01
-tono song.mp3 exact.mp4 --range-policy strict --instrument ae01
-tono instrumental.mp3 practice.mp4 --part lead --instrument ae01
-tono reel.mp4 excerpt.mp4 --from 00:12 --to 00:40 --keep-work --instrument ae01
+The primary view can be the physical action:
+
+```text
+              NEXT
+       [next fingering]
+
+               ↓
+
+               NOW
+
+      [current fingering]
+
+         PRESS / LIFT
+
+      ━━━━━━━━━━━━━━━
+          progress
+
+            ● ○ ○ ○
+           metronome
 ```
 
-Install/update the command once with `cargo install --path . --offline` from this
-checkout (after ML setup below). Keep the checkout: the installed command uses
-its ML environment and fingering data. The older `tono prep ... --out DIRECTORY`
-form still works and retains its strict range-policy default.
+Notation and note names can still be shown, but they are not required to get started.
 
-## Commands
+The idea is to let muscle memory and musical familiarity provide the motivation first. Theory can come later.
 
-```bash
-# M0: environment check. ML items are warnings; `--ml` makes them fatal (M2+).
-cargo run -- doctor
-cargo run -- doctor --ml
-
-# M1: 12 hard-coded notes -> practice.mp4 (synthesized melody guide as audio)
-cargo run --release -- demo --out ./tono-demo
-open ./tono-demo/practice.mp4
-
-# options
-cargo run --release -- demo --out ./tono-demo --metronome both   # off|visual|audio|both
-cargo run --release -- demo --out ./tono-demo --bpm 80 --keep-work
-cargo run --release -- demo --out ./tono-demo --backing ~/Music/some.wav
-
-# M2: one-time ML setup (Python 3.11 venv + model weights, ~700 MB)
-brew install python@3.11
-ml/setup_venv.sh
-cargo run -- doctor --ml
-
-# M2+M3: song region -> BGM + lead -> transcription -> fingerings -> practice.mp4
-cargo run --release -- prep ~/Music/clip.mp4 --instrument ae01 --part vocal --out ./tono-out
-cargo run --release -- prep ~/Music/clip.mp4 --from 00:12 --to 00:48 --out ./tono-out --instrument ae01   # manual region
-cargo run --release -- prep ~/Music/clip.mp4 --part lead --keep-work --out ./tono-out --instrument ae01   # instrumental melody
-cargo run --release -- prep ~/Music/clip.mp4 --tempo-scale 0.75 --metronome both --out ./tono-slow --instrument ae01
-
-cargo test
-```
-
-## Real-song validation (pending)
-
-No real song has been run yet. To validate, run on a real clip and inspect
-the outputs by ear and eye:
-
-```bash
-cargo run --release -- prep /path/to/reel.mp4 --instrument ae01 --part vocal --out ./tono-real --keep-work
-afplay ./tono-real/backing.wav   # vocal absent or clearly reduced, accompaniment intact
-afplay ./tono-real/lead.wav      # the sung melody, little accompaniment
-jq '.selected_region, .region_detection.excluded, .separation, .warnings' ./tono-real/project.json
-jq -c '.notes[]' ./tono-real/notes.json | head -30   # compare against the melody you hear
-```
-
-Thresholds tuned only on synthetic clips (re-check here): region speech/music
-levels, the 0.75 repeat-attack threshold, lead/BGM level limits.
-
-## M2 pipeline
-
-1. ffmpeg normalizes the source (audio or video) to 44.1 kHz stereo float WAV.
-2. Song region: PANNs (AudioSet) reports per-0.25 s speech/music/singing
-   probabilities; Rust labels frames, bridges short gaps and picks the
-   longest/most confident musical span. `--from/--to` always override;
-   `--auto-song-region false` uses the whole file. No music found: fails.
-3. Demucs htdemucs separates the region. `backing.wav` = all non-lead stems,
-   peak-normalized to -1 dBFS, 24-bit stereo, exactly the region's length.
-   `--part vocal` leads with `vocals`; `--part lead` with `other` (DEFERRED:
-   no finer lead-instrument detection, so pads/chords in `other` leak in).
-   Lead more than 35 dB below the mix: fails; below 25 dB: low-confidence.
-   BGM (measured before normalization) more than 18 dB below the mix: fails
-   (unaccompanied voice or failed separation); below 12 dB: low-confidence.
-   BGM gain is capped at +12 dB so residue is never amplified. `--part lead`
-   is always low-confidence because the `other` stem is assumed, not detected.
-   These levels show stem presence only; separation quality is not measured.
-4. Basic Pitch transcribes `lead.wav`; Rust cleanup (confidence, 60 ms
-   minimum, 80 ms merge unless the note has a real attack, vibrato
-   absorption, monophonic reduction) writes `notes.json` (region timebase).
-5. `project.json` records source, selected region, excluded spans, stems,
-   BGM mix, separation level, transcription parameters, BPM and warnings.
-
-## M3: practice video
-
-6. Range fit: charted front-key patterns plus documented octave controls
-   cover B2-C#6 (MIDI 47-85). `--range-policy strict`
-   (default) shifts the whole melody by the smallest whole octave that fits
-   every note (intervals preserved), or fails listing the out-of-range notes.
-   Legacy `--range-policy fold` is rejected: individual pitch folding is disabled.
-7. `--tempo-scale` (0.5-2.0) stretches note times and time-scales the BGM
-   with ffmpeg `atempo` (pitch kept). `backing.wav` itself stays unscaled.
-8. Metronome clicks and flashes are the beat tracker's detected timestamps
-   (divided by `--tempo-scale`), so tempo changes are followed. Bar position
-   is not detected, so there are no downbeat accents and a single pulsing
-   dot instead of a bar counter. Fewer than 4 beats: metronome disabled with
-   a warning. `audio`/`both` mix a separate click track at render time.
-9. `practice.mp4` = fingering animation + BGM, validated with ffprobe; the
-   run fails otherwise. `notes.json` keeps transcribed pitches;
-   `fingering.json` holds what is played (practice-video timebase).
-
-Runs are deterministic (seeded Demucs) and never download models
-(`HF_HUB_OFFLINE=1`); `ml/setup_venv.sh` is the only download step.
-
-The AE-01 is drawn upright with the mouthpiece at the top. Hand labels default
-to right hand above / left hand below to match the requested playing grip;
-`--upper-hand left` selects the opposite labels. Physical key IDs and fingerings
-do not change. Rear thumb keys remain in a separate inset. The current and NEXT
-fingerings sit on the left; a live treble-staff pitch guide sits on the right.
-The staff shows the played notes, including disclosed octave adjustments. It is
-a pitch guide, not a quantized rhythmic score or inferred time signature.
-
-The default `--count-in 4` adds spoken numbers and preparation pulses before the
-song; `--count-in 0` disables it. The count uses the detected median tempo (or
-100 bpm if no tempo is available, with a warning). Audio, fingering timestamps,
-and detected beats all receive the same sample-aligned delay. `backing.wav`,
-`lead.wav` and `notes.json` keep their original selected-region timebase;
-`fingering.json` uses video time, with `count_in_seconds` recorded explicitly.
-Speech is generated locally by macOS `say`; if unavailable, audible count-in
-clicks still play and a warning is recorded. Count-in audio is independent of
-`--metronome`, which controls cues during the song.
-
-Every rendered MP4 is validated with ffprobe (video + AAC audio streams, stream
-durations and timeline length within 100 ms); the command fails otherwise.
-Backing audio shorter than the video is padded with silence, with a warning.
-The metronome click is a separate track (`work/metronome.wav`), mixed only at render time.
-
-Executables: `ffmpeg`/`ffprobe` are found on `PATH`, then `/opt/homebrew/bin`,
-`/usr/local/bin`. Overrides: `TONO_FFMPEG`, `TONO_FFPROBE`, `TONO_PYTHON`, `TONO_ROOT`.
-
-## Fingering data
-
-`instruments/ae01.json` is transcribed from Roland's AE-01 Fingering Chart
-("Recorder" section) and Owner's Manual pp. 20-21; the key layout in
-`src/instruments/ae01.rs` follows manual pp. 2, 6 and 11. It covers only the
-documented front-key range B3-C#5, extended by octave controls to B2-C#6 (MIDI 47-85).
-
-`verified` stays `false`, and videos show a caution banner, until all 39
-entries (MIDI 47-85) have been played on a real AE-01. The demo melody only
-exercises 4 of them (C4, D4, E4, G4), so playing the demo is not enough.
-Open questions for that check:
-
-- Is Recorder mode the factory default? (The manual only teaches this mode.)
-- Do the octave UP/DOWN keys act while held, or latch?
-- For notes with two charted fingerings, the first diagram is used; confirm it plays.
-
-The large current diagram shows PRESS (green ring) and LIFT (red dashed ring)
-for the change from the previous note. SAME AGAIN means repeat without changing
-keys. NEXT remains a preview of the following change. Start at `--tempo-scale 0.5`
-and use `--from`/`--to` for a short phrase; `tono --help` lists every control.
-
-Octave-aware range: the bundled table covers MIDI 47–85 (B2–C#6), derived
-from Roland's front-key chart and documented +/-12-semitone octave controls.
-Normal fingerings are preferred in the overlap; documented alternatives are
-retained in the table and output fingering metadata. `verified` remains false.
-The canonical `instruments/ae01.json` was corrected against Roland's chart:
-C5 uses key 2; C#5 is all-open (alternative: key 2 + sharp), including octave variants.
-Strict fitting preserves every interval. If the whole melody shifts by octaves,
-the rendered backing shifts by the same amount; original `backing.wav` stays in
-the source register. The semitone shift is recorded in project/fingering JSON and
-shown on video. No notes are individually folded in strict mode.
+---
 
 ## Instrument profiles
 
-The Rust module structure and extension points are documented in
-[ARCHITECTURE.md](ARCHITECTURE.md).
+Tono does not hard-code one instrument.
 
-`--instrument` supports `ae01`, `ae05`, `ae10`, `ae20`, `guitar`, `guitar-bass`,
-`guitar-bass-5string`, `piano` (alias `piano-88`), `keyboard-76`, and `keyboard-61`.
-`--piano` is shorthand for `--instrument piano`. See the instrument guide for
-additional guitar and keyboard aliases.
-All tempo, metronome, region and confidence options are shared. Instrument
-selection changes the fingering lookup, available range, diagram and metadata.
-Profiles and their source references live in [instrument guide](INSTRUMENTS.md).
+Each supported instrument has a deterministic runtime profile describing things such as:
 
-```sh
-tono song.mp3 ae05.mp4 --instrument ae05
-tono song.mp3 ae10.mp4 --instrument ae10
-tono song.mp3 ae20.mp4 --instrument ae20
-tono song.mp3 guitar.mp4 --instrument guitar --tempo-scale 0.5
-tono demo --instrument guitar --out /tmp/tono-guitar-demo
+- fingering or playing position;
+- alternative fingerings / positions;
+- playable profile range;
+- required instrument settings;
+- physical control IDs;
+- renderer type;
+- source references;
+- verification status.
+
+Current profiles:
+
+| Instrument | Renderer | Current profile coverage | Required setup |
+| --- | --- | ---: | --- |
+| Roland AE-01 | Recorder-style | MIDI 47–85 | Recorder fingering, transpose 0 |
+| Roland AE-05 | Sax-style | MIDI 46–85 | Sax fingering, transpose 0, tone octave shift 0 |
+| Roland AE-10 | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Oct Key OCT2 |
+| Roland AE-20 | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Octave Key Oct2 |
+| Guitar | Fretboard | MIDI 40–83 | Standard E A D G B E, no capo, frets 0–19 |
+
+These are **profile coverage ranges**, not claims about the absolute limits of the physical instruments.
+
+The long-term goal is simple: adding an instrument should mostly mean adding a reliable profile and a suitable renderer, not rewriting the transcription engine.
+
+---
+
+## Backing tracks
+
+For a vocal-melody practice session, the basic idea is:
+
+```text
+Original
+   │
+   ▼
+Stem separation
+   ├── vocal / lead ─────► transcription
+   ├── drums
+   ├── bass
+   └── other
+          │
+          ▼
+        BGM
 ```
 
-New wind profiles use Sax mode, zero instrument transposition/scene octave
-shift, and OCT2/Oct2 on AE-10/20. Set these on your instrument; Tono displays
-the requirements but cannot configure the hardware. Diagrams are vertical,
-with the model's numbered performance controls and rear octave keys.
-Guitar uses a horizontal fretboard for a single-note melody: standard six-string
-tuning, no capo, frets 0–19. It does not generate chord accompaniments.
-All new instrument mappings still require on-instrument verification.
+The selected lead is reduced or removed from the accompaniment where the separation model allows it.
+
+The same BGM is muxed into the generated practice video so that `practice.mp4` can be played by itself.
+
+---
+
+## Song-region detection
+
+Reels, shorts, and downloaded clips may contain:
+
+- spoken introductions;
+- commentary;
+- silence;
+- applause;
+- spoken endings.
+
+Tono should find the actual musical region before transcription rather than attempting to convert speech into melody.
+
+Manual start/end boundaries can override automatic detection.
+
+---
+
+## Range handling
+
+Tono does **not** individually octave-fold notes just to force them into an instrument profile.
+
+That would change the melody.
+
+The intended behavior is:
+
+1. clean obvious transcription errors;
+2. determine the real melody range;
+3. check it against the selected instrument profile;
+4. try a whole-phrase octave shift / transposition when appropriate;
+5. shift the backing consistently if the whole phrase is transposed;
+6. otherwise report unsupported pitches.
+
+The aim is to keep generated practice material musically honest.
+
+---
+
+## Usage
+
+AE-01:
+
+```sh
+tono song.mp3 practice.mp4 --instrument ae01
+```
+
+Slow it down:
+
+```sh
+tono song.mp3 practice.mp4 \
+  --instrument ae01 \
+  --tempo-scale 0.70
+```
+
+AE-20 with metronome:
+
+```sh
+tono song.mp3 sax.mp4 \
+  --instrument ae20 \
+  --tempo-scale 0.75 \
+  --metronome both
+```
+
+Guitar:
+
+```sh
+tono song.mp3 guitar.mp4 \
+  --instrument guitar \
+  --tempo-scale 0.50
+```
+
+Instrument demo:
+
+```sh
+tono demo \
+  --instrument ae05 \
+  --out /tmp/tono-ae05-demo
+```
+
+Help:
+
+```sh
+tono --help
+```
+
+---
+
+## Architecture
+
+Tono is intentionally local-first.
+
+### Rust
+
+Rust owns the deterministic application/core work:
+
+- CLI;
+- orchestration;
+- instrument-profile loading and validation;
+- timeline logic;
+- range handling;
+- fingering / position mapping;
+- practice rendering;
+- FFmpeg orchestration.
+
+### Python
+
+Python is kept mainly at the music-ML boundary, where the strongest existing ecosystem currently lives:
+
+- source / stem separation;
+- melody and pitch transcription;
+- audio analysis.
+
+ML output is normalized into deterministic data before it reaches an instrument renderer.
+
+### FFmpeg
+
+FFmpeg handles:
+
+- audio extraction;
+- encoding;
+- backing-track mixing;
+- final MP4 muxing.
+
+### macOS
+
+A native macOS application is planned once the core practice pipeline is reliable.
+
+The Mac app can eventually add:
+
+- drag-and-drop import;
+- waveform section selection;
+- instrument selection;
+- Practice mode;
+- Perform mode;
+- live MIDI;
+- metronome controls;
+- audio/video recording;
+- local library management.
+
+---
+
+## Verification matters
+
+Instrument profiles can be sourced from official manufacturer documentation while still remaining:
+
+```json
+"verified": false
+```
+
+until somebody checks them on the physical instrument.
+
+Please do not mark a profile verified by assumption and do not guess missing mappings.
+
+For new profiles, include sources whenever possible.
+
+---
+
+## Adding another instrument
+
+Conceptually, Tono wants this boundary:
+
+```text
+transcribed note
+      │
+      ▼
+instrument profile
+      │
+      ├── AE-01 fingering
+      ├── AE-05 fingering
+      ├── AE-10 fingering
+      ├── AE-20 fingering
+      ├── guitar string / fret
+      ├── piano key
+      └── ...
+```
+
+Contributions for additional instruments, verified fingering data, renderers, transcription improvements, and practice UX are welcome.
+
+---
+
+## Music and copyright
+
+Tono is a **tool**, not a music catalogue.
+
+The repository does not need to contain copyrighted songs, commercial backing tracks, or a hosted song library.
+
+Users bring their own practice material and are responsible for using that material in ways permitted by applicable rights and licenses.
+
+---
+
+## Project status
+
+Tono is experimental and under active development.
+
+Current priorities include:
+
+- better melody transcription;
+- reducing vibrato / ornamentation noise;
+- better BGM separation;
+- physical verification of instrument profiles;
+- easier fingering transitions;
+- additional instruments;
+- a native macOS application.
+
+Expect interfaces and file formats to change while the core workflow is being proven.
+
+---
+
+## Contributing
+
+Issues, profile corrections, new instrument profiles, renderer improvements, and code contributions are welcome.
+
+When contributing instrument data:
+
+- cite the source;
+- do not guess fingerings;
+- retain alternative fingerings when useful;
+- keep `verified: false` until physically checked;
+- run the test suite before submitting changes.
+
+---
+
+## License
+
+Tono source code is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
+
+MPL-2.0 uses **file-level copyleft**: if someone distributes modified MPL-covered source files, those files remain under MPL-2.0, while separate files in a larger work can use other licenses, including proprietary licenses.
+
+See [`LICENSE.txt`](LICENSE.txt) for the complete license text.
+
+The **Tono** name, `tono.love`, logos, and other branding are not licensed for use by the MPL-2.0 software license.
+
+---
+
+## Tono
+
+**Play what you love.**
+
+https://tono.love
