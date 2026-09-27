@@ -11,8 +11,8 @@ pub mod guitar;
 pub mod piano;
 pub mod recorder;
 mod sax;
-pub mod yamaha;
 pub mod violin;
+pub mod yamaha;
 
 use self::diagram::UpperHand;
 #[cfg(test)]

@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "instrument": "violin",
+  "verified": false,
+  "required_settings": "G3 D4 A4 E5 tuning; first position; single melody; bowing not prescribed",
+  "sources": [
+    {
+      "url": "https://www.violinonline.com/fingeringchart.html",
+      "method": "first-position chart: string, sounding pitch and finger number; alternatives retained"
+    },
+    {
+      "url": "https://www.yamaha.com/en/musical_instrument_guide/violin/play/play003.html",
+      "method": "natural-note first-position finger diagram and fingers 1-4"
+    }
+  ],
+  "layout_keys": [],
+  "fingerings": {
+    "55": {
+      "octave": "normal",
+      "keys": [
+        "s4_p0_n0"
+      ]
+    },
+    "56": {
+      "octave": "normal",
+      "keys": [
+        "s4_p1_n1"
+      ]
+    },
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "s4_p2_n1"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "s4_p3_n2"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "s4_p4_n2"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "s4_p5_n3"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "s4_p6_n3"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "s3_p0_n0"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "s3_p1_n1"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "s3_p2_n1"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "s3_p3_n2"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "s3_p4_n2"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "s3_p5_n3"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "s3_p6_n3"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "s2_p0_n0"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "s2_p1_n1"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "s2_p2_n1"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "s2_p3_n2"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": [
+        "s2_p4_n2"
+      ]
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "s2_p5_n3"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "s2_p6_n4"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "s1_p0_n0"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "s1_p1_n1"
+      ]
+    },
+    "78": {
+      "octave": "normal",
+      "keys": [
+        "s1_p2_n1"
+      ]
+    },
+    "79": {
+      "octave": "normal",
+      "keys": [
+        "s1_p3_n2"
+      ]
+    },
+    "80": {
+      "octave": "normal",
+      "keys": [
+        "s1_p4_n2"
+      ]
+    },
+    "81": {
+      "octave": "normal",
+      "keys": [
+        "s1_p5_n3"
+      ]
+    },
+    "82": {
+      "octave": "normal",
+      "keys": [
+        "s1_p6_n4"
+      ]
+    },
+    "83": {
+      "octave": "normal",
+      "keys": [
+        "s1_p7_n4"
+      ]
+    }
+  },
+  "alternatives": {
+    "62": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_p7_n4"
+        ]
+      }
+    ],
+    "69": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_p7_n4"
+        ]
+      }
+    ],
+    "76": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_p7_n4"
+        ]
+      }
+    ]
+  },
+  "renderer": "violin",
+  "tuning_midi": [
+    76,
+    69,
+    62,
+    55
+  ],
+  "fret_count": 0,
+  "coverage": "G3-B5, MIDI 55-83; first position only, not the full violin range",
+  "key_semantics": "s1=E, s2=A, s3=D, s4=G; p is semitones above open, NOT a fret; n is finger 0-4 (0=open). Only the sounding finger is prescribed; supporting fingers are not specified.",
+  "selection": "Prefer the lowest semitone offset (open strings before fourth-finger alternatives); deterministic, not phrase-optimized."
+}

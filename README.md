@@ -137,6 +137,7 @@ Current profiles (select with `--instrument`):
 | Soprano recorder (`recorder-german`) | Vertical holes | MIDI 72–98 | German system, double holes 6/7 |
 | Concert flute (`flute` / `flute-cfoot`) | Horizontal keys | MIDI 60–96 | Standard Boehm system, C footjoint |
 | Concert flute (`flute-bfoot`) | Horizontal keys | MIDI 59–96 | Standard Boehm system, B footjoint |
+| Violin (`violin`) | Fretless fingerboard | MIDI 55–83 | G3 D4 A4 E5, first position |
 
 These are **profile coverage ranges**, not claims about the absolute limits of the physical instruments.
 
@@ -329,6 +330,15 @@ tono song.mp3 --instrument flute-bfoot        # B footjoint
 
 Ukulele shows individual melody notes, not chords or strumming. Recorder cues
 include split holes and thumb venting; flute cues include air/embouchure register.
+
+Violin, with first-position string and finger guidance:
+
+```sh
+tono song.mp3 --instrument violin --tempo-scale 0.75 --metronome both
+```
+
+Shows open strings, finger numbers and low/high placements. Bow directions and
+slurs are not prescribed; see [the violin guide](instruments/README.md#violin).
 
 For Aerophone Brisa, specify the fingering mode set on your instrument:
 

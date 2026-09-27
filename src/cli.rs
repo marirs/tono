@@ -280,6 +280,7 @@ mod cli_tests {
             ("flute", Instrument::Flute),
             ("flute-cfoot", Instrument::Flute),
             ("flute-bfoot", Instrument::FluteBFoot),
+            ("violin", Instrument::Violin),
         ] {
             let cli = Cli::try_parse_from(["tono", "song.mp3", "--instrument", id]).unwrap();
             assert_eq!(cli.options.selected_instrument().unwrap(), expected);

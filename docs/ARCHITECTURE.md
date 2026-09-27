@@ -27,6 +27,7 @@ Tests remain next to the implementation they exercise.
 - `yamaha.rs`: YDS-120/150 entry point with charted Oct and Low A controls.
 - `recorder.rs`: acoustic soprano recorder holes, split holes and thumb venting.
 - `flute.rs`: acoustic concert flute keys, footjoint controls and register cues.
+- `violin.rs`: fretless first-position placements, finger numbers and string-change cues.
 - `sax.rs`: common sax drawing, parameterized by each profile's key layout.
 - `guitar.rs`: horizontal guitar/bass/ukulele fretboards, string/fret decoding and playing cues.
 - `piano.rs`: full keyboard overview, active-key detail and press/release cues.

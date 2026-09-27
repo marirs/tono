@@ -25,6 +25,7 @@ validate a profile; invalid or missing data fails before processing the source.
 | recorder-german | Vertical holes and thumb vent | 72–98 | Soprano in C, German, double holes 6/7 |
 | flute | Horizontal keys and register cues | 60–96 | Concert C flute, Boehm system, C footjoint |
 | flute-bfoot | Horizontal keys and register cues | 59–96 | Concert C flute, Boehm system, B footjoint |
+| violin | Horizontal fretless fingerboard | 55–83 | G3 D4 A4 E5, first position |
 
 AE-01 keeps the user's right-hand-upper label preference. Other winds default
 to the manuals' left-hand-upper grip. `--upper-hand right|left` changes labels
@@ -254,3 +255,37 @@ assignments can change sounding pitch. `verified` remains false until tested on
 a physical Brisa. Videos show the mode/setup, and project/fingering JSON records
 `fingering_mode`. Automatic output names include the mode, e.g.
 `song_ae-brisa_flute_YYYYMMDD.mp4`, to keep the two arrangements separate.
+
+## Violin
+
+```sh
+tono song.mp3 --instrument violin --tempo-scale 0.75 --metronome both
+tono demo --instrument violin
+```
+
+The four-string profile covers **G3–B5 (MIDI 55–83)** in first position, with
+standard G3 D4 A4 E5 tuning. This is beginner profile coverage, not the full
+violin range. Acoustic and electric four-string violins use the same profile
+when tuned this way; five-string instruments and alternate tunings are excluded.
+
+The fretless diagram shows E, A, D, G from top to bottom, nut on the left.
+Finger 0 means an open string; 1–4 mean index, middle, ring and little finger.
+LOW/HIGH cues distinguish nearby placements. Dots are approximate pitch guides,
+not frets or physical fingerboard markings: the player must listen and adjust
+intonation. Only the sounding finger is prescribed, not all supporting fingers.
+NOW and NEXT show finger changes and string changes. No bow direction, slur,
+vibrato, double stop or higher-position fingering is inferred from note events.
+
+Sources: [Yamaha's first-position guide](https://www.yamaha.com/en/musical_instrument_guide/violin/play/play003.html)
+and [Violin Online's first-position chart](https://www.violinonline.com/fingeringchart.html).
+The charted +6-semitone placement uses low fourth finger on E/A, high third on
+D/G. All documented string alternatives in this subset are retained. The primary
+chooses the smallest semitone distance from open, preferring open strings over
+fourth fingers; it is not a phrase-optimized fingering arrangement.
+
+`build_acoustic_profiles.py` generates `violin.json`. Position IDs encode
+` s<string>_p<semitones above open>_n<finger> ` (without surrounding spaces);
+`p` is not a fret number. The loader checks tuning, sounding pitch and the
+charted finger assignment for primaries and alternatives. Range fitting preserves
+intervals through a whole-melody octave shift or fails; individual folding stays
+disabled. `verified` remains false pending physical checks.

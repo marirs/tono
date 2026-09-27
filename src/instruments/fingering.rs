@@ -430,6 +430,27 @@ mod tests {
     }
 
     #[test]
+    fn violin_rejects_wrong_finger_pitch_tuning_and_octave() {
+        let original =
+            FingeringTable::load_instrument(crate::instruments::Instrument::Violin).unwrap();
+        let mut table = original.clone();
+        table.fingerings.get_mut("82").unwrap().keys = vec!["s1_p6_n3".into()];
+        assert!(table.validate().is_err());
+        table = original.clone();
+        table.fingerings.get_mut("82").unwrap().keys = vec!["s1_p5_n3".into()];
+        assert!(table.validate().is_err());
+        table = original.clone();
+        table.tuning_midi[0] = 75;
+        assert!(table.validate().is_err());
+        table = original.clone();
+        table.fingerings.get_mut("82").unwrap().octave = OctaveShift::Up;
+        assert!(table.validate().is_err());
+        table = original;
+        table.alternatives.get_mut("76").unwrap()[0].keys = vec!["s2_p8_n4".into()];
+        assert!(table.validate().is_err());
+    }
+
+    #[test]
     fn lookup_known_and_missing_notes() {
         let table = table_from_json(SMALL_TABLE).unwrap();
         assert_eq!(table.lookup(62).unwrap().keys, vec!["left_1", "left_2"]);
