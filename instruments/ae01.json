@@ -1,0 +1,649 @@
+{
+  "instrument": "roland-ae01",
+  "version": 1,
+  "verified": false,
+  "mode": "recorder",
+  "_source": "Roland Aerophone mini AE-01 Fingering Chart, 'Recorder' section, pp. 1-2 (https://static.roland.com/assets/media/pdf/AE-01_Finger_Chart_multi01_W.pdf); identical to Owner's Manual pp. 20-21 (https://static.roland.com/assets/media/pdf/AE-01_eng03_W.pdf). Key order from manual p. 11: 1,2,3,[#],[b],4,5,6,7.",
+  "_verification": "Base chart checked against Roland; expanded by documented +/-12 octave controls. NOT physically verified.",
+  "fingerings": {
+    "47": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "flat",
+        "right_1",
+        "right_2",
+        "right_3",
+        "right_4"
+      ]
+    },
+    "48": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2",
+        "right_3",
+        "right_4"
+      ]
+    },
+    "49": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1",
+        "right_2",
+        "right_3",
+        "right_4"
+      ]
+    },
+    "50": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2",
+        "right_3"
+      ]
+    },
+    "51": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1",
+        "right_2",
+        "right_3"
+      ]
+    },
+    "52": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2"
+      ]
+    },
+    "53": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1"
+      ]
+    },
+    "54": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1"
+      ]
+    },
+    "55": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3"
+      ]
+    },
+    "56": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp"
+      ]
+    },
+    "57": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2"
+      ]
+    },
+    "58": {
+      "octave": "down",
+      "keys": [
+        "left_1",
+        "left_2",
+        "sharp"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "flat",
+        "right_1",
+        "right_2",
+        "right_3",
+        "right_4"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2",
+        "right_3",
+        "right_4"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1",
+        "right_2",
+        "right_3",
+        "right_4"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2",
+        "right_3"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1",
+        "right_2",
+        "right_3"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "left_1",
+        "left_2",
+        "sharp"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "left_1"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "left_2"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": []
+    },
+    "74": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2",
+        "right_3"
+      ]
+    },
+    "75": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1",
+        "right_2",
+        "right_3"
+      ]
+    },
+    "76": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1",
+        "right_2"
+      ]
+    },
+    "77": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "right_1"
+      ]
+    },
+    "78": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp",
+        "right_1"
+      ]
+    },
+    "79": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3"
+      ]
+    },
+    "80": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "left_3",
+        "sharp"
+      ]
+    },
+    "81": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2"
+      ]
+    },
+    "82": {
+      "octave": "up",
+      "keys": [
+        "left_1",
+        "left_2",
+        "sharp"
+      ]
+    },
+    "83": {
+      "octave": "up",
+      "keys": [
+        "left_1"
+      ]
+    },
+    "84": {
+      "octave": "up",
+      "keys": [
+        "left_2"
+      ]
+    },
+    "85": {
+      "octave": "up",
+      "keys": []
+    }
+  },
+  "alternatives": {
+    "49": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2",
+          "right_3"
+        ]
+      }
+    ],
+    "51": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2"
+        ]
+      }
+    ],
+    "54": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat"
+        ]
+      }
+    ],
+    "56": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_1",
+          "left_2",
+          "flat"
+        ]
+      }
+    ],
+    "58": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_1",
+          "flat"
+        ]
+      }
+    ],
+    "59": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_1"
+        ]
+      }
+    ],
+    "60": [
+      {
+        "octave": "down",
+        "keys": [
+          "left_2"
+        ]
+      }
+    ],
+    "61": [
+      {
+        "octave": "normal",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2",
+          "right_3"
+        ]
+      },
+      {
+        "octave": "down",
+        "keys": []
+      },
+      {
+        "octave": "down",
+        "keys": [
+          "left_2",
+          "sharp"
+        ]
+      }
+    ],
+    "63": [
+      {
+        "octave": "normal",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2"
+        ]
+      }
+    ],
+    "66": [
+      {
+        "octave": "normal",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat"
+        ]
+      }
+    ],
+    "68": [
+      {
+        "octave": "normal",
+        "keys": [
+          "left_1",
+          "left_2",
+          "flat"
+        ]
+      }
+    ],
+    "70": [
+      {
+        "octave": "normal",
+        "keys": [
+          "left_1",
+          "flat"
+        ]
+      }
+    ],
+    "71": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2",
+          "right_3",
+          "right_4"
+        ]
+      }
+    ],
+    "72": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "right_1",
+          "right_2",
+          "right_3",
+          "right_4"
+        ]
+      }
+    ],
+    "73": [
+      {
+        "octave": "normal",
+        "keys": [
+          "left_2",
+          "sharp"
+        ]
+      },
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "sharp",
+          "right_1",
+          "right_2",
+          "right_3",
+          "right_4"
+        ]
+      },
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2",
+          "right_3"
+        ]
+      }
+    ],
+    "75": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat",
+          "right_1",
+          "right_2"
+        ]
+      }
+    ],
+    "78": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "left_3",
+          "flat"
+        ]
+      }
+    ],
+    "80": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "left_2",
+          "flat"
+        ]
+      }
+    ],
+    "82": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_1",
+          "flat"
+        ]
+      }
+    ],
+    "85": [
+      {
+        "octave": "up",
+        "keys": [
+          "left_2",
+          "sharp"
+        ]
+      }
+    ]
+  },
+  "_source_document": "ae01-fingering.json (corrected against official chart)",
+  "display_name": "AE-01",
+  "renderer": "ae01",
+  "required_settings": "Recorder fingering; Transpose 0",
+  "sources": [
+    {
+      "url": "https://static.roland.com/assets/media/pdf/AE-01_Finger_Chart_multi01_W.pdf",
+      "chart_pages": [
+        1,
+        2
+      ]
+    },
+    {
+      "url": "https://static.roland.com/assets/media/pdf/AE-01_eng03_W.pdf",
+      "panel_pages": [
+        2,
+        10,
+        11
+      ]
+    }
+  ]
+}

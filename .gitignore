@@ -1,0 +1,45 @@
+# Rust build output (Cargo.lock is tracked for this application).
+/target/
+
+# Local Python environments and caches; dependency manifests stay tracked.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated practice projects, media and model weights.
+/tono-practices/
+/tono-output/
+/tono-demo*/
+/tono-m4/
+*.tono/
+work/
+*.mp4
+*.mov
+*.MOV
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.aiff
+*.pth
+*.pt
+*.onnx
+*.mlpackage/
+*.log
+
+# Machine-local settings and credentials.
+.DS_Store
+.claude/
+.codex/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,13 @@
+# Tono ML worker dependencies (Python 3.11: basic-pitch on macOS needs <= 3.11
+# for its CoreML backend; see ml/setup_venv.sh).
+# Top-level pins only; ml/requirements.lock records the resolved environment.
+demucs==4.1.0          # stem separation (htdemucs)
+basic-pitch==0.4.0     # melody transcription
+panns-inference==0.1.1 # AudioSet sound-event detection for song-region detection
+torch>=2.1
+soundfile>=0.12
+numpy
+librosa
+# resampy<0.4.3 (pinned by basic-pitch) imports pkg_resources, removed from
+# setuptools >= 81; torch needs >= 77.
+setuptools>=77,<81
