@@ -30,10 +30,26 @@ pub enum Part {
 }
 
 impl Part {
-    fn worker_name(self) -> &'static str {
+    pub(crate) fn worker_name(self) -> &'static str {
         match self {
             Part::Vocal => "vocal",
             Part::Lead => "lead",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum SeparationModel {
+    #[default]
+    Htdemucs,
+    #[value(name = "htdemucs-6s", alias = "htdemucs6s")]
+    Htdemucs6s,
+}
+impl SeparationModel {
+    pub fn worker_name(self) -> &'static str {
+        match self {
+            Self::Htdemucs => "htdemucs",
+            Self::Htdemucs6s => "htdemucs_6s",
         }
     }
 }
@@ -42,6 +58,8 @@ impl Part {
 pub struct PrepOptions {
     /// Display title override; absent means the source filename stem.
     pub title: Option<String>,
+    pub import: crate::pipeline::imported::ImportOptions,
+    pub separation_model: SeparationModel,
     pub instrument: crate::instruments::Instrument,
     pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub input: PathBuf,
@@ -109,6 +127,7 @@ pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<
         }
     }
 
+    crate::pipeline::imported::validate_options(options)?;
     crate::runtime::ensure_ready_cli()?;
     crate::instruments::fingering::FingeringTable::load_for_mode(
         options.instrument,
@@ -121,7 +140,12 @@ pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<
     let work = out.join("work");
     std::fs::create_dir_all(&work).with_context(|| format!("creating {}", work.display()))?;
 
-    let result = prepare_project(options, &ffmpeg, &ffprobe, &work);
+    let imported = crate::music::import::is_melody_file(&options.input);
+    let result = if imported {
+        crate::pipeline::imported::prepare(options, &ffmpeg, &ffprobe, &work)
+    } else {
+        prepare_project(options, &ffmpeg, &ffprobe, &work)
+    };
     match &result {
         // Spec: work/ only with --keep-work; kept on failure for debugging.
         Ok(()) if !options.keep_work => std::fs::remove_dir_all(&work)
@@ -159,6 +183,8 @@ fn prepare_project(
     let analysis = ml_worker::analyze_region(
         &region_wav,
         options.part.worker_name(),
+        options.separation_model.worker_name(),
+        false,
         &WorkerPaths {
             work_dir: work,
             out_dir: out,
@@ -217,7 +243,7 @@ fn prepare_project(
         instrument: options.instrument,
         fingering_mode: options.fingering_mode,
         cleaned_notes: &cleaned,
-        analysis: &analysis,
+        beat_times: &analysis.beat_times,
         region_duration_seconds: range.duration_seconds(),
         tempo_scale: options.tempo_scale,
         count_in_beats: options.count_in_beats,
@@ -278,7 +304,7 @@ fn describe_cleanup(
         .join(", ")
 }
 
-fn report_practice(practice: &PracticeOutcome) {
+pub(crate) fn report_practice(practice: &PracticeOutcome) {
     let fitted = &practice.fitted;
     let mut adjustments = Vec::new();
     if !fitted.is_unchanged() {
@@ -437,12 +463,12 @@ const BACKING_WEAK_BELOW_MIX_DB: f64 = -12.0;
 /// Worker's `lead_selection` when --part lead took the `other` stem on trust.
 const ASSUMED_LEAD_SELECTION: &str = "assumed-other-stem";
 
-struct SeparationQuality {
-    low_confidence: bool,
-    warnings: Vec<String>,
+pub(crate) struct SeparationQuality {
+    pub low_confidence: bool,
+    pub warnings: Vec<String>,
 }
 
-fn assess_separation(analysis: &Analysis) -> Result<SeparationQuality> {
+pub(crate) fn assess_separation(analysis: &Analysis) -> Result<SeparationQuality> {
     let separation = &analysis.separation;
     let stem = &separation.lead_stem;
     if separation.lead_to_mix_db < LEAD_MISSING_BELOW_MIX_DB {
@@ -674,7 +700,9 @@ fn print_next_steps(out: &Path, output_video: Option<&Path>, keep_work: bool) {
         "fingering.json",
         "project.json",
     ] {
-        println!("  {}", out.join(name).display());
+        if out.join(name).exists() {
+            println!("  {}", out.join(name).display());
+        }
     }
     if keep_work {
         println!(
@@ -688,10 +716,12 @@ fn print_next_steps(out: &Path, output_video: Option<&Path>, keep_work: bool) {
         "  afplay {}   # vocals/lead should be absent or much quieter",
         out.join("backing.wav").display()
     );
-    println!(
-        "  afplay {}      # the melody that was transcribed",
-        out.join("lead.wav").display()
-    );
+    if out.join("lead.wav").exists() {
+        println!(
+            "  afplay {}      # separated lead",
+            out.join("lead.wav").display()
+        );
+    }
     println!(
         "  jq '.selected_region, .separation, .fingering, .warnings' {}",
         out.join("project.json").display()

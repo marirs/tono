@@ -128,6 +128,8 @@ pub fn detect_region_frames(input_wav: &Path, work_dir: &Path) -> Result<RegionF
 pub fn analyze_region(
     region_wav: &Path,
     part: &str,
+    model: &str,
+    separation_only: bool,
     worker_paths: &WorkerPaths,
     expected_duration: f64,
 ) -> Result<Analysis> {
@@ -136,13 +138,16 @@ pub fn analyze_region(
     command
         .arg("--input")
         .arg(region_wav)
-        .args(["--part", part])
+        .args(["--part", part, "--separation-model", model])
         .arg("--output")
         .arg(&output_path)
         .arg("--work-dir")
         .arg(worker_paths.work_dir)
         .arg("--out-dir")
         .arg(worker_paths.out_dir);
+    if separation_only {
+        command.arg("--separate-only");
+    }
     run_worker(
         command,
         "separation + transcription",

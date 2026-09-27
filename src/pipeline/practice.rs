@@ -6,7 +6,6 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use serde_json::json;
 
-use crate::analysis::worker::Analysis;
 use crate::instruments::diagram::UpperHand;
 use crate::instruments::fingering::{map_notes_to_fingerings, FingeringTable};
 use crate::media::audio::{
@@ -28,7 +27,7 @@ pub struct PracticeRequest<'a> {
     pub instrument: crate::instruments::Instrument,
     pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub cleaned_notes: &'a [NoteEvent],
-    pub analysis: &'a Analysis,
+    pub beat_times: &'a [f64],
     pub region_duration_seconds: f64,
     pub tempo_scale: f64,
     pub count_in_beats: u8,
@@ -96,11 +95,7 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     let entries = map_notes_to_fingerings(&practice_notes, &table)?;
 
     let practice_duration = request.region_duration_seconds / request.tempo_scale;
-    let beats = BeatTrack::detected(
-        &request.analysis.beat_times,
-        request.tempo_scale,
-        practice_duration,
-    );
+    let beats = BeatTrack::detected(request.beat_times, request.tempo_scale, practice_duration);
     let metronome = effective_metronome(request.metronome, &beats, &mut warnings);
     let practice_bpm = beats.median_bpm();
     let beat_count = beats.times.len();
@@ -423,7 +418,7 @@ mod tests {
                 fingering_mode: (instrument == crate::instruments::Instrument::AeBrisa)
                     .then_some(crate::instruments::brisa::FingeringMode::Brisa),
                 cleaned_notes: &notes,
-                analysis: &analysis,
+                beat_times: &analysis.beat_times,
                 region_duration_seconds: 2.0,
                 tempo_scale: 0.75,
                 count_in_beats: 0,

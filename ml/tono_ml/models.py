@@ -26,24 +26,25 @@ def torch_device() -> str:
     return os.environ.get(TORCH_DEVICE_ENV, "cpu")
 
 
-def demucs_cached_files() -> dict:
+def demucs_cached_files(model_name: str = DEMUCS_MODEL_NAME) -> dict:
     """Returns {"ok": bool, "detail": str} without touching the network."""
     try:
         import yaml
         from huggingface_hub import try_to_load_from_cache
 
-        bag_yaml = try_to_load_from_cache(DEMUCS_HF_REPO, f"{DEMUCS_MODEL_NAME}.yaml")
+        repo = "adefossez/HTDemucs-6s" if model_name == "htdemucs_6s" else DEMUCS_HF_REPO
+        bag_yaml = try_to_load_from_cache(repo, f"{model_name}.yaml")
         if not isinstance(bag_yaml, str):
-            return {"ok": False, "detail": f"{DEMUCS_MODEL_NAME}.yaml not cached (run ml/setup_venv.sh)"}
+            return {"ok": False, "detail": f"{repo}/{model_name}.yaml not cached (run ml/analyze.py --download-models)"}
         signatures = yaml.safe_load(Path(bag_yaml).read_text())["models"]
         missing = [
             signature
             for signature in signatures
-            if not isinstance(try_to_load_from_cache(DEMUCS_HF_REPO, f"{signature}.safetensors"), str)
+            if not isinstance(try_to_load_from_cache(repo, f"{signature}.safetensors"), str)
         ]
         if missing:
             return {"ok": False, "detail": f"weights {missing} not cached (run ml/setup_venv.sh)"}
-        return {"ok": True, "detail": f"{DEMUCS_HF_REPO} {signatures}"}
+        return {"ok": True, "detail": f"{repo} {signatures}"}
     except Exception as error:
         return {"ok": False, "detail": f"{type(error).__name__}: {error}"}
 
@@ -74,11 +75,12 @@ def download_models() -> None:
     from demucs.pretrained import get_model
 
     get_model(DEMUCS_MODEL_NAME)
+    get_model("htdemucs_6s")
     if not panns_checkpoint_status()["ok"]:
         PANNS_SED_CHECKPOINT.parent.mkdir(parents=True, exist_ok=True)
         partial = PANNS_SED_CHECKPOINT.with_suffix(".partial")
         urllib.request.urlretrieve(PANNS_SED_URL, partial)
         partial.rename(PANNS_SED_CHECKPOINT)
-    for status in (demucs_cached_files(), panns_checkpoint_status(), basic_pitch_model_status()):
+    for status in (demucs_cached_files(), demucs_cached_files("htdemucs_6s"), panns_checkpoint_status(), basic_pitch_model_status()):
         if not status["ok"]:
             raise SystemExit(f"model download incomplete: {status['detail']}")

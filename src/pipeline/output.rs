@@ -180,6 +180,14 @@ pub fn run(options: &PrepOptions) -> Result<()> {
         .as_deref()
         .context("missing MP4 output")?;
     validate_destination(&options.input, video)?;
+    for source in options
+        .import
+        .backing
+        .iter()
+        .chain(options.import.audio.iter())
+    {
+        validate_destination(source, video)?;
+    }
     let stage = private_directory(&std::env::temp_dir(), "tono-render")?;
     let mut staged = options.clone();
     staged.output_directory = stage.join("project");
@@ -201,6 +209,14 @@ pub fn run(options: &PrepOptions) -> Result<()> {
     project["practice"]["file"] = serde_json::to_value(std::path::absolute(video)?)?;
     fs::write(project_path, serde_json::to_string_pretty(&project)? + "\n")?;
     validate_destination(&options.input, video)?;
+    for source in options
+        .import
+        .backing
+        .iter()
+        .chain(options.import.audio.iter())
+    {
+        validate_destination(source, video)?;
+    }
     let replacing = video.exists() || options.output_directory.exists();
     let backup = if replacing {
         let home = std::env::var_os("CODEX_HOME")

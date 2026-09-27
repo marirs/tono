@@ -50,6 +50,7 @@ jobs:
           fi
           python -m pip install -r ml/requirements.txt
           python -m pip check
+          python -m unittest discover -s ml/tests
       - name: Package and exercise runtime
         env:
           RELEASE_TARGET: ${{ matrix.target }}

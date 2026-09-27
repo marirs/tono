@@ -46,6 +46,25 @@ pub fn synthesize_melody_guide_samples(timeline: &PracticeTimeline, sample_rate:
     samples
 }
 
+/// Reference tones from an imported melody; no invented note cleanup or click.
+pub fn write_note_guide(
+    path: &Path,
+    notes: &[crate::music::notes::NoteEvent],
+    duration: f64,
+) -> Result<()> {
+    let mut samples = vec![0.0; (duration * GUIDE_SAMPLE_RATE as f64).ceil() as usize];
+    for note in notes {
+        add_note_tone(
+            &mut samples,
+            GUIDE_SAMPLE_RATE as f64,
+            note.start,
+            note.end,
+            midi_to_frequency_hz(note.midi),
+        );
+    }
+    write_mono_wav(path, &samples, GUIDE_SAMPLE_RATE)
+}
+
 /// Renders a click on every beat (accented downbeat) as mono f64 samples.
 pub fn synthesize_metronome_samples(timeline: &PracticeTimeline, sample_rate: u32) -> Vec<f64> {
     let rate = sample_rate as f64;

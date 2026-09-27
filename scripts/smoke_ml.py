@@ -21,11 +21,12 @@ with tempfile.TemporaryDirectory(prefix="tono-ml-smoke-") as tmp:
     sf.write(path, signal, 44100)
     frames = detect_region_frames(path)
     assert frames["frames"], "region detector returned no frames"
-    model = get_model(models.DEMUCS_MODEL_NAME).cpu().eval()
-    with torch.no_grad():
-        stems = apply_model(model, torch.from_numpy(np.stack([signal, signal]))[None],
-                            device="cpu", shifts=0, num_workers=0)
-    assert torch.isfinite(stems).all(), "nonfinite separated samples"
+    for model_name in (models.DEMUCS_MODEL_NAME, "htdemucs_6s"):
+        model = get_model(model_name).cpu().eval()
+        with torch.no_grad():
+            stems = apply_model(model, torch.from_numpy(np.stack([signal, signal]))[None],
+                                device="cpu", shifts=0, num_workers=0)
+        assert torch.isfinite(stems).all(), f"nonfinite separated samples: {model_name}"
     assert transcribe(path), "Basic Pitch failed to detect a sustained A4"
     assert measure_pitch_track(path)["f0_midi"], "pitch evidence absent"
 print("All ML engines executed successfully")

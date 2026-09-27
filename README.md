@@ -334,13 +334,63 @@ tono --help
 
 ---
 
+## Use a melody you already have
+
+MIDI, MusicXML and timed note JSON can go straight to a practice video. Tono
+preserves the imported notes and skips melody transcription and cleanup.
+
+```sh
+# Known melody + your backing track
+tono melody.mid --instrument ae01 --backing backing.mp3
+
+# Known melody + best-effort backing extraction from the original recording
+tono melody.musicxml --instrument ae01 --audio performance.mp4 --make-bgm \
+  --part lead --separation-model htdemucs-6s
+
+# No backing: play synthesized reference tones with the fingering video
+tono melody.json --instrument ae01 --tempo-scale 0.75
+```
+
+The usual `--title`, `--from`, `--to`, `--count-in`, `--metronome`,
+`--easy-fingering`, instrument and output options still apply. `--from` and `--to`
+refer to the **melody timeline** for these inputs.
+
+Use `--audio-offset 7.68` if melody time zero occurs at 7.68 seconds in the
+backing/original recording. A negative offset inserts silence before the audio.
+Offsets printed from JSON metadata are suggestions, not automatically applied.
+Audio must cover the selected passage; Tono never stretches it to hide a mismatch.
+`--tempo-scale` still slows both notes and backing together.
+
+`--separation-model htdemucs-6s` adds guitar and piano stems. With `--part lead`,
+it excludes the whole **other** stem and keeps the remaining stems. This can
+remove accompaniment too, and the retained stems can still contain lead leakage.
+Listen to `backing.mp3` before practicing; no separation quality score is claimed.
+The model also works with ordinary audio/video input. The default remains
+`htdemucs`. Run `python ml/analyze.py --download-models` inside the ML venv to
+update an existing source checkout; release runtimes include both models.
+
+For multiple MIDI tracks or MusicXML parts, choose `--melody-track N` (one-based;
+MIDI track numbering includes the conductor track). Import currently supports a
+single monophonic melody, MIDI tempo maps, and uncompressed partwise MusicXML
+with explicit tempo, rests, ties and instrument transposition. Export repeats,
+ornaments, multiple voices, sustain and pitch bends as explicit linear notes
+first. Invalid/overfull bars fail rather than silently changing timing. Short
+pickup/final bars retain their explicit duration with a warning.
+
+JSON accepts `notes` containing `start`, `end` (seconds), `midi` (0–127), and
+optional `confidence`. Optional `duration_seconds` preserves trailing silence.
+Supplied confidence is recorded, not used to discard notes. Imported scores and
+their synchronization remain unverified until checked by listening.
+
+---
+
 ## Examples
 
 Each run starts with a colored title, the installed version and the resolved paths:
 
 ```text
 Tono - Play what you love.
-v0.1.0
+v0.1.1
 Input: /path/to/song.mp3
 Output: /path/to/tono-practices/song_ae01_YYYYMMDD.mp4
 ```

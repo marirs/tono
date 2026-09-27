@@ -40,13 +40,15 @@ class SeparationResult:
     lead_selection: str
 
 
-def separate(samples: np.ndarray, sample_rate: int, part: str, work_dir: Path, out_dir: Path) -> SeparationResult:
+def separate(samples: np.ndarray, sample_rate: int, part: str, work_dir: Path, out_dir: Path, model_name: str = models.DEMUCS_MODEL_NAME) -> SeparationResult:
     import torch
     from demucs.api import Separator
 
     if part not in LEAD_STEM_FOR_PART:
         raise SystemExit(f"unsupported --part {part}")
-    status = models.demucs_cached_files()
+    if model_name not in ("htdemucs", "htdemucs_6s"):
+        raise ValueError("unsupported separation model")
+    status = models.demucs_cached_files(model_name)
     if not status["ok"]:
         raise SystemExit(f"Demucs model unavailable: {status['detail']}")
 
@@ -56,7 +58,7 @@ def separate(samples: np.ndarray, sample_rate: int, part: str, work_dir: Path, o
 
     random.seed(SEPARATION_SEED)
     torch.manual_seed(SEPARATION_SEED)
-    separator = Separator(model=models.DEMUCS_MODEL_NAME, device=models.torch_device())
+    separator = Separator(model=model_name, device=models.torch_device())
     if separator.samplerate != sample_rate:
         raise SystemExit(f"expected {separator.samplerate} Hz input, got {sample_rate} Hz")
     _, stem_tensors = separator.separate_tensor(torch.from_numpy(samples), sample_rate)
@@ -78,7 +80,7 @@ def separate(samples: np.ndarray, sample_rate: int, part: str, work_dir: Path, o
     # Measured BEFORE normalization: this is what tells real accompaniment
     # apart from separation residue.
     backing_to_mix_db = energy_db(backing) - energy_db(samples)
-    backing, backing_gain_db, backing_gain_limited = normalize_peak(backing, max_gain_db=MAX_BACKING_GAIN_DB)
+    backing, backing_gain_db, backing_gain_limited = normalize_peak(backing, max_gain_db=6.0 if model_name == "htdemucs_6s" else MAX_BACKING_GAIN_DB)
     # The lead is NOT normalized: boosting a near-silent stem would turn
     # separation bleed into "melody". Only guard against clipping.
     lead = stem_arrays[lead_stem]

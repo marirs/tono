@@ -1,6 +1,6 @@
 [package]
 name = "tono"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
@@ -18,3 +18,5 @@ sha2 = "0.11"
 flate2 = "1"
 tar = "0.4"
 same-file = "1"
+midly = { version = "0.5.3", default-features = false, features = ["std", "strict"] }
+roxmltree = "0.21.1"

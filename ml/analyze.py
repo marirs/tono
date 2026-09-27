@@ -52,6 +52,7 @@ def self_check() -> None:
 
         report["models"] = {
             "demucs htdemucs weights": models.demucs_cached_files(),
+            "demucs htdemucs_6s weights": models.demucs_cached_files("htdemucs_6s"),
             "panns Cnn14_DecisionLevelMax": models.panns_checkpoint_status(),
             "basic_pitch ICASSP-2022 model": models.basic_pitch_model_status(),
         }
@@ -70,7 +71,7 @@ def run_detect_regions(input_path: Path, output_path: Path) -> None:
     write_json(output_path, detect_region_frames(input_path))
 
 
-def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path, out_dir: Path) -> None:
+def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path, out_dir: Path, model_name: str = "htdemucs", separate_only: bool = False) -> None:
     from tono_ml.audio_io import read_wav
     from tono_ml.separation import separate
     from tono_ml.tempo import estimate_beats
@@ -81,13 +82,13 @@ def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path,
     samples, sample_rate = read_wav(input_path)
     if samples.shape[0] == 1:
         samples = samples.repeat(2, axis=0)  # Demucs expects stereo
-    separation = separate(samples, sample_rate, part, work_dir, out_dir)
+    separation = separate(samples, sample_rate, part, work_dir, out_dir, model_name)
 
     backing_samples, _ = read_wav(separation.backing_file)
     bpm, beat_times = estimate_beats(backing_samples, sample_rate)
-    notes = transcribe(separation.lead_file)
+    notes = [] if separate_only else transcribe(separation.lead_file)
     # Evidence for Rust note cleanup (vibrato, slides, bleed).
-    pitch_track = measure_pitch_track(separation.lead_file)
+    pitch_track = None if separate_only else measure_pitch_track(separation.lead_file)
 
     write_json(output_path, {
         "version": CONTRACT_VERSION,
@@ -101,7 +102,7 @@ def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path,
         "notes": notes,
         "pitch_track": pitch_track,
         "separation": {
-            "model": models.DEMUCS_MODEL_NAME,
+            "model": model_name,
             "device": models.torch_device(),
             "lead_stem": separation.lead_stem,
             "backing_stems": separation.backing_stems,
@@ -112,7 +113,7 @@ def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path,
             "backing_gain_limited": separation.backing_gain_limited,
             "lead_selection": separation.lead_selection,
         },
-        "transcription": {"model": "basic-pitch ICASSP-2022", "parameters": BASIC_PITCH_PARAMETERS},
+        "transcription": {"model": "skipped-import" if separate_only else "basic-pitch ICASSP-2022", "parameters": {} if separate_only else BASIC_PITCH_PARAMETERS},
         "warnings": [],
     })
 
@@ -122,6 +123,8 @@ def main() -> None:
     p.add_argument("--self-check", action="store_true")
     p.add_argument("--download-models", action="store_true")
     p.add_argument("--detect-regions", action="store_true")
+    p.add_argument("--separate-only", action="store_true")
+    p.add_argument("--separation-model", choices=["htdemucs", "htdemucs_6s"], default="htdemucs")
     p.add_argument("--input")
     p.add_argument("--part", default="vocal", choices=["vocal", "lead"])
     p.add_argument("--output")
@@ -153,7 +156,7 @@ def main() -> None:
         return
     work_dir = Path(args.work_dir).resolve() if args.work_dir else output_path.parent
     out_dir = Path(args.out_dir).resolve() if args.out_dir else output_path.parent
-    run_analysis(input_path, args.part, output_path, work_dir, out_dir)
+    run_analysis(input_path, args.part, output_path, work_dir, out_dir, args.separation_model, args.separate_only)
 
 
 if __name__ == "__main__":

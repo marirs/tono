@@ -24,7 +24,7 @@ use tono::render::MetronomeMode;
     after_help = "Example: tono song.mp3 --instrument ae01\nPiano: --piano or --instrument piano (alias piano-88). Guitar: guitar-6string; bass: guitar-bass or guitar-bass-5string.\nThe default preserves melodic intervals using a whole-melody octave shift, or reports that it cannot fit.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4; reruns replace matching outputs."
 )]
 struct Cli {
-    /// Local audio/video file (mp3/m4a/wav/flac/mov/mp4).
+    /// Local audio/video or melody file (.mid, .midi, .musicxml, .xml, .json).
     #[arg(value_name = "INPUT", required = true)]
     input: Option<PathBuf>,
     /// Optional explicit MP4 filename (overrides automatic naming).
@@ -41,6 +41,25 @@ struct Cli {
 
 #[derive(Args)]
 struct PreparationArgs {
+    /// Ready-made backing audio for a MIDI/MusicXML/JSON melody (no separation).
+    #[arg(long, conflicts_with_all = ["audio", "make_bgm"])]
+    backing: Option<PathBuf>,
+    /// Original recording to separate when importing a melody file.
+    #[arg(long, requires = "make_bgm")]
+    audio: Option<PathBuf>,
+    /// Create backing from --audio; lead isolation is best-effort.
+    #[arg(long, requires = "audio")]
+    make_bgm: bool,
+    /// Audio-file seconds corresponding to melody time zero (trim positive, pad negative).
+    #[arg(long, default_value_t = 0.0, allow_hyphen_values = true)]
+    audio_offset: f64,
+    /// One-based MIDI track or MusicXML part index; required if multiple contain notes.
+    #[arg(long, value_parser = clap::value_parser!(u16).range(1..))]
+    melody_track: Option<u16>,
+    /// Demucs model; htdemucs-6s also retains guitar/piano when excluding other.
+    #[arg(long, value_enum, default_value_t = prep::SeparationModel::Htdemucs)]
+    separation_model: prep::SeparationModel,
+
     /// Video heading; defaults to the input filename without its extension.
     #[arg(long, value_name = "TEXT", value_parser = parse_title)]
     title: Option<String>,
@@ -127,6 +146,14 @@ impl PreparationArgs {
         }
         Ok(prep::PrepOptions {
             title: self.title,
+            import: tono::pipeline::imported::ImportOptions {
+                backing: self.backing,
+                audio: self.audio,
+                make_bgm: self.make_bgm,
+                audio_offset: self.audio_offset,
+                melody_track: self.melody_track,
+            },
+            separation_model: self.separation_model,
             input,
             instrument,
             fingering_mode: self.fingering_mode,
@@ -292,6 +319,62 @@ pub fn run() -> Result<()> {
 #[cfg(test)]
 mod cli_tests {
     use super::*;
+
+    #[test]
+    fn import_flags_are_explicit_and_keep_existing_controls() {
+        let cli = Cli::try_parse_from([
+            "tono",
+            "melody.mid",
+            "--instrument",
+            "ae01",
+            "--audio",
+            "source.mp4",
+            "--make-bgm",
+            "--part",
+            "lead",
+            "--separation-model",
+            "htdemucs-6s",
+            "--audio-offset",
+            "7.68",
+            "--tempo-scale",
+            "0.75",
+        ])
+        .unwrap();
+        let o = cli
+            .options
+            .into_options(cli.input.unwrap(), PathBuf::from("out"), None)
+            .unwrap();
+        assert!(o.import.make_bgm);
+        assert_eq!(o.import.audio_offset, 7.68);
+        assert_eq!(o.tempo_scale, 0.75);
+        assert_eq!(o.separation_model, prep::SeparationModel::Htdemucs6s);
+        for flags in [
+            vec!["--make-bgm"],
+            vec!["--audio", "source.mp3"],
+            vec![
+                "--backing",
+                "bgm.mp3",
+                "--audio",
+                "source.mp3",
+                "--make-bgm",
+            ],
+        ] {
+            let mut args = vec!["tono", "melody.mid", "--instrument", "ae01"];
+            args.extend(flags);
+            assert!(Cli::try_parse_from(args).is_err());
+        }
+        assert!(Cli::try_parse_from([
+            "tono",
+            "melody.mid",
+            "--instrument",
+            "ae01",
+            "--backing",
+            "bgm.mp3",
+            "--audio-offset",
+            "-2"
+        ])
+        .is_ok());
+    }
 
     #[test]
     fn setup_needs_no_song_or_instrument() {
