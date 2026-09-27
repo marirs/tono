@@ -9,6 +9,7 @@ pub mod fingering;
 pub mod guitar;
 pub mod piano;
 mod sax;
+pub mod yamaha;
 
 use self::diagram::UpperHand;
 #[cfg(test)]
@@ -24,6 +25,10 @@ pub enum Instrument {
     Ae05,
     Ae10,
     Ae20,
+    #[value(name = "yds120", alias = "yds-120")]
+    Yds120,
+    #[value(name = "yds150", alias = "yds-150")]
+    Yds150,
     #[value(name = "ae-brisa")]
     #[serde(rename = "ae-brisa")]
     AeBrisa,
@@ -63,6 +68,8 @@ impl Instrument {
             Self::Ae05 => "ae05",
             Self::Ae10 => "ae10",
             Self::Ae20 => "ae20",
+            Self::Yds120 => "yds120",
+            Self::Yds150 => "yds150",
             Self::AeBrisa => "ae-brisa",
             Self::Guitar => "guitar",
             Self::Bass => "guitar-bass",
@@ -78,6 +85,8 @@ impl Instrument {
             Self::Ae05 => "AE-05",
             Self::Ae10 => "AE-10",
             Self::Ae20 => "AE-20",
+            Self::Yds120 => "Yamaha YDS-120",
+            Self::Yds150 => "Yamaha YDS-150",
             Self::AeBrisa => "AE-BRISA",
             Self::Guitar => "Guitar",
             Self::Bass => "Bass (4 strings)",
@@ -90,6 +99,8 @@ impl Instrument {
     pub fn table_id(self) -> String {
         if self.is_fretted() || self.keyboard_range().is_some() {
             self.id().to_owned()
+        } else if matches!(self, Self::Yds120 | Self::Yds150) {
+            format!("yamaha-{}", self.id())
         } else {
             format!("roland-{}", self.id())
         }
@@ -152,6 +163,8 @@ mod tests {
             (Instrument::Ae05, 46, 85),
             (Instrument::Ae10, 34, 97),
             (Instrument::Ae20, 34, 97),
+            (Instrument::Yds120, 57, 90),
+            (Instrument::Yds150, 57, 90),
             (Instrument::Guitar, 40, 83),
             (Instrument::Bass, 28, 62),
             (Instrument::Bass5, 23, 62),
@@ -305,6 +318,7 @@ pub fn wind_svg(
         Instrument::Ae05 => ae05::render(keys, state, transform, prefix),
         Instrument::Ae10 => ae10::render(keys, state, transform, prefix),
         Instrument::Ae20 => ae20::render(keys, state, transform, prefix),
+        Instrument::Yds120 | Instrument::Yds150 => yamaha::render(keys, state, transform, prefix),
         _ => unreachable!("keyboards and fretted instruments use horizontal rendering"),
     }
 }

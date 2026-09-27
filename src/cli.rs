@@ -1,5 +1,6 @@
 //! CLI arguments and command dispatch.
-use std::path::PathBuf;
+use std::io::IsTerminal;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use clap::{Args, Parser, Subcommand};
@@ -186,10 +187,32 @@ fn short_form_options(
     options.into_options(input, project, Some(output))
 }
 
+fn print_header(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
+    let color = std::io::stdout().is_terminal()
+        && std::env::var_os("NO_COLOR").is_none()
+        && std::env::var("TERM").as_deref() != Ok("dumb");
+    if color {
+        println!("\x1b[1;36mTono - Play what you love.\x1b[0m");
+    } else {
+        println!("Tono - Play what you love.");
+    }
+    println!("v{}", env!("CARGO_PKG_VERSION"));
+    for (label, path) in [("Input", input), ("Output", output)] {
+        if let Some(path) = path {
+            println!("{label}: {}", std::path::absolute(path)?.display());
+        }
+    }
+    println!();
+    Ok(())
+}
+
 pub fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Some(Commands::Doctor { ml }) => doctor::run_doctor(ml),
+        Some(Commands::Doctor { ml }) => {
+            print_header(None, None)?;
+            doctor::run_doctor(ml)
+        }
         Some(Commands::Demo {
             instrument,
             fingering_mode,
@@ -198,20 +221,30 @@ pub fn run() -> Result<()> {
             backing,
             metronome,
             keep_work,
-        }) => demo::run_demo(&demo::DemoOptions {
-            instrument,
-            fingering_mode,
-            output_directory: out,
-            beats_per_minute: bpm,
-            backing_audio: backing,
-            metronome,
-            keep_work,
-        }),
+        }) => {
+            print_header(backing.as_deref(), Some(&out.join("practice.mp4")))?;
+            demo::run_demo(&demo::DemoOptions {
+                instrument,
+                fingering_mode,
+                output_directory: out,
+                beats_per_minute: bpm,
+                backing_audio: backing,
+                metronome,
+                keep_work,
+            })
+        }
         Some(Commands::Prep {
             input,
             out,
             options,
-        }) => prep::run_prep(&options.into_options(input, out, None)?),
+        }) => {
+            let options = options.into_options(input, out, None)?;
+            print_header(
+                Some(&options.input),
+                Some(&options.output_directory.join("practice.mp4")),
+            )?;
+            prep::run_prep(&options)
+        }
         None => {
             let input = cli.input.expect("required by clap");
             let destination = match cli.output {
@@ -225,6 +258,7 @@ pub fn run() -> Result<()> {
                 )?,
             };
             let options = short_form_options(input, destination, cli.options)?;
+            print_header(Some(&options.input), options.output_video.as_deref())?;
             output::run(&options)
         }
     }

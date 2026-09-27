@@ -127,6 +127,8 @@ impl FingeringTable {
             "roland-ae10",
             "roland-ae20",
             "roland-ae-brisa",
+            "yamaha-yds120",
+            "yamaha-yds150",
             "guitar",
             "guitar-bass",
             "guitar-bass-5string",
@@ -220,6 +222,10 @@ impl FingeringTable {
                 bail!("MIDI {midi}: guitar pitch does not match string/fret");
             }
         } else {
+            if self.instrument.starts_with("yamaha-yds") && fingering.octave != OctaveShift::Normal
+            {
+                bail!("YDS requires charted Oct/Low A key states, not generic octave shifts");
+            }
             if self.instrument == "roland-ae-brisa" {
                 if fingering.octave != OctaveShift::Normal {
                     bail!("Brisa requires explicit rear-key states, not sax octave controls");

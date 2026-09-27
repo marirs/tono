@@ -1,0 +1,637 @@
+{
+  "version": 1,
+  "instrument": "yamaha-yds150",
+  "display_name": "Yamaha YDS-150",
+  "verified": false,
+  "renderer": "sax",
+  "layout_keys": [
+    {
+      "id": "X",
+      "label": "X",
+      "x": 290,
+      "y": 120,
+      "shape": "rect"
+    },
+    {
+      "id": "1",
+      "label": "1",
+      "x": 290,
+      "y": 190,
+      "shape": "circle"
+    },
+    {
+      "id": "P",
+      "label": "p",
+      "x": 290,
+      "y": 245,
+      "shape": "circle"
+    },
+    {
+      "id": "2",
+      "label": "2",
+      "x": 290,
+      "y": 300,
+      "shape": "circle"
+    },
+    {
+      "id": "3",
+      "label": "3",
+      "x": 325,
+      "y": 355,
+      "shape": "circle"
+    },
+    {
+      "id": "C2",
+      "label": "C2",
+      "x": 370,
+      "y": 155,
+      "shape": "rect"
+    },
+    {
+      "id": "C1",
+      "label": "C1",
+      "x": 415,
+      "y": 185,
+      "shape": "rect"
+    },
+    {
+      "id": "C4",
+      "label": "C4",
+      "x": 395,
+      "y": 270,
+      "shape": "rect"
+    },
+    {
+      "id": "C3",
+      "label": "C3",
+      "x": 185,
+      "y": 280,
+      "shape": "rect"
+    },
+    {
+      "id": "Tc",
+      "label": "Tc",
+      "x": 185,
+      "y": 345,
+      "shape": "rect"
+    },
+    {
+      "id": "Ta",
+      "label": "Ta",
+      "x": 185,
+      "y": 410,
+      "shape": "rect"
+    },
+    {
+      "id": "Gs",
+      "label": "G#",
+      "x": 395,
+      "y": 415,
+      "shape": "rect"
+    },
+    {
+      "id": "B",
+      "label": "B",
+      "x": 360,
+      "y": 480,
+      "shape": "rect"
+    },
+    {
+      "id": "Cs",
+      "label": "C#",
+      "x": 420,
+      "y": 480,
+      "shape": "rect"
+    },
+    {
+      "id": "Bb",
+      "label": "Bb",
+      "x": 405,
+      "y": 535,
+      "shape": "rect"
+    },
+    {
+      "id": "4",
+      "label": "4",
+      "x": 285,
+      "y": 510,
+      "shape": "circle"
+    },
+    {
+      "id": "5",
+      "label": "5",
+      "x": 285,
+      "y": 600,
+      "shape": "circle"
+    },
+    {
+      "id": "6",
+      "label": "6",
+      "x": 315,
+      "y": 690,
+      "shape": "circle"
+    },
+    {
+      "id": "Tf",
+      "label": "Tf",
+      "x": 210,
+      "y": 640,
+      "shape": "rect"
+    },
+    {
+      "id": "Eb",
+      "label": "Eb",
+      "x": 280,
+      "y": 760,
+      "shape": "rect"
+    },
+    {
+      "id": "C",
+      "label": "C",
+      "x": 250,
+      "y": 815,
+      "shape": "rect"
+    },
+    {
+      "id": "C5",
+      "label": "C5",
+      "x": 185,
+      "y": 550,
+      "shape": "rect"
+    },
+    {
+      "id": "oct",
+      "label": "Oct",
+      "x": 555,
+      "y": 240,
+      "shape": "octave"
+    },
+    {
+      "id": "low_a",
+      "label": "Low A",
+      "x": 555,
+      "y": 370,
+      "shape": "octave"
+    }
+  ],
+  "required_settings": "Factory fingering; voice transposition 0 (e.g. C.01); no added pitch/octave shift",
+  "coverage": "Charted A3-F#6, MIDI 57-90, with a concert-C/zero-transposition voice only",
+  "pitch_reference": "Written chart pitch equals sounding pitch ONLY with total voice transposition 0. Factory A/T/S/B sax voices transpose and do not match this profile without reconfiguration.",
+  "sources": [
+    {
+      "url": "https://usa.yamaha.com/files/download/other_assets/2/1361052/yds-150_en_om_i0w.pdf",
+      "chart_pages": [
+        20,
+        21
+      ],
+      "panel_pages": [
+        8,
+        9
+      ],
+      "voice_pages": [
+        19
+      ],
+      "method": "independently reviewed Yamaha chart patterns and alternatives; no uncharted octave expansion"
+    }
+  ],
+  "fingerings": {
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "C",
+        "Bb",
+        "low_a"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "C",
+        "Bb"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "C",
+        "B"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "C"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Cs"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Eb"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "5"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Gs"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "Ta"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "1"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "2"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": []
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "oct"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Eb",
+        "oct"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "oct"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "oct"
+      ]
+    },
+    "78": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "5",
+        "oct"
+      ]
+    },
+    "79": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "oct"
+      ]
+    },
+    "80": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Gs",
+        "oct"
+      ]
+    },
+    "81": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "oct"
+      ]
+    },
+    "82": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "Ta",
+        "oct"
+      ]
+    },
+    "83": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "oct"
+      ]
+    },
+    "84": {
+      "octave": "normal",
+      "keys": [
+        "2",
+        "oct"
+      ]
+    },
+    "85": {
+      "octave": "normal",
+      "keys": [
+        "oct"
+      ]
+    },
+    "86": {
+      "octave": "normal",
+      "keys": [
+        "C1",
+        "oct"
+      ]
+    },
+    "87": {
+      "octave": "normal",
+      "keys": [
+        "C1",
+        "C2",
+        "oct"
+      ]
+    },
+    "88": {
+      "octave": "normal",
+      "keys": [
+        "C1",
+        "C2",
+        "C3",
+        "oct"
+      ]
+    },
+    "89": {
+      "octave": "normal",
+      "keys": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "oct"
+      ]
+    },
+    "90": {
+      "octave": "normal",
+      "keys": [
+        "C1",
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "oct"
+      ]
+    }
+  },
+  "alternatives": {
+    "66": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "6",
+          "Tf"
+        ]
+      }
+    ],
+    "70": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "P"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "4"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "5"
+        ]
+      }
+    ],
+    "72": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "Tc"
+        ]
+      }
+    ],
+    "78": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "6",
+          "Tf",
+          "oct"
+        ]
+      }
+    ],
+    "82": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "P",
+          "oct"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "4",
+          "oct"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "5",
+          "oct"
+        ]
+      }
+    ],
+    "84": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "Tc",
+          "oct"
+        ]
+      }
+    ],
+    "88": [
+      {
+        "octave": "normal",
+        "keys": [
+          "X",
+          "2",
+          "3",
+          "oct"
+        ]
+      }
+    ],
+    "89": [
+      {
+        "octave": "normal",
+        "keys": [
+          "X",
+          "2",
+          "oct"
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 """Deterministic expansion of sourced front-key tables; never guesses fingerings.
-Run from any directory after reviewing the cited Roland chart pages.
+Run from any directory after reviewing the cited manufacturer chart pages.
 """
 import json
 from pathlib import Path
@@ -62,6 +62,60 @@ def make_sax(name, manual, chart_page, panel_page, octaves):
 # from Brisa or sax patterns. Thumb left/right follow the chart's rear-key inset.
 BRISA_BASE = {'60': ['1', '2', '3', '4', '5', '6', 'foot_c', 'foot_cs'], '61': ['1', '2', '3', '4', '5', '6', 'foot_c'], '62': ['1', '2', '3', '4', '5', '6'], '63': ['1', '2', '3', '4', '5', '6', 'foot_eb'], '64': ['1', '2', '3', '4', '5'], '65': ['1', '2', '3', '4'], '66': ['1', '2', '3', '5'], '67': ['1', '2', '3'], '68': ['1', '2', '3', 'gsharp'], '69': ['1', '2'], '70': ['1', '2', 'trill1'], '71': ['1'], '72': ['2'], '73': []}
 BRISA_FLUTE = [{'midi': 60, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_c', 'foot_cs', 'thumb_right'], 'breath': 'low'}, {'midi': 61, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_c', 'thumb_right'], 'breath': 'low'}, {'midi': 62, 'keys': ['1', '2', '3', '4', '5', '6', 'thumb_right'], 'breath': 'low'}, {'midi': 63, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 64, 'keys': ['1', '2', '3', '4', '5', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 65, 'keys': ['1', '2', '3', '4', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 66, 'keys': ['1', '2', '3', '6', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 67, 'keys': ['1', '2', '3', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 68, 'keys': ['1', '2', '3', 'foot_eb', 'gsharp', 'thumb_right'], 'breath': 'low'}, {'midi': 69, 'keys': ['1', '2', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 70, 'keys': ['1', '4', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 71, 'keys': ['1', 'foot_eb', 'thumb_right'], 'breath': 'low'}, {'midi': 72, 'keys': ['1', 'foot_eb'], 'breath': 'low'}, {'midi': 73, 'keys': ['foot_eb'], 'breath': 'low'}, {'midi': 72, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_c', 'foot_cs', 'thumb_right'], 'breath': 'upper'}, {'midi': 73, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_c', 'thumb_right'], 'breath': 'upper'}, {'midi': 74, 'keys': ['1', '2', '3', '4', '5', '6', 'thumb_right'], 'breath': 'upper'}, {'midi': 75, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 76, 'keys': ['1', '2', '3', '4', '5', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 77, 'keys': ['1', '2', '3', '4', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 78, 'keys': ['1', '2', '3', '6', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 79, 'keys': ['1', '2', '3', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 80, 'keys': ['1', '2', '3', 'foot_eb', 'gsharp', 'thumb_right'], 'breath': 'upper'}, {'midi': 81, 'keys': ['1', '2', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 82, 'keys': ['1', '4', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 83, 'keys': ['1', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 84, 'keys': ['1', 'foot_eb'], 'breath': 'upper'}, {'midi': 85, 'keys': ['foot_eb'], 'breath': 'upper'}, {'midi': 86, 'keys': ['2', '3', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 87, 'keys': ['1', '2', '3', '4', '5', '6', 'foot_eb', 'gsharp', 'thumb_right'], 'breath': 'upper'}, {'midi': 88, 'keys': ['1', '2', '4', '5', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 89, 'keys': ['1', '3', '4', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 90, 'keys': ['1', '3', '6', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 91, 'keys': ['1', '2', '3', 'foot_eb'], 'breath': 'upper'}, {'midi': 92, 'keys': ['2', '3', 'foot_eb', 'gsharp'], 'breath': 'upper'}, {'midi': 93, 'keys': ['2', '4', 'foot_eb', 'thumb_right'], 'breath': 'upper'}, {'midi': 94, 'keys': ['4', 'thumb_right', 'trill2'], 'breath': 'upper'}, {'midi': 95, 'keys': ['1', '3', 'thumb_right', 'trill3'], 'breath': 'upper'}, {'midi': 96, 'keys': ['1', '2', '3', '4', 'gsharp'], 'breath': 'upper'}]
+
+# Independently reviewed YDS-120 and YDS-150 manuals, printed pp. 20-21.
+# These are WRITTEN pitches. Profiles require a zero-transposition voice so
+# written pitch equals sounding MIDI; factory alto/tenor voices do NOT match.
+# Oct is a physical charted key, never an extrapolated +/-12 range extender.
+YDS_LOW = {
+ 57: ["1","2","3","4","5","6","C","Bb","low_a"],
+ 58: ["1","2","3","4","5","6","C","Bb"],
+ 59: ["1","2","3","4","5","6","C","B"],
+ 60: ["1","2","3","4","5","6","C"],
+ 61: ["1","2","3","4","5","6","Cs"],
+ 62: ["1","2","3","4","5","6"],
+ 63: ["1","2","3","4","5","6","Eb"],
+ 64: ["1","2","3","4","5"], 65: ["1","2","3","4"],
+ 66: ["1","2","3","5"], 67: ["1","2","3"],
+ 68: ["1","2","3","Gs"], 69: ["1","2"],
+ 70: ["1","2","Ta"], 71: ["1"], 72: ["2"], 73: []
+}
+YDS_ALTERNATIVES = {
+ 66: [["1","2","3","4","6","Tf"]],
+ 70: [["1","P"],["1","4"],["1","5"]],
+ 72: [["1","Tc"]]
+}
+YDS_HIGH = {
+ 86: [["C1"]], 87: [["C1","C2"]],
+ 88: [["C1","C2","C3"],["X","2","3"]],
+ 89: [["C1","C2","C3","C4"],["X","2"]],
+ 90: [["C1","C2","C3","C4","C5"]]
+}
+
+def make_yamaha(name, manual):
+ variants={}
+ for midi,keys in YDS_LOW.items():
+  variants[midi]=[keys]+YDS_ALTERNATIVES.get(midi,[])
+ # Chart explicitly repeats D4-C#5 patterns with Oct held for D5-C#6.
+ for midi in range(62,74):
+  variants[midi+12]=[keys+["oct"] for keys in variants[midi]]
+ for midi,patterns in YDS_HIGH.items():
+  variants[midi]=[keys+["oct"] for keys in patterns]
+ # Yamaha panel pp. 8-9 has the same numbered front-control order as this
+ # schematic, plus C5, one rear Oct key and a separate rear Low A key.
+ layout=[dict(id=k,label="p" if k=="P" else l,x=x,y=y,shape=s) for k,l,x,y,s in SAX_KEYS]
+ layout += [dict(id="C5",label="C5",x=185,y=550,shape="rect"),
+  dict(id="oct",label="Oct",x=555,y=240,shape="octave"),
+  dict(id="low_a",label="Low A",x=555,y=370,shape="octave")]
+ def fingering(keys): return dict(octave="normal",keys=keys)
+ return dict(version=1,instrument="yamaha-"+name,display_name="Yamaha "+name.upper().replace("YDS","YDS-"),
+  verified=False,renderer="sax",layout_keys=layout,
+  required_settings="Factory fingering; voice transposition 0 (e.g. C.01); no added pitch/octave shift",
+  coverage="Charted A3-F#6, MIDI 57-90, with a concert-C/zero-transposition voice only",
+  pitch_reference="Written chart pitch equals sounding pitch ONLY with total voice transposition 0. Factory A/T/S/B sax voices transpose and do not match this profile without reconfiguration.",
+  sources=[dict(url=manual,chart_pages=[20,21],panel_pages=[8,9],voice_pages=[19],method="independently reviewed Yamaha chart patterns and alternatives; no uncharted octave expansion")],
+  fingerings={str(m):fingering(v[0]) for m,v in sorted(variants.items())},
+  alternatives={str(m):[fingering(k) for k in v[1:]] for m,v in sorted(variants.items()) if len(v)>1})
 
 def make_brisa():
  controls=[("1","1",110,150,"circle"),("2","2",190,150,"circle"),("3","3",270,150,"circle"),
@@ -130,3 +184,7 @@ if __name__ == "__main__":
    fingerings={str(m):dict(octave="normal",keys=[f"key_{m}"]) for m in range(low,high+1)},alternatives={}))
 
  write("ae-brisa",make_brisa())
+ for name,url in [
+  ("yds120","https://usa.yamaha.com/files/download/other_assets/8/1628388/yds-120_en_om_c0-w.pdf"),
+  ("yds150","https://usa.yamaha.com/files/download/other_assets/2/1361052/yds-150_en_om_i0w.pdf")]:
+  write(name,make_yamaha(name,url))

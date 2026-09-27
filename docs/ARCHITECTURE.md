@@ -24,6 +24,7 @@ Tests remain next to the implementation they exercise.
 - `ae01.rs`: AE-01 control geometry and drawing.
 - `brisa.rs`: AE-BRISA mode validation, horizontal keys and breath/register cues.
 - `ae05.rs`, `ae10.rs`, `ae20.rs`: model entry points using the shared sax renderer.
+- `yamaha.rs`: YDS-120/150 entry point with charted Oct and Low A controls.
 - `sax.rs`: common sax drawing, parameterized by each profile's key layout.
 - `guitar.rs`: horizontal guitar/bass fretboards, string/fret decoding and playing cues.
 - `piano.rs`: full keyboard overview, active-key detail and press/release cues.

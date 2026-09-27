@@ -10,6 +10,8 @@ validate a profile; invalid or missing data fails before processing the source.
 | ae05 | Vertical sax controls | 46–85 | Sax, transpose 0, tone octave shift 0 |
 | ae10 | Vertical sax controls | 34–97 | Sax, transpose 0, tone octave shift 0, Oct Key OCT2 |
 | ae20 | Vertical sax controls | 34–97 | Sax, transpose 0, tone octave shift 0, Octave Key Oct2 |
+| yds120 | Vertical sax controls | 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
+| yds150 | Vertical sax controls | 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
 | guitar | Horizontal fretboard | 40–83 | Six strings, E2 A2 D3 G3 B3 E4, no capo, frets 0–19 |
 | guitar-bass | Horizontal four-string fretboard | 28–62 | E1 A1 D2 G2, no capo, frets 0–19 |
 | guitar-bass-5string | Horizontal five-string fretboard | 23–62 | B0 E1 A1 D2 G2, no capo, frets 0–19 |
@@ -29,7 +31,7 @@ control IDs and schematic coordinates under `layout_keys` (AE-01 retains its
 existing dedicated drawing). Every referenced key must exist in that model's
 diagram. Unknown instruments, key IDs and malformed guitar positions are errors.
 
-The new sax tables were visually transcribed from the **Bb3–C#5 segment** in:
+The Roland sax tables were visually transcribed from the **Bb3–C#5 segment** in:
 
 - [AE-05 manual](https://static.roland.com/assets/media/pdf/AE-05_eng05_W.pdf): chart p13, key layout and octave behavior p6.
 - [AE-10 manual](https://static.roland.com/assets/media/pdf/AE-10_eng03_W.pdf): chart PDF p13, layout p4, octave settings p8.
@@ -70,11 +72,48 @@ read or change settings on a connected instrument.
 Examples:
 
 ```sh
-tono song.mp3 sax.mp4 --instrument ae20 --tempo-scale 0.75 --metronome both
-tono song.mp3 guitar.mp4 --instrument guitar --tempo-scale 0.5
-tono demo --instrument ae05 --out /tmp/tono-ae05-demo
+tono song.mp3 --instrument ae20 --tempo-scale 0.75 --metronome both
+tono song.mp3 --instrument guitar --tempo-scale 0.5
+tono song.mp3 --instrument ae05 --practice-dir ~/Movies/Practices
 tono --help
 ```
+
+Output filenames are automatic: `./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4`.
+Use `--practice-dir` (or `-d`) to change the output folder.
+`tono demo --instrument ae05` is a separate built-in melody demo, requiring no
+input song and writing to `./tono-demo/`.
+
+## Yamaha YDS-120 and YDS-150
+
+```sh
+tono song.mp3 --instrument yds120
+tono song.mp3 --instrument yds150 --tempo-scale 0.75 --metronome both
+```
+
+`yds-120` and `yds-150` are aliases; filenames use `yds120` and `yds150`.
+Both profiles use Yamaha's factory fingering chart, covering A3–F#6 (MIDI 57–90)
+**with total voice transposition set to 0**. The diagram includes the rear `Oct`
+and `Low A` keys and Yamaha's front controls. Charted alternatives are retained,
+including side/bis Bb and front-key high E/F. The first charted pattern is primary.
+There is no speculative octave expansion or custom-fingering support.
+
+Yamaha's chart uses **written pitches**, while Tono uses sounding pitches.
+Factory sax voices transpose: alto −9, soprano −2, tenor −14 and baritone −21
+semitones. Those unchanged presets will not match this profile. Use the documented
+zero-transposition C.01 voice (Harmonica), or configure a user voice with total
+transposition 0 in YDS Controller. Some other C voices also shift octaves, so the
+letter C alone is not enough. Keep the analog pitch controller neutral. Tono
+shows the required setup but cannot configure or detect the instrument's settings.
+
+Sources, checked independently for both models:
+
+- [YDS-120 Owner's Manual](https://usa.yamaha.com/files/download/other_assets/8/1628388/yds-120_en_om_c0-w.pdf): printed pp. 8–9 (controls), 19 (voice transpositions), 20–21 (fingerings).
+- [YDS-150 Owner's Manual](https://usa.yamaha.com/files/download/other_assets/2/1361052/yds-150_en_om_i0w.pdf): printed pp. 8–9, 19–21.
+- [YDS Controller: User Voice settings](https://manual.yamaha.com/mi/bo/yds-150/en/yds_controller_en_d0_002.html): per-voice transposition.
+
+`build_profiles.py` keeps reviewed Yamaha patterns separate from Roland data;
+only schematic drawing positions are shared. `verified` stays `false` until
+the corresponding physical instrument has been checked with the required setup.
 
 ## Keyboard and guitar selection
 
