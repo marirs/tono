@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::notes::NoteEvent;
+use crate::music::notes::NoteEvent;
 
 /// Transcriber output before cleanup. `attack` is the onset activation at
 /// the note start (0..1), when the transcriber provides one.
@@ -71,7 +71,12 @@ pub fn clean_notes(raw_notes: &[RawNoteEvent], settings: &CleanupSettings) -> Ve
     merged_again
         .into_iter()
         .filter(|note| note.end - note.start >= settings.min_note_seconds)
-        .map(|note| NoteEvent { start: note.start, end: note.end, midi: note.midi, confidence: note.confidence })
+        .map(|note| NoteEvent {
+            start: note.start,
+            end: note.end,
+            midi: note.midi,
+            confidence: note.confidence,
+        })
         .collect()
 }
 
@@ -81,7 +86,10 @@ pub fn clean_notes(raw_notes: &[RawNoteEvent], settings: &CleanupSettings) -> Ve
 /// so a weaker note interrupted by a stronger one resumes as a separate
 /// segment. Correct by construction, O(n^2) for the few hundred notes of a clip.
 fn reduce_to_monophonic(notes: Vec<RawNoteEvent>) -> Vec<RawNoteEvent> {
-    let mut boundaries: Vec<f64> = notes.iter().flat_map(|note| [note.start, note.end]).collect();
+    let mut boundaries: Vec<f64> = notes
+        .iter()
+        .flat_map(|note| [note.start, note.end])
+        .collect();
     boundaries.sort_by(f64::total_cmp);
     boundaries.dedup();
 
@@ -109,8 +117,17 @@ fn reduce_to_monophonic(notes: Vec<RawNoteEvent>) -> Vec<RawNoteEvent> {
                 let source = notes[index];
                 // Only a segment beginning at the note's own onset keeps the
                 // attack; a resumed tail or a note unmasked mid-way does not.
-                let attack = if source.start == slice_start { source.attack } else { None };
-                line.push(RawNoteEvent { start: slice_start, end: slice_end, attack, ..source });
+                let attack = if source.start == slice_start {
+                    source.attack
+                } else {
+                    None
+                };
+                line.push(RawNoteEvent {
+                    start: slice_start,
+                    end: slice_end,
+                    attack,
+                    ..source
+                });
             }
             (None, _) => {}
         }
@@ -122,7 +139,10 @@ fn reduce_to_monophonic(notes: Vec<RawNoteEvent>) -> Vec<RawNoteEvent> {
 /// Rule 3/5: joins same-pitch neighbours separated by a tiny gap (a
 /// transcription break), keeps them apart when the gap is long or the
 /// second note has its own attack (a real repeated note).
-fn merge_identical_neighbours(notes: Vec<RawNoteEvent>, settings: &CleanupSettings) -> Vec<RawNoteEvent> {
+fn merge_identical_neighbours(
+    notes: Vec<RawNoteEvent>,
+    settings: &CleanupSettings,
+) -> Vec<RawNoteEvent> {
     let mut merged: Vec<RawNoteEvent> = Vec::with_capacity(notes.len());
     for note in notes {
         match merged.last_mut() {
@@ -145,10 +165,21 @@ fn absorb_vibrato(notes: Vec<RawNoteEvent>, settings: &CleanupSettings) -> Vec<R
     let mut index = 0;
     while index < notes.len() {
         let is_vibrato_excursion = index + 2 <= notes.len() - 1
-            && is_vibrato_triple(&notes[index], &notes[index + 1], &notes[index + 2], settings);
+            && is_vibrato_triple(
+                &notes[index],
+                &notes[index + 1],
+                &notes[index + 2],
+                settings,
+            );
         if is_vibrato_excursion {
-            let combined = combine(&combine(&notes[index], &notes[index + 1]), &notes[index + 2]);
-            let combined = RawNoteEvent { midi: notes[index].midi, ..combined };
+            let combined = combine(
+                &combine(&notes[index], &notes[index + 1]),
+                &notes[index + 2],
+            );
+            let combined = RawNoteEvent {
+                midi: notes[index].midi,
+                ..combined
+            };
             // Feed the result back in so chained wobbles collapse fully.
             let mut remaining = vec![combined];
             remaining.extend_from_slice(&notes[index + 3..]);
@@ -162,7 +193,12 @@ fn absorb_vibrato(notes: Vec<RawNoteEvent>, settings: &CleanupSettings) -> Vec<R
     result
 }
 
-fn is_vibrato_triple(first: &RawNoteEvent, middle: &RawNoteEvent, last: &RawNoteEvent, settings: &CleanupSettings) -> bool {
+fn is_vibrato_triple(
+    first: &RawNoteEvent,
+    middle: &RawNoteEvent,
+    last: &RawNoteEvent,
+    settings: &CleanupSettings,
+) -> bool {
     let contiguous = middle.start - first.end <= settings.merge_gap_seconds
         && last.start - middle.end <= settings.merge_gap_seconds;
     first.midi == last.midi
@@ -182,7 +218,8 @@ fn combine(first: &RawNoteEvent, second: &RawNoteEvent) -> RawNoteEvent {
         start: first.start,
         end: second.end.max(first.end),
         midi: first.midi,
-        confidence: (first.confidence * first_length + second.confidence * second_length) / total_length,
+        confidence: (first.confidence * first_length + second.confidence * second_length)
+            / total_length,
         attack: first.attack,
     }
 }
@@ -190,14 +227,23 @@ fn combine(first: &RawNoteEvent, second: &RawNoteEvent) -> RawNoteEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::notes::validate_monophonic_sequence;
+    use crate::music::notes::validate_monophonic_sequence;
 
     fn note(start: f64, end: f64, midi: u8, confidence: f64) -> RawNoteEvent {
-        RawNoteEvent { start, end, midi, confidence, attack: None }
+        RawNoteEvent {
+            start,
+            end,
+            midi,
+            confidence,
+            attack: None,
+        }
     }
 
     fn attacked(start: f64, end: f64, midi: u8, attack: f64) -> RawNoteEvent {
-        RawNoteEvent { attack: Some(attack), ..note(start, end, midi, 0.9) }
+        RawNoteEvent {
+            attack: Some(attack),
+            ..note(start, end, midi, 0.9)
+        }
     }
 
     fn pitches(notes: &[NoteEvent]) -> Vec<u8> {
@@ -230,7 +276,10 @@ mod tests {
         ]);
         assert_eq!(cleaned.len(), 2);
         assert_eq!((cleaned[0].start, cleaned[0].end), (0.0, 1.0));
-        assert!((cleaned[0].confidence - 0.7).abs() < 0.02, "duration-weighted");
+        assert!(
+            (cleaned[0].confidence - 0.7).abs() < 0.02,
+            "duration-weighted"
+        );
     }
 
     #[test]
@@ -267,7 +316,11 @@ mod tests {
     #[test]
     fn keeps_real_stepwise_melody() {
         // Long semitone steps are melody, not vibrato.
-        let cleaned = clean(&[note(0.0, 0.5, 64, 0.9), note(0.5, 1.0, 65, 0.9), note(1.0, 1.5, 64, 0.9)]);
+        let cleaned = clean(&[
+            note(0.0, 0.5, 64, 0.9),
+            note(0.5, 1.0, 65, 0.9),
+            note(1.0, 1.5, 64, 0.9),
+        ]);
         assert_eq!(pitches(&cleaned), vec![64, 65, 64]);
     }
 
@@ -294,7 +347,10 @@ mod tests {
     struct Lcg(u64);
     impl Lcg {
         fn next_unit(&mut self) -> f64 {
-            self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             (self.0 >> 11) as f64 / (1u64 << 53) as f64
         }
     }

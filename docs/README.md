@@ -1,7 +1,7 @@
 # tono v0
 
 A CLI that turns a song into an instrument practice video.
-Spec: `TONO_V0_BUILD_SPEC.md` (v0.1). Implement milestone-by-milestone; no GUI until M4.
+Spec: [TONO_V0_BUILD_SPEC.md](TONO_V0_BUILD_SPEC.md) (v0.1). Implement milestone-by-milestone; no GUI until M4.
 
 ## Status
 
@@ -11,7 +11,7 @@ Spec: `TONO_V0_BUILD_SPEC.md` (v0.1). Implement milestone-by-milestone; no GUI u
 | M1 hard-coded fingering video (`tono demo`) | done; fingering table awaits on-instrument check |
 | M2 song region + BGM + transcription (`tono prep`) | implemented; automated + synthetic/TTS checks pass. **Real-song validation pending** |
 | M3 end-to-end `tono prep` with practice.mp4 | accepted after review; **real-song validation pending** |
-| M4 human test | pending test media + AE-01; log in `docs/M4_TEST_LOG.md` |
+| M4 human test | pending test media + AE-01; log in [M4_TEST_LOG.md](M4_TEST_LOG.md) |
 
 ## Quick start
 
@@ -178,7 +178,7 @@ Executables: `ffmpeg`/`ffprobe` are found on `PATH`, then `/opt/homebrew/bin`,
 
 `instruments/ae01.json` is transcribed from Roland's AE-01 Fingering Chart
 ("Recorder" section) and Owner's Manual pp. 20-21; the key layout in
-`src/ae01_diagram.rs` follows manual pp. 2, 6 and 11. It covers only the
+`src/instruments/ae01.rs` follows manual pp. 2, 6 and 11. It covers only the
 documented front-key range B3-C#5, extended by octave controls to B2-C#6 (MIDI 47-85).
 
 `verified` stays `false`, and videos show a caution banner, until all 39
@@ -208,10 +208,13 @@ shown on video. No notes are individually folded in strict mode.
 
 ## Instrument profiles
 
+The Rust module structure and extension points are documented in
+[ARCHITECTURE.md](ARCHITECTURE.md).
+
 `--instrument` supports `ae01`, `ae05`, `ae10`, `ae20`, and `guitar`.
 All tempo, metronome, region and confidence options are shared. Instrument
 selection changes the fingering lookup, available range, diagram and metadata.
-Profiles and their source references live in [instruments](instruments/README.md).
+Profiles and their source references live in [instrument guide](INSTRUMENTS.md).
 
 ```sh
 tono song.mp3 ae05.mp4 --instrument ae05

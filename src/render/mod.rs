@@ -1,3 +1,4 @@
+//! Practice-video composition and ffmpeg rendering.
 //! Practice-video renderer.
 //!
 //! Strategy (spec "MP4 rendering"): vector graphics are rasterized with
@@ -6,6 +7,8 @@
 //! dots) directly with tiny-skia, then stream raw RGBA to ffmpeg. This keeps
 //! frame timing exact (frame i == time i/fps) without rendering 30 vector
 //! frames per second.
+
+pub mod staff;
 
 use std::fmt::Write as _;
 use std::fs::File;
@@ -17,10 +20,11 @@ use anyhow::{bail, Context, Result};
 use resvg::tiny_skia::{self, Color, Paint, PathBuilder, Pixmap, Rect, Transform};
 use resvg::usvg;
 
-use crate::ae01_diagram::{DiagramState, PressedStyle, UpperHand, DIAGRAM_WIDTH, FONT_FAMILY};
-use crate::fingering::KeyTransition;
-use crate::media_validation::{validate_practice_video, ValidatedMedia};
-use crate::timeline::{frame_time_seconds, NowState, PracticeTimeline};
+use crate::instruments::ae01::DIAGRAM_WIDTH;
+use crate::instruments::diagram::{DiagramState, PressedStyle, UpperHand, FONT_FAMILY};
+use crate::instruments::fingering::KeyTransition;
+use crate::media::validation::{validate_practice_video, ValidatedMedia};
+use crate::music::timeline::{frame_time_seconds, NowState, PracticeTimeline};
 
 /// Spec `--metronome off|visual|audio|both`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -122,7 +126,10 @@ pub fn render_practice_video(
 
     let svg_options = svg_options_with_system_fonts();
     let mut ffmpeg_process = spawn_ffmpeg_encoder(timeline, settings, audio, tools, output_path)?;
-    let mut ffmpeg_stdin = ffmpeg_process.stdin.take().context("ffmpeg stdin unavailable")?;
+    let mut ffmpeg_stdin = ffmpeg_process
+        .stdin
+        .take()
+        .context("ffmpeg stdin unavailable")?;
 
     let mut frame = Pixmap::new(settings.width, settings.height).context("allocating frame")?;
     // Only one static layer is cached: states advance monotonically, so a
@@ -135,7 +142,11 @@ pub fn render_practice_video(
         let now_state = timeline.now_state_at(time_seconds);
         let count = timeline.count_in_number_at(time_seconds);
 
-        let needs_new_layer = cached_static_layer.as_ref().map_or(true, |(state, cached_count, _)| *state != now_state || *cached_count != count);
+        let needs_new_layer = cached_static_layer
+            .as_ref()
+            .map_or(true, |(state, cached_count, _)| {
+                *state != now_state || *cached_count != count
+            });
         if needs_new_layer {
             let svg = static_layer_svg(timeline, settings, now_state, count);
             let layer = rasterize_svg(&svg, &svg_options, settings)?;
@@ -148,14 +159,20 @@ pub fn render_practice_video(
 
         if let Err(error) = ffmpeg_stdin.write_all(frame.data()) {
             let _ = ffmpeg_process.wait();
-            bail!("ffmpeg stopped accepting frames at frame {frame_index} ({error}); see {}", tools.ffmpeg_log.display());
+            bail!(
+                "ffmpeg stopped accepting frames at frame {frame_index} ({error}); see {}",
+                tools.ffmpeg_log.display()
+            );
         }
     }
 
     drop(ffmpeg_stdin); // EOF lets ffmpeg finish the file.
     let status = ffmpeg_process.wait().context("waiting for ffmpeg")?;
     if !status.success() {
-        bail!("ffmpeg failed with {status}; see {}", tools.ffmpeg_log.display());
+        bail!(
+            "ffmpeg failed with {status}; see {}",
+            tools.ffmpeg_log.display()
+        );
     }
 
     // Compare with the prepared timeline, not the frame-rounded encode
@@ -201,17 +218,43 @@ fn spawn_ffmpeg_encoder(
     let mut command = Command::new(tools.ffmpeg);
     command
         .args(["-hide_banner", "-y"])
-        .args(["-f", "rawvideo", "-pixel_format", "rgba", "-video_size", &frame_size])
-        .args(["-framerate", &settings.frames_per_second.to_string(), "-i", "pipe:0"])
+        .args([
+            "-f",
+            "rawvideo",
+            "-pixel_format",
+            "rgba",
+            "-video_size",
+            &frame_size,
+        ])
+        .args([
+            "-framerate",
+            &settings.frames_per_second.to_string(),
+            "-i",
+            "pipe:0",
+        ])
         .arg("-i")
         .arg(audio.backing);
     if let Some(click_track) = audio.metronome_click {
         command.arg("-i").arg(click_track);
     }
     command
-        .args(["-filter_complex", &audio_filter_graph(audio.metronome_click.is_some())])
+        .args([
+            "-filter_complex",
+            &audio_filter_graph(audio.metronome_click.is_some()),
+        ])
         .args(["-map", "0:v:0", "-map", "[aout]"])
-        .args(["-c:v", "libx264", "-preset", "medium", "-tune", "animation", "-crf", "18", "-pix_fmt", "yuv420p"])
+        .args([
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-tune",
+            "animation",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+        ])
         .args(["-c:a", "aac", "-b:a", "192k"])
         .args(["-t", &duration, "-movflags", "+faststart"])
         .arg(output_path)
@@ -230,7 +273,12 @@ fn rasterize_svg(svg: &str, options: &usvg::Options, settings: &RenderSettings) 
 }
 
 /// Everything that only changes when the NOW/NEXT fingering changes.
-fn static_layer_svg(timeline: &PracticeTimeline, settings: &RenderSettings, now_state: NowState, count: Option<u8>) -> String {
+fn static_layer_svg(
+    timeline: &PracticeTimeline,
+    settings: &RenderSettings,
+    now_state: NowState,
+    count: Option<u8>,
+) -> String {
     let (width, height) = (settings.width, settings.height);
     let mut svg = format!(
         r##"<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}"><rect width="100%" height="100%" fill="{BACKGROUND_COLOR}"/>"##
@@ -243,7 +291,7 @@ fn static_layer_svg(timeline: &PracticeTimeline, settings: &RenderSettings, now_
         push_next_section(&mut svg, timeline, now_state, settings);
         push_now_section(&mut svg, timeline, now_state, settings, count);
     }
-    svg.push_str(&crate::staff::staff_svg(timeline, now_state, count));
+    svg.push_str(&crate::render::staff::staff_svg(timeline, now_state, count));
     push_bar_tracks(&mut svg, timeline, settings.metronome.shows_beat_dots());
 
     svg.push_str("</svg>");
@@ -256,7 +304,11 @@ fn push_header(svg: &mut String, settings: &RenderSettings) {
         r##"<text x="60" y="72" font-family="{FONT_FAMILY}" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="6">TONO</text><text x="60" y="108" font-family="{FONT_FAMILY}" font-size="24" fill="#8a93a3">{subtitle}</text>"##,
         subtitle = xml_escape(&settings.subtitle),
     );
-    let _ = write!(svg, r##"<text x="60" y="140" font-family="{FONT_FAMILY}" font-size="16" fill="#8a93a3">{}</text>"##, xml_escape(&settings.required_settings));
+    let _ = write!(
+        svg,
+        r##"<text x="60" y="140" font-family="{FONT_FAMILY}" font-size="16" fill="#8a93a3">{}</text>"##,
+        xml_escape(&settings.required_settings)
+    );
     for (line_index, warning) in settings.video_warnings.iter().enumerate() {
         let _ = write!(
             svg,
@@ -272,25 +324,71 @@ fn push_header(svg: &mut String, settings: &RenderSettings) {
     }
 }
 
-fn push_guitar_sections(svg: &mut String, timeline: &PracticeTimeline, now: NowState, settings: &RenderSettings, count: Option<u8>) {
-    let label = if count.is_some() { "COUNT IN" } else { match now { NowState::Ready(_) => "GET READY", NowState::Sounding(_) => "PLAY", NowState::Finished => "DONE" } };
-    let _ = write!(svg, r##"<text x="460" y="205" font-family="{FONT_FAMILY}" font-size="40" font-weight="800" fill="#ffb000" text-anchor="middle">{label}</text>"##);
+fn push_guitar_sections(
+    svg: &mut String,
+    timeline: &PracticeTimeline,
+    now: NowState,
+    settings: &RenderSettings,
+    count: Option<u8>,
+) {
+    let label = if count.is_some() {
+        "COUNT IN"
+    } else {
+        match now {
+            NowState::Ready(_) => "GET READY",
+            NowState::Sounding(_) => "PLAY",
+            NowState::Finished => "DONE",
+        }
+    };
+    let _ = write!(
+        svg,
+        r##"<text x="460" y="205" font-family="{FONT_FAMILY}" font-size="40" font-weight="800" fill="#ffb000" text-anchor="middle">{label}</text>"##
+    );
     if let Some(index) = now.current_index() {
         let keys = timeline.entries[index].fingering.pressed_key_ids();
         let transition = incoming_transition(timeline, index);
-        let state = DiagramState { upper_hand: settings.upper_hand, pressed_keys: &keys, pressed_style: if matches!(now, NowState::Sounding(_)) { PressedStyle::Sounding } else { PressedStyle::Ready }, transition_hint: Some(&transition) };
-        svg.push_str(&crate::instrument_diagram::guitar_svg(&state, 85.0, 260.0, 1.0, "now-"));
+        let state = DiagramState {
+            upper_hand: settings.upper_hand,
+            pressed_keys: &keys,
+            pressed_style: if matches!(now, NowState::Sounding(_)) {
+                PressedStyle::Sounding
+            } else {
+                PressedStyle::Ready
+            },
+            transition_hint: Some(&transition),
+        };
+        svg.push_str(&crate::instruments::guitar::render(
+            &state, 85.0, 260.0, 1.0, "now-",
+        ));
         if let Some(next) = timeline.next_index_after(now) {
             let keys = timeline.entries[next].fingering.pressed_key_ids();
-            let transition = KeyTransition::between(&timeline.entries[index].fingering, &timeline.entries[next].fingering);
-            let state = DiagramState { upper_hand: settings.upper_hand, pressed_keys: &keys, pressed_style: PressedStyle::Preview, transition_hint: Some(&transition) };
-            let _ = write!(svg, r##"<text x="460" y="710" font-family="{FONT_FAMILY}" font-size="24" fill="#8a93a3" text-anchor="middle">NEXT</text>"##);
-            svg.push_str(&crate::instrument_diagram::guitar_svg(&state, 245.0, 740.0, 0.45, "next-"));
+            let transition = KeyTransition::between(
+                &timeline.entries[index].fingering,
+                &timeline.entries[next].fingering,
+            );
+            let state = DiagramState {
+                upper_hand: settings.upper_hand,
+                pressed_keys: &keys,
+                pressed_style: PressedStyle::Preview,
+                transition_hint: Some(&transition),
+            };
+            let _ = write!(
+                svg,
+                r##"<text x="460" y="710" font-family="{FONT_FAMILY}" font-size="24" fill="#8a93a3" text-anchor="middle">NEXT</text>"##
+            );
+            svg.push_str(&crate::instruments::guitar::render(
+                &state, 245.0, 740.0, 0.45, "next-",
+            ));
         }
     }
 }
 
-fn push_next_section(svg: &mut String, timeline: &PracticeTimeline, now_state: NowState, settings: &RenderSettings) {
+fn push_next_section(
+    svg: &mut String,
+    timeline: &PracticeTimeline,
+    now_state: NowState,
+    settings: &RenderSettings,
+) {
     if matches!(now_state, NowState::Finished) {
         return;
     }
@@ -299,19 +397,30 @@ fn push_next_section(svg: &mut String, timeline: &PracticeTimeline, now_state: N
         r##"<text x="760" y="210" font-family="{FONT_FAMILY}" font-size="30" font-weight="700" fill="#8a93a3" text-anchor="middle" letter-spacing="8">NEXT</text>"##
     );
     let next_diagram_x = 771.0 - DIAGRAM_WIDTH * NEXT_DIAGRAM_SCALE / 2.0;
-    let transform = format!("translate({next_diagram_x} {NEXT_DIAGRAM_Y}) scale({NEXT_DIAGRAM_SCALE})");
+    let transform =
+        format!("translate({next_diagram_x} {NEXT_DIAGRAM_Y}) scale({NEXT_DIAGRAM_SCALE})");
 
-    match (now_state.current_index(), timeline.next_index_after(now_state)) {
+    match (
+        now_state.current_index(),
+        timeline.next_index_after(now_state),
+    ) {
         (Some(current_index), Some(next_index)) => {
             let next_keys = timeline.entries[next_index].fingering.pressed_key_ids();
-            let transition: Option<&KeyTransition> = timeline.entries[current_index].transition_to_next.as_ref();
+            let transition: Option<&KeyTransition> =
+                timeline.entries[current_index].transition_to_next.as_ref();
             let state = DiagramState {
                 upper_hand: settings.upper_hand,
                 pressed_keys: &next_keys,
                 pressed_style: PressedStyle::Preview,
                 transition_hint: transition,
             };
-            svg.push_str(&crate::instrument_diagram::wind_svg(settings.instrument, &settings.layout_keys, &state, &transform, "next-"));
+            svg.push_str(&crate::instruments::wind_svg(
+                settings.instrument,
+                &settings.layout_keys,
+                &state,
+                &transform,
+                "next-",
+            ));
             if transition.is_some_and(|t| t.changed_key_count() == 0) {
                 let _ = write!(
                     svg,
@@ -331,7 +440,13 @@ fn push_next_section(svg: &mut String, timeline: &PracticeTimeline, now_state: N
     svg.push_str(r##"<path d="M650 510 L650 550 L620 530 Z" fill="#5a6272"/>"##);
 }
 
-fn push_now_section(svg: &mut String, timeline: &PracticeTimeline, now_state: NowState, settings: &RenderSettings, count: Option<u8>) {
+fn push_now_section(
+    svg: &mut String,
+    timeline: &PracticeTimeline,
+    now_state: NowState,
+    settings: &RenderSettings,
+    count: Option<u8>,
+) {
     let (label, label_color, style) = match now_state {
         _ if count.is_some() => ("COUNT IN", "#ffb000", PressedStyle::Ready),
         NowState::Ready(_) => ("GET READY", "#c8a24a", PressedStyle::Ready),
@@ -347,20 +462,46 @@ fn push_now_section(svg: &mut String, timeline: &PracticeTimeline, now_state: No
         .map(|index| timeline.entries[index].fingering.pressed_key_ids())
         .unwrap_or_default();
     let now_diagram_x = 366.0 - DIAGRAM_WIDTH * NOW_DIAGRAM_SCALE / 2.0;
-    let transform = format!("translate({now_diagram_x} {NOW_DIAGRAM_Y}) scale({NOW_DIAGRAM_SCALE})");
-    let transition = now_state.current_index().map(|index| incoming_transition(timeline, index));
-    let state = DiagramState { upper_hand: settings.upper_hand, pressed_keys: &pressed_keys, pressed_style: style, transition_hint: transition.as_ref() };
-    svg.push_str(&crate::instrument_diagram::wind_svg(settings.instrument, &settings.layout_keys, &state, &transform, "now-"));
-    if transition.as_ref().is_some_and(|t| t.changed_key_count() == 0) {
-        let _ = write!(svg, r##"<text x="350" y="938" font-family="{FONT_FAMILY}" font-size="25" font-weight="700" fill="#ffb000" text-anchor="middle">SAME AGAIN</text>"##);
+    let transform =
+        format!("translate({now_diagram_x} {NOW_DIAGRAM_Y}) scale({NOW_DIAGRAM_SCALE})");
+    let transition = now_state
+        .current_index()
+        .map(|index| incoming_transition(timeline, index));
+    let state = DiagramState {
+        upper_hand: settings.upper_hand,
+        pressed_keys: &pressed_keys,
+        pressed_style: style,
+        transition_hint: transition.as_ref(),
+    };
+    svg.push_str(&crate::instruments::wind_svg(
+        settings.instrument,
+        &settings.layout_keys,
+        &state,
+        &transform,
+        "now-",
+    ));
+    if transition
+        .as_ref()
+        .is_some_and(|t| t.changed_key_count() == 0)
+    {
+        let _ = write!(
+            svg,
+            r##"<text x="350" y="938" font-family="{FONT_FAMILY}" font-size="25" font-weight="700" fill="#ffb000" text-anchor="middle">SAME AGAIN</text>"##
+        );
     }
 }
 
 fn incoming_transition(timeline: &PracticeTimeline, index: usize) -> KeyTransition {
     if index == 0 {
-        KeyTransition { press: timeline.entries[0].fingering.pressed_key_ids(), lift: Default::default() }
+        KeyTransition {
+            press: timeline.entries[0].fingering.pressed_key_ids(),
+            lift: Default::default(),
+        }
     } else {
-        KeyTransition::between(&timeline.entries[index - 1].fingering, &timeline.entries[index].fingering)
+        KeyTransition::between(
+            &timeline.entries[index - 1].fingering,
+            &timeline.entries[index].fingering,
+        )
     }
 }
 
@@ -368,9 +509,16 @@ fn incoming_transition(timeline: &PracticeTimeline, index: usize) -> KeyTransiti
 /// player can see phrase shape ahead of time.
 fn push_bar_tracks(svg: &mut String, timeline: &PracticeTimeline, show_beat_dots: bool) {
     let (x, y, width, height) = NOTE_PROGRESS_BAR;
-    let _ = write!(svg, r##"<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="8" fill="#262c38"/>"##);
+    let _ = write!(
+        svg,
+        r##"<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="8" fill="#262c38"/>"##
+    );
 
-    let visible_beat_dots = if show_beat_dots { beat_dot_count(timeline) } else { 0 };
+    let visible_beat_dots = if show_beat_dots {
+        beat_dot_count(timeline)
+    } else {
+        0
+    };
     for dot_index in 0..visible_beat_dots {
         let center_x = beat_dot_center_x(dot_index, visible_beat_dots);
         let _ = write!(
@@ -380,7 +528,10 @@ fn push_bar_tracks(svg: &mut String, timeline: &PracticeTimeline, show_beat_dots
     }
 
     let (x, y, width, height) = TIMELINE_BAR;
-    let _ = write!(svg, r##"<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="5" fill="#262c38"/>"##);
+    let _ = write!(
+        svg,
+        r##"<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="5" fill="#262c38"/>"##
+    );
     let seconds_to_pixels = width as f64 / timeline.total_duration_seconds;
     for entry in &timeline.entries {
         let span_x = x as f64 + entry.start * seconds_to_pixels;
@@ -410,7 +561,10 @@ fn paint_dynamic_overlays(
     settings: &RenderSettings,
     time_seconds: f64,
 ) {
-    let mut paint = Paint { anti_alias: true, ..Paint::default() };
+    let mut paint = Paint {
+        anti_alias: true,
+        ..Paint::default()
+    };
 
     let note_progress = timeline.note_progress_at(time_seconds) as f32;
     if note_progress > 0.0 {
@@ -429,23 +583,47 @@ fn paint_dynamic_overlays(
     paint.set_color_rgba8(255, 255, 255, 70);
     fill_rect(frame, &paint, x, y, elapsed_width, height);
     paint.set_color(Color::WHITE);
-    fill_rect(frame, &paint, x + elapsed_width - 2.0, y - 8.0, 4.0, height + 16.0);
+    fill_rect(
+        frame,
+        &paint,
+        x + elapsed_width - 2.0,
+        y - 8.0,
+        4.0,
+        height + 16.0,
+    );
 }
 
 /// Beat dot flashes on each beat and fades until the next one. Only a
 /// known downbeat gets the accent colour.
-fn paint_beat_dot(frame: &mut Pixmap, paint: &mut Paint, timeline: &PracticeTimeline, time_seconds: f64) {
+fn paint_beat_dot(
+    frame: &mut Pixmap,
+    paint: &mut Paint,
+    timeline: &PracticeTimeline,
+    time_seconds: f64,
+) {
     let Some(position) = timeline.beat_position_at(time_seconds) else {
         return; // before the first beat
     };
     let dot_count = beat_dot_count(timeline);
     let dot_index = (position.index % dot_count as usize) as u32;
-    let rgb = if timeline.beats.is_accented(position.index) { DOWNBEAT_RGB } else { ACCENT_RGB };
+    let rgb = if timeline.beats.is_accented(position.index) {
+        DOWNBEAT_RGB
+    } else {
+        ACCENT_RGB
+    };
     let alpha = (255.0 * (1.0 - 0.7 * position.fraction)).round() as u8;
     paint.set_color_rgba8(rgb.0, rgb.1, rgb.2, alpha);
     let center_x = beat_dot_center_x(dot_index, dot_count);
-    if let Some(circle) = PathBuilder::from_circle(center_x, BEAT_DOTS_CENTER_Y, BEAT_DOT_RADIUS - 2.0) {
-        frame.fill_path(&circle, paint, tiny_skia::FillRule::Winding, Transform::identity(), None);
+    if let Some(circle) =
+        PathBuilder::from_circle(center_x, BEAT_DOTS_CENTER_Y, BEAT_DOT_RADIUS - 2.0)
+    {
+        frame.fill_path(
+            &circle,
+            paint,
+            tiny_skia::FillRule::Winding,
+            Transform::identity(),
+            None,
+        );
     }
 }
 
@@ -456,22 +634,38 @@ fn fill_rect(frame: &mut Pixmap, paint: &Paint, x: f32, y: f32, width: f32, heig
 }
 
 fn xml_escape(text: &str) -> String {
-    text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 #[cfg(test)]
 mod current_cue_tests {
     use super::*;
-    use crate::fingering::{Fingering, FingeringTimelineEntry, OctaveShift};
+    use crate::instruments::fingering::{Fingering, FingeringTimelineEntry, OctaveShift};
 
     #[test]
     fn current_cues_use_previous_to_current_not_current_to_next() {
-        let entries = [vec!["left_1"], vec!["left_2"], vec!["left_2"], vec!["right_1"]]
-            .iter().enumerate().map(|(i, keys)| FingeringTimelineEntry {
-                start: i as f64, end: i as f64 + 0.5, midi: 60,
-                fingering: Fingering { octave: OctaveShift::Normal, keys: keys.iter().map(|s| s.to_string()).collect() },
-                transition_to_next: None,
-            }).collect();
+        let entries = [
+            vec!["left_1"],
+            vec!["left_2"],
+            vec!["left_2"],
+            vec!["right_1"],
+        ]
+        .iter()
+        .enumerate()
+        .map(|(i, keys)| FingeringTimelineEntry {
+            start: i as f64,
+            end: i as f64 + 0.5,
+            midi: 60,
+            fingering: Fingering {
+                octave: OctaveShift::Normal,
+                keys: keys.iter().map(|s| s.to_string()).collect(),
+            },
+            transition_to_next: None,
+        })
+        .collect();
         let timeline = PracticeTimeline::new(entries, 100.0, 0.0);
         assert!(incoming_transition(&timeline, 0).press.contains("left_1"));
         let change = incoming_transition(&timeline, 1);
@@ -479,11 +673,23 @@ mod current_cue_tests {
         assert_eq!(change.lift, ["left_1".to_string()].into_iter().collect());
         assert_eq!(incoming_transition(&timeline, 2).changed_key_count(), 0);
         let mut svg = String::new();
-        push_now_section(&mut svg, &timeline, NowState::Sounding(1), &RenderSettings::default(), None);
+        push_now_section(
+            &mut svg,
+            &timeline,
+            NowState::Sounding(1),
+            &RenderSettings::default(),
+            None,
+        );
         assert!(svg.contains(">PRESS</text>"));
         assert!(svg.contains(">LIFT</text>"));
         svg.clear();
-        push_now_section(&mut svg, &timeline, NowState::Ready(2), &RenderSettings::default(), None);
+        push_now_section(
+            &mut svg,
+            &timeline,
+            NowState::Ready(2),
+            &RenderSettings::default(),
+            None,
+        );
         assert!(svg.contains("SAME AGAIN"));
     }
 }

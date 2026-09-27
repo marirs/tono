@@ -44,7 +44,14 @@ pub struct ValidatedMedia {
 
 fn run_ffprobe_json(ffprobe: &Path, media_path: &Path) -> Result<String> {
     let output = Command::new(ffprobe)
-        .args(["-v", "error", "-show_streams", "-show_format", "-of", "json"])
+        .args([
+            "-v",
+            "error",
+            "-show_streams",
+            "-show_format",
+            "-of",
+            "json",
+        ])
         .arg(media_path)
         .output()
         .with_context(|| format!("running {}", ffprobe.display()))?;
@@ -106,7 +113,8 @@ fn validate_probe_json(probe_json: &str, expected_duration_seconds: f64) -> Resu
             .find(|stream| stream.codec_type.as_deref() == Some(kind))
     };
     let video = find_stream("video").context("no video stream")?;
-    let audio = find_stream("audio").context("no audio stream (practice video must not be silent)")?;
+    let audio =
+        find_stream("audio").context("no audio stream (practice video must not be silent)")?;
 
     let audio_codec = audio.codec_name.clone().unwrap_or_default();
     if !ACCEPTED_AUDIO_CODECS.contains(&audio_codec.as_str()) {
@@ -153,7 +161,9 @@ mod tests {
     fn probe_json(video_duration: &str, audio: Option<(&str, &str)>) -> String {
         let audio_stream = audio
             .map(|(codec, duration)| {
-                format!(r#",{{"codec_type":"audio","codec_name":"{codec}","duration":"{duration}"}}"#)
+                format!(
+                    r#",{{"codec_type":"audio","codec_name":"{codec}","duration":"{duration}"}}"#
+                )
             })
             .unwrap_or_default();
         format!(
@@ -163,7 +173,8 @@ mod tests {
 
     #[test]
     fn accepts_matching_streams() {
-        let media = validate_probe_json(&probe_json("12.000", Some(("aac", "11.987"))), 12.0).unwrap();
+        let media =
+            validate_probe_json(&probe_json("12.000", Some(("aac", "11.987"))), 12.0).unwrap();
         assert_eq!(media.video_codec, "h264");
         assert_eq!(media.audio_codec, "aac");
     }
@@ -177,7 +188,8 @@ mod tests {
     #[test]
     fn rejects_short_audio() {
         // Reproduces the review case: 5.433 s video, 1 s audio.
-        let error = validate_probe_json(&probe_json("5.433", Some(("aac", "1.000"))), 5.433).unwrap_err();
+        let error =
+            validate_probe_json(&probe_json("5.433", Some(("aac", "1.000"))), 5.433).unwrap_err();
         assert!(format!("{error:#}").contains("differ by"));
     }
 

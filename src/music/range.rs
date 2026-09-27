@@ -15,8 +15,8 @@
 use anyhow::{bail, Result};
 use serde::Serialize;
 
-use crate::fingering::FingeringTable;
-use crate::notes::NoteEvent;
+use crate::instruments::fingering::FingeringTable;
+use crate::music::notes::NoteEvent;
 
 /// Candidate whole-melody shifts in octaves, in order of preference.
 const OCTAVE_SHIFT_CANDIDATES: [i32; 5] = [0, 1, -1, 2, -2];
@@ -62,26 +62,49 @@ impl FittedMelody {
 }
 
 fn shift_midi(midi: u8, semitones: i32) -> Option<u8> {
-    u8::try_from(midi as i32 + semitones).ok().filter(|shifted| *shifted <= 127)
+    u8::try_from(midi as i32 + semitones)
+        .ok()
+        .filter(|shifted| *shifted <= 127)
 }
 
-pub fn fit_melody_to_table(notes: &[NoteEvent], table: &FingeringTable, policy: RangePolicy) -> Result<FittedMelody> {
+pub fn fit_melody_to_table(
+    notes: &[NoteEvent],
+    table: &FingeringTable,
+    policy: RangePolicy,
+) -> Result<FittedMelody> {
     let playable = |midi: u8| table.lookup(midi).is_ok();
-    let fits = |note: &NoteEvent, octaves: i32| shift_midi(note.midi, octaves * 12).is_some_and(playable);
+    let fits =
+        |note: &NoteEvent, octaves: i32| shift_midi(note.midi, octaves * 12).is_some_and(playable);
     let fitting_count = |octaves: i32| notes.iter().filter(|note| fits(note, octaves)).count();
 
-    let whole_shift = OCTAVE_SHIFT_CANDIDATES.iter().copied().find(|&octaves| fitting_count(octaves) == notes.len());
+    let whole_shift = OCTAVE_SHIFT_CANDIDATES
+        .iter()
+        .copied()
+        .find(|&octaves| fitting_count(octaves) == notes.len());
     if let Some(octave_shift) = whole_shift {
         let shifted = notes
             .iter()
-            .map(|note| NoteEvent { midi: shift_midi(note.midi, octave_shift * 12).expect("checked by fits"), ..*note })
+            .map(|note| NoteEvent {
+                midi: shift_midi(note.midi, octave_shift * 12).expect("checked by fits"),
+                ..*note
+            })
             .collect();
-        return Ok(FittedMelody { notes: shifted, policy, octave_shift, folded_notes: Vec::new() });
+        return Ok(FittedMelody {
+            notes: shifted,
+            policy,
+            octave_shift,
+            folded_notes: Vec::new(),
+        });
     }
 
     // max_by_key keeps the LAST maximum; iterate candidates reversed so the
     // most preferred shift wins ties.
-    let best_shift = OCTAVE_SHIFT_CANDIDATES.iter().rev().copied().max_by_key(|&octaves| fitting_count(octaves)).unwrap_or(0);
+    let best_shift = OCTAVE_SHIFT_CANDIDATES
+        .iter()
+        .rev()
+        .copied()
+        .max_by_key(|&octaves| fitting_count(octaves))
+        .unwrap_or(0);
     match policy {
         RangePolicy::Strict => bail!(strict_failure_message(notes, table, best_shift, &fits)),
         RangePolicy::Fold => fold_outliers(notes, best_shift, &playable),
@@ -114,12 +137,19 @@ fn strict_failure_message(
     )
 }
 
-fn fold_outliers(notes: &[NoteEvent], octave_shift: i32, playable: &impl Fn(u8) -> bool) -> Result<FittedMelody> {
+fn fold_outliers(
+    notes: &[NoteEvent],
+    octave_shift: i32,
+    playable: &impl Fn(u8) -> bool,
+) -> Result<FittedMelody> {
     let mut fitted_notes = Vec::with_capacity(notes.len());
     let mut folded_notes = Vec::new();
     for (index, note) in notes.iter().enumerate() {
         let Some(shifted) = shift_midi(note.midi, octave_shift * 12) else {
-            bail!("MIDI {} cannot be shifted by {octave_shift:+} octave", note.midi);
+            bail!(
+                "MIDI {} cannot be shifted by {octave_shift:+} octave",
+                note.midi
+            );
         };
         let played = if playable(shifted) {
             shifted
@@ -130,11 +160,24 @@ fn fold_outliers(notes: &[NoteEvent], octave_shift: i32, playable: &impl Fn(u8) 
             }
         };
         if played != shifted {
-            folded_notes.push(FoldedNote { index, start: note.start, shifted_midi: shifted, played_midi: played });
+            folded_notes.push(FoldedNote {
+                index,
+                start: note.start,
+                shifted_midi: shifted,
+                played_midi: played,
+            });
         }
-        fitted_notes.push(NoteEvent { midi: played, ..*note });
+        fitted_notes.push(NoteEvent {
+            midi: played,
+            ..*note
+        });
     }
-    Ok(FittedMelody { notes: fitted_notes, policy: RangePolicy::Fold, octave_shift, folded_notes })
+    Ok(FittedMelody {
+        notes: fitted_notes,
+        policy: RangePolicy::Fold,
+        octave_shift,
+        folded_notes,
+    })
 }
 
 fn nearest_playable_octave(midi: u8, playable: &impl Fn(u8) -> bool) -> Option<u8> {
@@ -150,9 +193,12 @@ mod tests {
 
     fn table() -> FingeringTable {
         {
-            let mut table = FingeringTable::load_from_file(&crate::paths::ae01_fingering_table()).unwrap();
+            let mut table =
+                FingeringTable::load_from_file(&crate::paths::ae01_fingering_table()).unwrap();
             // Keep narrow-table regressions independent of the production range.
-            table.fingerings.retain(|midi, _| (59..=73).contains(&midi.parse::<u8>().unwrap()));
+            table
+                .fingerings
+                .retain(|midi, _| (59..=73).contains(&midi.parse::<u8>().unwrap()));
             table
         }
     }
@@ -161,7 +207,12 @@ mod tests {
         pitches
             .iter()
             .enumerate()
-            .map(|(i, &midi)| NoteEvent { start: i as f64, end: i as f64 + 0.5, midi, confidence: 0.9 })
+            .map(|(i, &midi)| NoteEvent {
+                start: i as f64,
+                end: i as f64 + 0.5,
+                midi,
+                confidence: 0.9,
+            })
             .collect()
     }
 
@@ -176,11 +227,13 @@ mod tests {
     #[test]
     fn full_table_fits_poove_without_individual_folding() {
         let full = FingeringTable::load_from_file(&crate::paths::ae01_fingering_table()).unwrap();
-        let fitted = fit_melody_to_table(&melody(&[39, 63, 65, 70]), &full, RangePolicy::Strict).unwrap();
+        let fitted =
+            fit_melody_to_table(&melody(&[39, 63, 65, 70]), &full, RangePolicy::Strict).unwrap();
         assert_eq!(fitted.octave_shift, 1);
         assert_eq!(played(&fitted), vec![51, 75, 77, 82]);
         assert!(!fitted.shape_changed());
-        let inside = fit_melody_to_table(&melody(&[47, 60, 85]), &full, RangePolicy::Strict).unwrap();
+        let inside =
+            fit_melody_to_table(&melody(&[47, 60, 85]), &full, RangePolicy::Strict).unwrap();
         assert!(inside.is_unchanged());
     }
 
@@ -210,7 +263,9 @@ mod tests {
     fn strict_rejects_melody_that_needs_folding() {
         // Reviewer regression: folding would turn the final rising step 72->76
         // into a downward leap 72->64. Strict must refuse instead.
-        let error = fit(&[64, 67, 72, 76], RangePolicy::Strict).unwrap_err().to_string();
+        let error = fit(&[64, 67, 72, 76], RangePolicy::Strict)
+            .unwrap_err()
+            .to_string();
         assert!(error.contains("3.00s MIDI 76"), "{error}");
         assert!(error.contains("folding is disabled"), "{error}");
     }
@@ -220,7 +275,11 @@ mod tests {
         let original = [48u8, 50, 52, 53, 55, 57, 59, 60]; // fits with +1 octave
         let fitted = fit(&original, RangePolicy::Strict).unwrap();
         let played = played(&fitted);
-        let intervals = |p: &[u8]| p.windows(2).map(|w| w[1] as i32 - w[0] as i32).collect::<Vec<_>>();
+        let intervals = |p: &[u8]| {
+            p.windows(2)
+                .map(|w| w[1] as i32 - w[0] as i32)
+                .collect::<Vec<_>>()
+        };
         assert_eq!(intervals(&played), intervals(&original));
     }
 
@@ -229,7 +288,15 @@ mod tests {
         let fitted = fit(&[64, 67, 72, 76], RangePolicy::Fold).unwrap();
         assert_eq!(fitted.policy, RangePolicy::Fold);
         assert!(fitted.shape_changed());
-        assert_eq!(fitted.folded_notes, vec![FoldedNote { index: 3, start: 3.0, shifted_midi: 76, played_midi: 64 }]);
+        assert_eq!(
+            fitted.folded_notes,
+            vec![FoldedNote {
+                index: 3,
+                start: 3.0,
+                shifted_midi: 76,
+                played_midi: 64
+            }]
+        );
         assert_eq!(played(&fitted), vec![64, 67, 72, 64]);
     }
 

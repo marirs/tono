@@ -158,7 +158,11 @@ pub fn spans_from_labels(frames: &[RegionFrame], labels: &[FrameLabel]) -> Vec<L
     for (frame, &label) in frames.iter().zip(labels) {
         match spans.last_mut() {
             Some(span) if span.label == label => span.end = frame.end,
-            _ => spans.push(LabeledSpan { start: frame.start, end: frame.end, label }),
+            _ => spans.push(LabeledSpan {
+                start: frame.start,
+                end: frame.end,
+                label,
+            }),
         }
     }
     spans
@@ -214,7 +218,11 @@ pub fn select_song_region(
     ))
 }
 
-fn build_candidates(frames: &[RegionFrame], labels: &[FrameLabel], settings: &RegionSettings) -> Vec<Candidate> {
+fn build_candidates(
+    frames: &[RegionFrame],
+    labels: &[FrameLabel],
+    settings: &RegionSettings,
+) -> Vec<Candidate> {
     let mut candidates: Vec<Candidate> = Vec::new();
     let mut open: Option<Candidate> = None;
     let mut gap_seconds = 0.0;
@@ -228,7 +236,12 @@ fn build_candidates(frames: &[RegionFrame], labels: &[FrameLabel], settings: &Re
                     candidate.last_frame = index;
                 }
                 None => {
-                    open = Some(Candidate { start: frame.start, end: frame.end, first_frame: index, last_frame: index })
+                    open = Some(Candidate {
+                        start: frame.start,
+                        end: frame.end,
+                        first_frame: index,
+                        last_frame: index,
+                    })
                 }
             }
             gap_seconds = 0.0;
@@ -266,7 +279,11 @@ fn region_confidence(frames: &[RegionFrame], labels: &[FrameLabel], candidate: &
         .map(|frame| frame.music.max(frame.singing))
         .sum::<f64>()
         / frame_count;
-    let music_share = labels[range].iter().filter(|&&label| label == FrameLabel::Music).count() as f64 / frame_count;
+    let music_share = labels[range]
+        .iter()
+        .filter(|&&label| label == FrameLabel::Music)
+        .count() as f64
+        / frame_count;
     (mean_musical * music_share).clamp(0.0, 1.0)
 }
 
@@ -276,7 +293,12 @@ pub fn manual_region(start: f64, end: Option<f64>, source_duration: f64) -> Resu
         bail!("--from ({start:.2}s) is beyond the end of the source ({source_duration:.2}s)");
     }
     let end = end.unwrap_or(source_duration).min(source_duration);
-    Ok(SelectedRegion { start, end, method: RegionMethod::Manual, confidence: 1.0 })
+    Ok(SelectedRegion {
+        start,
+        end,
+        method: RegionMethod::Manual,
+        confidence: 1.0,
+    })
 }
 
 #[cfg(test)]
@@ -299,7 +321,14 @@ mod tests {
                     '.' => (-80.0, 0.0, 0.0, 0.0),
                     _ => (-30.0, 0.1, 0.1, 0.0),
                 };
-                frames.push(RegionFrame { start: time, end: time + HOP, rms_db, speech, music, singing });
+                frames.push(RegionFrame {
+                    start: time,
+                    end: time + HOP,
+                    rms_db,
+                    speech,
+                    music,
+                    singing,
+                });
                 time += HOP;
             }
         }
@@ -309,7 +338,12 @@ mod tests {
     fn report(script: &[(f64, char)]) -> RegionFramesReport {
         let frames = frames_from_script(script);
         let duration = frames.last().map_or(0.0, |frame| frame.end);
-        RegionFramesReport { version: 1, duration, model: "test".into(), frames }
+        RegionFramesReport {
+            version: 1,
+            duration,
+            model: "test".into(),
+            frames,
+        }
     }
 
     fn select(script: &[(f64, char)]) -> Result<SelectedRegion> {
@@ -344,7 +378,10 @@ mod tests {
     fn fails_loudly_when_no_music() {
         let error = select(&[(20.0, 's'), (5.0, '.')]).unwrap_err().to_string();
         assert!(error.contains("--from/--to"), "{error}");
-        assert!(select(&[(3.0, 'm'), (10.0, 's')]).is_err(), "3 s is below the minimum");
+        assert!(
+            select(&[(3.0, 'm'), (10.0, 's')]).is_err(),
+            "3 s is below the minimum"
+        );
     }
 
     #[test]
@@ -359,7 +396,10 @@ mod tests {
     #[test]
     fn manual_region_clamps_and_validates() {
         let region = manual_region(12.0, Some(48.0), 60.0).unwrap();
-        assert_eq!((region.start, region.end, region.method), (12.0, 48.0, RegionMethod::Manual));
+        assert_eq!(
+            (region.start, region.end, region.method),
+            (12.0, 48.0, RegionMethod::Manual)
+        );
         assert_eq!(manual_region(12.0, None, 60.0).unwrap().end, 60.0);
         assert_eq!(manual_region(0.0, Some(90.0), 60.0).unwrap().end, 60.0);
         assert!(manual_region(70.0, None, 60.0).is_err());

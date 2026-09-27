@@ -46,10 +46,18 @@ pub fn demo_melody(beats_per_minute: f64) -> Vec<NoteEvent> {
     const G4: u8 = 67;
     // (midi, length in beats)
     let phrase: [(u8, f64); 12] = [
-        (E4, 1.0), (D4, 1.0), (C4, 1.0), (D4, 1.0),
-        (E4, 1.0), (E4, 1.0), (E4, 2.0),
-        (D4, 1.0), (D4, 1.0), (D4, 2.0),
-        (E4, 1.0), (G4, 3.0),
+        (E4, 1.0),
+        (D4, 1.0),
+        (C4, 1.0),
+        (D4, 1.0),
+        (E4, 1.0),
+        (E4, 1.0),
+        (E4, 2.0),
+        (D4, 1.0),
+        (D4, 1.0),
+        (D4, 2.0),
+        (E4, 1.0),
+        (G4, 3.0),
     ];
     let seconds_per_beat = 60.0 / beats_per_minute;
     // One bar of count-in so the player sees the first fingering before
@@ -64,7 +72,12 @@ pub fn demo_melody(beats_per_minute: f64) -> Vec<NoteEvent> {
             let start = beat_cursor * seconds_per_beat;
             let end = start + length_beats * sounding_fraction * seconds_per_beat;
             beat_cursor += length_beats;
-            NoteEvent { start, end, midi, confidence: 1.0 }
+            NoteEvent {
+                start,
+                end,
+                midi,
+                confidence: 1.0,
+            }
         })
         .collect()
 }
@@ -74,22 +87,36 @@ mod tests {
     use super::*;
 
     fn note(start: f64, end: f64) -> NoteEvent {
-        NoteEvent { start, end, midi: 60, confidence: 1.0 }
+        NoteEvent {
+            start,
+            end,
+            midi: 60,
+            confidence: 1.0,
+        }
     }
 
     #[test]
     fn demo_melody_is_valid_and_starts_after_count_in() {
         let melody = demo_melody(100.0);
         validate_monophonic_sequence(&melody).unwrap();
-        assert!((8..=12).contains(&melody.len()), "spec M1 asks for 8-12 notes");
-        assert!((melody[0].start - 2.4).abs() < 1e-9, "count-in is 4 beats at 100 bpm");
+        assert!(
+            (8..=12).contains(&melody.len()),
+            "spec M1 asks for 8-12 notes"
+        );
+        assert!(
+            (melody[0].start - 2.4).abs() < 1e-9,
+            "count-in is 4 beats at 100 bpm"
+        );
     }
 
     #[test]
     fn repeated_demo_notes_have_a_gap() {
         let melody = demo_melody(100.0);
         for pair in melody.windows(2) {
-            assert!(pair[1].start - pair[0].end > 0.05, "no articulation gap: {pair:?}");
+            assert!(
+                pair[1].start - pair[0].end > 0.05,
+                "no articulation gap: {pair:?}"
+            );
         }
     }
 

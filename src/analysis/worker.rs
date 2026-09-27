@@ -11,9 +11,9 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
-use crate::note_cleanup::RawNoteEvent;
+use crate::analysis::cleanup::RawNoteEvent;
+use crate::analysis::region::RegionFramesReport;
 use crate::paths;
-use crate::song_region::RegionFramesReport;
 
 const SUPPORTED_CONTRACT_VERSION: u32 = 1;
 
@@ -79,9 +79,12 @@ fn worker_command() -> Result<Command> {
 }
 
 fn run_worker(mut command: Command, what: &str, log_path: &Path) -> Result<()> {
-    let output = command.output().with_context(|| format!("starting ML worker for {what}"))?;
+    let output = command
+        .output()
+        .with_context(|| format!("starting ML worker for {what}"))?;
     // Keep the worker's stderr (model warnings, tracebacks) for debugging.
-    std::fs::write(log_path, &output.stderr).with_context(|| format!("writing {}", log_path.display()))?;
+    std::fs::write(log_path, &output.stderr)
+        .with_context(|| format!("writing {}", log_path.display()))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         let tail: Vec<&str> = stderr.lines().rev().take(8).collect();
@@ -98,8 +101,17 @@ fn run_worker(mut command: Command, what: &str, log_path: &Path) -> Result<()> {
 pub fn detect_region_frames(input_wav: &Path, work_dir: &Path) -> Result<RegionFramesReport> {
     let output_path = work_dir.join("regions.json");
     let mut command = worker_command()?;
-    command.arg("--detect-regions").arg("--input").arg(input_wav).arg("--output").arg(&output_path);
-    run_worker(command, "song-region detection", &work_dir.join("ml-regions.log"))?;
+    command
+        .arg("--detect-regions")
+        .arg("--input")
+        .arg(input_wav)
+        .arg("--output")
+        .arg(&output_path);
+    run_worker(
+        command,
+        "song-region detection",
+        &work_dir.join("ml-regions.log"),
+    )?;
 
     let report: RegionFramesReport = read_json(&output_path)?;
     if report.version != SUPPORTED_CONTRACT_VERSION {
@@ -111,7 +123,12 @@ pub fn detect_region_frames(input_wav: &Path, work_dir: &Path) -> Result<RegionF
     Ok(report)
 }
 
-pub fn analyze_region(region_wav: &Path, part: &str, worker_paths: &WorkerPaths, expected_duration: f64) -> Result<Analysis> {
+pub fn analyze_region(
+    region_wav: &Path,
+    part: &str,
+    worker_paths: &WorkerPaths,
+    expected_duration: f64,
+) -> Result<Analysis> {
     let output_path = worker_paths.work_dir.join("analysis.json");
     let mut command = worker_command()?;
     command
@@ -124,7 +141,11 @@ pub fn analyze_region(region_wav: &Path, part: &str, worker_paths: &WorkerPaths,
         .arg(worker_paths.work_dir)
         .arg("--out-dir")
         .arg(worker_paths.out_dir);
-    run_worker(command, "separation + transcription", &worker_paths.work_dir.join("ml-analysis.log"))?;
+    run_worker(
+        command,
+        "separation + transcription",
+        &worker_paths.work_dir.join("ml-analysis.log"),
+    )?;
 
     let analysis: Analysis = read_json(&output_path)?;
     validate_analysis(&analysis, expected_duration)?;
@@ -132,7 +153,8 @@ pub fn analyze_region(region_wav: &Path, part: &str, worker_paths: &WorkerPaths,
 }
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
-    let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))
 }
 
@@ -150,7 +172,10 @@ fn validate_analysis(analysis: &Analysis, expected_duration: f64) -> Result<()> 
             expected_duration
         );
     }
-    for file in [&analysis.lead_file, &analysis.backing_file].into_iter().chain(analysis.stems.values()) {
+    for file in [&analysis.lead_file, &analysis.backing_file]
+        .into_iter()
+        .chain(analysis.stems.values())
+    {
         if !file.is_file() {
             bail!("worker reported {} but it does not exist", file.display());
         }
@@ -190,7 +215,10 @@ pub fn analysis_for_tests(duration: f64, notes: Vec<RawNoteEvent>) -> Analysis {
             backing_gain_limited: false,
             lead_selection: "model-vocals-stem".into(),
         },
-        transcription: TranscriptionInfo { model: "basic-pitch".into(), parameters: serde_json::Value::Null },
+        transcription: TranscriptionInfo {
+            model: "basic-pitch".into(),
+            parameters: serde_json::Value::Null,
+        },
         warnings: vec![],
     }
 }
@@ -201,14 +229,26 @@ mod tests {
 
     #[test]
     fn accepts_consistent_analysis() {
-        let notes = vec![RawNoteEvent { start: 0.5, end: 1.0, midi: 64, confidence: 0.8, attack: None }];
+        let notes = vec![RawNoteEvent {
+            start: 0.5,
+            end: 1.0,
+            midi: 64,
+            confidence: 0.8,
+            attack: None,
+        }];
         validate_analysis(&analysis_for_tests(10.0, notes), 10.0).unwrap();
     }
 
     #[test]
     fn rejects_duration_mismatch_and_out_of_range_notes() {
         assert!(validate_analysis(&analysis_for_tests(9.0, vec![]), 10.0).is_err());
-        let late_note = vec![RawNoteEvent { start: 9.5, end: 10.5, midi: 64, confidence: 0.8, attack: None }];
+        let late_note = vec![RawNoteEvent {
+            start: 9.5,
+            end: 10.5,
+            midi: 64,
+            confidence: 0.8,
+            attack: None,
+        }];
         assert!(validate_analysis(&analysis_for_tests(10.0, late_note), 10.0).is_err());
     }
 

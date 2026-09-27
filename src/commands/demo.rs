@@ -7,15 +7,16 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use serde_json::json;
 
-use crate::audio::{
-    synthesize_melody_guide_samples, synthesize_metronome_samples, write_mono_wav, GUIDE_SAMPLE_RATE,
+use crate::instruments::fingering::{map_notes_to_fingerings, FingeringTable};
+use crate::media::audio::{
+    synthesize_melody_guide_samples, synthesize_metronome_samples, write_mono_wav,
+    GUIDE_SAMPLE_RATE,
 };
-use crate::fingering::{map_notes_to_fingerings, FingeringTable};
-use crate::media_validation::{probe_audio_duration_seconds, DURATION_TOLERANCE_SECONDS};
-use crate::notes::{demo_melody, validate_monophonic_sequence};
+use crate::media::validation::{probe_audio_duration_seconds, DURATION_TOLERANCE_SECONDS};
+use crate::music::notes::{demo_melody, validate_monophonic_sequence};
+use crate::music::timeline::PracticeTimeline;
 use crate::paths;
 use crate::render::{render_practice_video, AudioBed, MediaTools, MetronomeMode, RenderSettings};
-use crate::timeline::PracticeTimeline;
 
 pub struct DemoOptions {
     pub instrument: crate::instruments::Instrument,
@@ -50,9 +51,8 @@ pub fn run_demo(options: &DemoOptions) -> Result<()> {
     match &result {
         // Spec: work/ exists only with --keep-work. On failure it is kept
         // regardless, because it holds the ffmpeg log needed to debug.
-        Ok(()) if !options.keep_work => {
-            std::fs::remove_dir_all(&work).with_context(|| format!("removing {}", work.display()))?
-        }
+        Ok(()) if !options.keep_work => std::fs::remove_dir_all(&work)
+            .with_context(|| format!("removing {}", work.display()))?,
         Ok(()) => {}
         Err(_) => eprintln!("work files kept for debugging: {}", work.display()),
     }
@@ -61,21 +61,37 @@ pub fn run_demo(options: &DemoOptions) -> Result<()> {
     Ok(())
 }
 
-fn build_demo_outputs(options: &DemoOptions, ffmpeg: &Path, ffprobe: &Path, work: &Path) -> Result<()> {
+fn build_demo_outputs(
+    options: &DemoOptions,
+    ffmpeg: &Path,
+    ffprobe: &Path,
+    work: &Path,
+) -> Result<()> {
     let out = &options.output_directory;
 
     let notes = demo_melody(options.beats_per_minute);
     validate_monophonic_sequence(&notes)?;
-    println!("✓ {} hard-coded notes at {} bpm", notes.len(), options.beats_per_minute);
+    println!(
+        "✓ {} hard-coded notes at {} bpm",
+        notes.len(),
+        options.beats_per_minute
+    );
 
     let table = FingeringTable::load_instrument(options.instrument)?;
     let entries = map_notes_to_fingerings(&notes, &table)?;
     println!(
         "✓ fingerings mapped ({})",
-        if table.verified { "verified table" } else { "table NOT yet verified on the instrument" }
+        if table.verified {
+            "verified table"
+        } else {
+            "table NOT yet verified on the instrument"
+        }
     );
 
-    write_json(&out.join("notes.json"), &json!({ "version": 1, "source": "m1-demo", "notes": notes }))?;
+    write_json(
+        &out.join("notes.json"),
+        &json!({ "version": 1, "source": "m1-demo", "notes": notes }),
+    )?;
     write_json(
         &out.join("fingering.json"),
         &json!({
@@ -91,7 +107,11 @@ fn build_demo_outputs(options: &DemoOptions, ffmpeg: &Path, ffprobe: &Path, work
     let backing_path = prepare_backing_audio(options, &timeline, ffprobe)?;
     let click_path = if options.metronome.plays_click() {
         let click_path = work.join("metronome.wav");
-        write_mono_wav(&click_path, &synthesize_metronome_samples(&timeline, GUIDE_SAMPLE_RATE), GUIDE_SAMPLE_RATE)?;
+        write_mono_wav(
+            &click_path,
+            &synthesize_metronome_samples(&timeline, GUIDE_SAMPLE_RATE),
+            GUIDE_SAMPLE_RATE,
+        )?;
         Some(click_path)
     } else {
         None
@@ -104,7 +124,11 @@ fn build_demo_outputs(options: &DemoOptions, ffmpeg: &Path, ffprobe: &Path, work
         upper_hand: options.instrument.default_upper_hand(),
         fingering_is_unverified: !table.verified,
         metronome: options.metronome,
-        subtitle: format!("{}  ·  timing demo  ·  {} bpm", options.instrument.name(), options.beats_per_minute),
+        subtitle: format!(
+            "{}  ·  timing demo  ·  {} bpm",
+            options.instrument.name(),
+            options.beats_per_minute
+        ),
         ..RenderSettings::default()
     };
     println!(
@@ -117,8 +141,15 @@ fn build_demo_outputs(options: &DemoOptions, ffmpeg: &Path, ffprobe: &Path, work
     let validated = render_practice_video(
         &timeline,
         &settings,
-        &AudioBed { backing: &backing_path, metronome_click: click_path.as_deref() },
-        &MediaTools { ffmpeg, ffprobe, ffmpeg_log: &ffmpeg_log },
+        &AudioBed {
+            backing: &backing_path,
+            metronome_click: click_path.as_deref(),
+        },
+        &MediaTools {
+            ffmpeg,
+            ffprobe,
+            ffmpeg_log: &ffmpeg_log,
+        },
         &out.join("practice.mp4"),
     )?;
     println!("✓ practice video rendered");
@@ -135,7 +166,11 @@ fn build_demo_outputs(options: &DemoOptions, ffmpeg: &Path, ffprobe: &Path, work
 
 /// Returns the audio bed: the user's `--backing` file, or a synthesized
 /// melody guide written to `guide.wav`.
-fn prepare_backing_audio(options: &DemoOptions, timeline: &PracticeTimeline, ffprobe: &Path) -> Result<PathBuf> {
+fn prepare_backing_audio(
+    options: &DemoOptions,
+    timeline: &PracticeTimeline,
+    ffprobe: &Path,
+) -> Result<PathBuf> {
     let Some(backing) = &options.backing_audio else {
         let guide_path = options.output_directory.join("guide.wav");
         let samples = synthesize_melody_guide_samples(timeline, GUIDE_SAMPLE_RATE);
@@ -164,7 +199,13 @@ fn write_json(path: &Path, value: &serde_json::Value) -> Result<()> {
 
 fn print_next_steps(out: &Path) {
     println!("\nOutputs:");
-    for name in ["practice.mp4", "guide.wav", "notes.json", "fingering.json", "work"] {
+    for name in [
+        "practice.mp4",
+        "guide.wav",
+        "notes.json",
+        "fingering.json",
+        "work",
+    ] {
         let path = out.join(name);
         if path.exists() {
             println!("  {}", path.display());

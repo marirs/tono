@@ -33,8 +33,15 @@ fn first_output_line(program: &Path, args: &[&str]) -> Option<String> {
         return None;
     }
     // `python3 --version` historically printed to stderr; accept either.
-    let text = if output.stdout.is_empty() { output.stderr } else { output.stdout };
-    String::from_utf8_lossy(&text).lines().next().map(str::to_owned)
+    let text = if output.stdout.is_empty() {
+        output.stderr
+    } else {
+        output.stdout
+    };
+    String::from_utf8_lossy(&text)
+        .lines()
+        .next()
+        .map(str::to_owned)
 }
 
 fn check_ffmpeg() -> CheckOutcome {
@@ -71,7 +78,9 @@ fn check_ffprobe() -> CheckOutcome {
         Some(version_line) if version_line.starts_with("ffprobe version") => {
             CheckOutcome::Pass(format!("{version_line} ({})", ffprobe.display()))
         }
-        Some(unexpected) => CheckOutcome::Fail(format!("{} printed `{unexpected}`", ffprobe.display())),
+        Some(unexpected) => {
+            CheckOutcome::Fail(format!("{} printed `{unexpected}`", ffprobe.display()))
+        }
         None => CheckOutcome::Fail(format!("{} is not runnable", ffprobe.display())),
     }
 }
@@ -122,7 +131,11 @@ struct ComponentStatus {
 fn component_outcome(status: ComponentStatus, require_ml: bool) -> CheckOutcome {
     let message = status.error.or(status.detail).unwrap_or_default();
     match (status.ok, require_ml) {
-        (true, _) => CheckOutcome::Pass(if message.is_empty() { "ok".into() } else { message }),
+        (true, _) => CheckOutcome::Pass(if message.is_empty() {
+            "ok".into()
+        } else {
+            message
+        }),
         (false, true) => CheckOutcome::Fail(message),
         (false, false) => CheckOutcome::Warn(format!("{message} (needed from M2)")),
     }
@@ -135,27 +148,48 @@ fn check_ml_worker(require_ml: bool) -> (CheckOutcome, Vec<(String, CheckOutcome
         return (CheckOutcome::Fail("no python".into()), Vec::new());
     };
     let script = paths::ml_worker_script();
-    let output = match Command::new(&python).arg(&script).arg("--self-check").output() {
+    let output = match Command::new(&python)
+        .arg(&script)
+        .arg("--self-check")
+        .output()
+    {
         Ok(output) => output,
-        Err(error) => return (CheckOutcome::Fail(format!("spawn failed: {error}")), Vec::new()),
+        Err(error) => {
+            return (
+                CheckOutcome::Fail(format!("spawn failed: {error}")),
+                Vec::new(),
+            )
+        }
     };
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return (
-            CheckOutcome::Fail(format!("{} --self-check failed: {}", script.display(), stderr.trim())),
+            CheckOutcome::Fail(format!(
+                "{} --self-check failed: {}",
+                script.display(),
+                stderr.trim()
+            )),
             Vec::new(),
         );
     }
     let report: WorkerSelfCheck = match serde_json::from_slice(&output.stdout) {
         Ok(report) => report,
         Err(error) => {
-            return (CheckOutcome::Fail(format!("self-check JSON invalid: {error}")), Vec::new())
+            return (
+                CheckOutcome::Fail(format!("self-check JSON invalid: {error}")),
+                Vec::new(),
+            )
         }
     };
     let component_outcomes = report
         .modules
         .into_iter()
-        .map(|(module, status)| (format!("import {module}"), component_outcome(status, require_ml)))
+        .map(|(module, status)| {
+            (
+                format!("import {module}"),
+                component_outcome(status, require_ml),
+            )
+        })
         .chain(
             report
                 .models
@@ -164,7 +198,10 @@ fn check_ml_worker(require_ml: bool) -> (CheckOutcome, Vec<(String, CheckOutcome
         )
         .collect();
     (
-        CheckOutcome::Pass(format!("contract v{} on python {}", report.version, report.python)),
+        CheckOutcome::Pass(format!(
+            "contract v{} on python {}",
+            report.version, report.python
+        )),
         component_outcomes,
     )
 }

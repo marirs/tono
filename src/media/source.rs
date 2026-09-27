@@ -19,7 +19,10 @@ fn run_ffmpeg(ffmpeg: &Path, args: &[&str], input: &Path, output: &Path, what: &
         .output()
         .with_context(|| format!("running ffmpeg for {what}"))?;
     if !result.status.success() {
-        bail!("ffmpeg failed to {what}: {}", String::from_utf8_lossy(&result.stderr).trim());
+        bail!(
+            "ffmpeg failed to {what}: {}",
+            String::from_utf8_lossy(&result.stderr).trim()
+        );
     }
     Ok(())
 }
@@ -47,7 +50,10 @@ pub struct SampleRange {
 impl SampleRange {
     pub fn from_seconds(start: f64, end: f64) -> Self {
         let rate = ANALYSIS_SAMPLE_RATE as f64;
-        SampleRange { start_sample: (start * rate).round() as u64, end_sample: (end * rate).round() as u64 }
+        SampleRange {
+            start_sample: (start * rate).round() as u64,
+            end_sample: (end * rate).round() as u64,
+        }
     }
 
     pub fn start_seconds(&self) -> f64 {
@@ -64,7 +70,12 @@ impl SampleRange {
 }
 
 /// Cuts `range` out of the normalized source; the result starts at t = 0.
-pub fn trim_region(ffmpeg: &Path, normalized_wav: &Path, range: SampleRange, output_wav: &Path) -> Result<()> {
+pub fn trim_region(
+    ffmpeg: &Path,
+    normalized_wav: &Path,
+    range: SampleRange,
+    output_wav: &Path,
+) -> Result<()> {
     if range.end_sample <= range.start_sample {
         bail!("empty region {range:?}");
     }
@@ -73,7 +84,13 @@ pub fn trim_region(ffmpeg: &Path, normalized_wav: &Path, range: SampleRange, out
         "atrim=start_sample={}:end_sample={},asetpts=PTS-STARTPTS",
         range.start_sample, range.end_sample
     );
-    run_ffmpeg(ffmpeg, &["-af", &filter, "-c:a", "pcm_f32le"], normalized_wav, output_wav, "cut the song region")
+    run_ffmpeg(
+        ffmpeg,
+        &["-af", &filter, "-c:a", "pcm_f32le"],
+        normalized_wav,
+        output_wav,
+        "cut the song region",
+    )
 }
 
 #[cfg(test)]

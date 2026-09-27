@@ -6,15 +6,17 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use serde_json::json;
 
-use crate::audio::{count_in_samples, synthesize_metronome_samples, write_mono_wav, GUIDE_SAMPLE_RATE};
-use crate::fingering::{map_notes_to_fingerings, FingeringTable};
-use crate::media_validation::ValidatedMedia;
-use crate::melody_range::{fit_melody_to_table, FittedMelody, RangePolicy};
-use crate::ml_worker::Analysis;
-use crate::notes::{validate_monophonic_sequence, NoteEvent};
+use crate::analysis::worker::Analysis;
+use crate::instruments::diagram::UpperHand;
+use crate::instruments::fingering::{map_notes_to_fingerings, FingeringTable};
+use crate::media::audio::{
+    count_in_samples, synthesize_metronome_samples, write_mono_wav, GUIDE_SAMPLE_RATE,
+};
+use crate::media::validation::ValidatedMedia;
+use crate::music::notes::{validate_monophonic_sequence, NoteEvent};
+use crate::music::range::{fit_melody_to_table, FittedMelody, RangePolicy};
+use crate::music::timeline::{BeatTrack, CountIn, PracticeTimeline};
 use crate::render::{render_practice_video, AudioBed, MediaTools, MetronomeMode, RenderSettings};
-use crate::timeline::{BeatTrack, CountIn, PracticeTimeline};
-use crate::ae01_diagram::UpperHand;
 
 /// atempo handles this range in one filter; wider scales would need
 /// chained filters and are not useful for practice.
@@ -59,14 +61,22 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     let mut warnings = Vec::new();
 
     let table = FingeringTable::load_instrument(request.instrument)?;
-    println!("· {} setup: {}", request.instrument.name(), table.required_settings);
+    println!(
+        "· {} setup: {}",
+        request.instrument.name(),
+        table.required_settings
+    );
     let fitted = fit_melody_to_table(request.cleaned_notes, &table, request.range_policy)?;
     let practice_notes = scale_note_times(&fitted.notes, request.tempo_scale);
     validate_monophonic_sequence(&practice_notes)?;
     let entries = map_notes_to_fingerings(&practice_notes, &table)?;
 
     let practice_duration = request.region_duration_seconds / request.tempo_scale;
-    let beats = BeatTrack::detected(&request.analysis.beat_times, request.tempo_scale, practice_duration);
+    let beats = BeatTrack::detected(
+        &request.analysis.beat_times,
+        request.tempo_scale,
+        practice_duration,
+    );
     let metronome = effective_metronome(request.metronome, &beats, &mut warnings);
     let practice_bpm = beats.median_bpm();
     let beat_count = beats.times.len();
@@ -79,24 +89,44 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
         timeline.prepend_count_in(CountIn::new(request.count_in_beats, bpm));
     }
     let count_in_seconds = timeline.count_in.map_or(0.0, CountIn::duration);
-    write_fingering_json(request, &table, &fitted, &timeline.entries, count_in_seconds)?;
+    write_fingering_json(
+        request,
+        &table,
+        &fitted,
+        &timeline.entries,
+        count_in_seconds,
+    )?;
 
     let bed = practice_audio_bed(request, count_in_seconds, fitted.octave_shift)?;
     let click_track = if metronome.plays_click() || timeline.count_in.is_some() {
         let (mut cues, warning) = count_in_samples(&timeline, request.ffmpeg, request.work_dir);
-        if let Some(warning) = warning { warnings.push(warning); }
+        if let Some(warning) = warning {
+            warnings.push(warning);
+        }
         if timeline.count_in.is_some() {
-            write_mono_wav(&request.work_dir.join("count-in.wav"), &cues, GUIDE_SAMPLE_RATE)?;
+            write_mono_wav(
+                &request.work_dir.join("count-in.wav"),
+                &cues,
+                GUIDE_SAMPLE_RATE,
+            )?;
         }
         if metronome.plays_click() {
             let clicks = synthesize_metronome_samples(&timeline, GUIDE_SAMPLE_RATE);
-            write_mono_wav(&request.work_dir.join("metronome.wav"), &clicks, GUIDE_SAMPLE_RATE)?;
-            for (sample, click) in cues.iter_mut().zip(clicks) { *sample += click; }
+            write_mono_wav(
+                &request.work_dir.join("metronome.wav"),
+                &clicks,
+                GUIDE_SAMPLE_RATE,
+            )?;
+            for (sample, click) in cues.iter_mut().zip(clicks) {
+                *sample += click;
+            }
         }
         let path = request.work_dir.join("practice_cues.wav");
         write_mono_wav(&path, &cues, GUIDE_SAMPLE_RATE)?;
         Some(path)
-    } else { None };
+    } else {
+        None
+    };
 
     let settings = RenderSettings {
         instrument: request.instrument,
@@ -105,7 +135,11 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
         upper_hand: request.upper_hand,
         fingering_is_unverified: !table.verified,
         metronome,
-        subtitle: subtitle(practice_bpm, request.tempo_scale).replacen("AE-01", request.instrument.name(), 1),
+        subtitle: subtitle(practice_bpm, request.tempo_scale).replacen(
+            "AE-01",
+            request.instrument.name(),
+            1,
+        ),
         video_warnings: video_warnings(&fitted, request.low_confidence),
         ..RenderSettings::default()
     };
@@ -114,8 +148,15 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     let validated = render_practice_video(
         &timeline,
         &settings,
-        &AudioBed { backing: &bed, metronome_click: click_track.as_deref() },
-        &MediaTools { ffmpeg: request.ffmpeg, ffprobe: request.ffprobe, ffmpeg_log: &ffmpeg_log },
+        &AudioBed {
+            backing: &bed,
+            metronome_click: click_track.as_deref(),
+        },
+        &MediaTools {
+            ffmpeg: request.ffmpeg,
+            ffprobe: request.ffprobe,
+            ffmpeg_log: &ffmpeg_log,
+        },
         request.output_video.unwrap_or(&default_video),
     )?;
 
@@ -137,7 +178,11 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
 fn scale_note_times(notes: &[NoteEvent], tempo_scale: f64) -> Vec<NoteEvent> {
     notes
         .iter()
-        .map(|note| NoteEvent { start: note.start / tempo_scale, end: note.end / tempo_scale, ..*note })
+        .map(|note| NoteEvent {
+            start: note.start / tempo_scale,
+            end: note.end / tempo_scale,
+            ..*note
+        })
         .collect()
 }
 
@@ -145,7 +190,11 @@ fn scale_note_times(notes: &[NoteEvent], tempo_scale: f64) -> Vec<NoteEvent> {
 /// too few beats a metronome would be invented, so it is switched off.
 const MIN_BEATS_FOR_METRONOME: usize = 4;
 
-fn effective_metronome(requested: MetronomeMode, beats: &BeatTrack, warnings: &mut Vec<String>) -> MetronomeMode {
+fn effective_metronome(
+    requested: MetronomeMode,
+    beats: &BeatTrack,
+    warnings: &mut Vec<String>,
+) -> MetronomeMode {
     if requested == MetronomeMode::Off || beats.times.len() >= MIN_BEATS_FOR_METRONOME {
         return requested;
     }
@@ -154,7 +203,11 @@ fn effective_metronome(requested: MetronomeMode, beats: &BeatTrack, warnings: &m
 }
 
 /// The BGM exactly as prepared, or a pitch-preserving tempo-scaled copy.
-fn practice_audio_bed(request: &PracticeRequest, count_in_seconds: f64, octave_shift: i32) -> Result<PathBuf> {
+fn practice_audio_bed(
+    request: &PracticeRequest,
+    count_in_seconds: f64,
+    octave_shift: i32,
+) -> Result<PathBuf> {
     let backing = request.out_dir.join("backing.wav");
     if request.tempo_scale == 1.0 && count_in_seconds == 0.0 && octave_shift == 0 {
         return Ok(backing);
@@ -166,15 +219,28 @@ fn practice_audio_bed(request: &PracticeRequest, count_in_seconds: f64, octave_s
     if octave_shift != 0 {
         // Resample pitch, then restore duration with bounded atempo stages.
         let ratio = 2.0_f64.powi(octave_shift);
-        filters.push(format!("asetrate={},aresample={}", (GUIDE_SAMPLE_RATE as f64 * ratio).round() as u32, GUIDE_SAMPLE_RATE));
+        filters.push(format!(
+            "asetrate={},aresample={}",
+            (GUIDE_SAMPLE_RATE as f64 * ratio).round() as u32,
+            GUIDE_SAMPLE_RATE
+        ));
         let mut tempo = request.tempo_scale / ratio;
-        while tempo < 0.5 { filters.push("atempo=0.5".to_owned()); tempo /= 0.5; }
-        while tempo > 2.0 { filters.push("atempo=2".to_owned()); tempo /= 2.0; }
-        if (tempo - 1.0).abs() > 1e-9 { filters.push(format!("atempo={tempo}")); }
+        while tempo < 0.5 {
+            filters.push("atempo=0.5".to_owned());
+            tempo /= 0.5;
+        }
+        while tempo > 2.0 {
+            filters.push("atempo=2".to_owned());
+            tempo /= 2.0;
+        }
+        if (tempo - 1.0).abs() > 1e-9 {
+            filters.push(format!("atempo={tempo}"));
+        }
     } else if request.tempo_scale != 1.0 {
         filters.push(format!("atempo={}", request.tempo_scale));
     }
-    let samples = (request.region_duration_seconds / request.tempo_scale * GUIDE_SAMPLE_RATE as f64).round() as u64;
+    let samples = (request.region_duration_seconds / request.tempo_scale * GUIDE_SAMPLE_RATE as f64)
+        .round() as u64;
     filters.push(format!("apad,atrim=end_sample={samples}"));
     filters.push(delay);
     let filter = filters.join(",");
@@ -186,7 +252,10 @@ fn practice_audio_bed(request: &PracticeRequest, count_in_seconds: f64, octave_s
         .output()
         .context("running ffmpeg atempo")?;
     if !output.status.success() {
-        bail!("ffmpeg could not tempo-scale the BGM: {}", String::from_utf8_lossy(&output.stderr).trim());
+        bail!(
+            "ffmpeg could not tempo-scale the BGM: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
     }
     Ok(scaled)
 }
@@ -212,7 +281,10 @@ fn video_warnings(fitted: &FittedMelody, low_confidence: bool) -> Vec<String> {
         ));
     }
     if fitted.octave_shift != 0 {
-        lines.push(format!("MELODY AND BACKING TRANSPOSED {:+} SEMITONES", fitted.octave_shift * 12));
+        lines.push(format!(
+            "MELODY AND BACKING TRANSPOSED {:+} SEMITONES",
+            fitted.octave_shift * 12
+        ));
     }
     if low_confidence {
         lines.push("LOW-CONFIDENCE TRANSCRIPTION".to_owned());
@@ -224,7 +296,7 @@ fn write_fingering_json(
     request: &PracticeRequest,
     table: &FingeringTable,
     fitted: &FittedMelody,
-    entries: &[crate::fingering::FingeringTimelineEntry],
+    entries: &[crate::instruments::fingering::FingeringTimelineEntry],
     count_in_seconds: f64,
 ) -> Result<()> {
     let document = json!({
@@ -254,7 +326,12 @@ mod tests {
 
     #[test]
     fn slower_tempo_stretches_note_times() {
-        let notes = [NoteEvent { start: 1.5, end: 3.0, midi: 60, confidence: 0.9 }];
+        let notes = [NoteEvent {
+            start: 1.5,
+            end: 3.0,
+            midi: 60,
+            confidence: 0.9,
+        }];
         let scaled = scale_note_times(&notes, 0.75);
         assert_eq!((scaled[0].start, scaled[0].end), (2.0, 4.0));
     }
@@ -267,13 +344,22 @@ mod tests {
     }
 
     fn fitted_with_folds(folds: usize) -> FittedMelody {
-        use crate::melody_range::FoldedNote;
+        use crate::music::range::FoldedNote;
         FittedMelody {
             notes: vec![],
-            policy: if folds > 0 { RangePolicy::Fold } else { RangePolicy::Strict },
+            policy: if folds > 0 {
+                RangePolicy::Fold
+            } else {
+                RangePolicy::Strict
+            },
             octave_shift: 0,
             folded_notes: (0..folds)
-                .map(|index| FoldedNote { index, start: 0.0, shifted_midi: 76, played_midi: 64 })
+                .map(|index| FoldedNote {
+                    index,
+                    start: 0.0,
+                    shifted_midi: 76,
+                    played_midi: 64,
+                })
                 .collect(),
         }
     }
@@ -290,9 +376,15 @@ mod tests {
     fn metronome_is_disabled_without_detected_beats() {
         let mut warnings = Vec::new();
         let none = BeatTrack::detected(&[], 1.0, 10.0);
-        assert_eq!(effective_metronome(MetronomeMode::Both, &none, &mut warnings), MetronomeMode::Off);
+        assert_eq!(
+            effective_metronome(MetronomeMode::Both, &none, &mut warnings),
+            MetronomeMode::Off
+        );
         assert_eq!(warnings.len(), 1);
         let some = BeatTrack::detected(&[0.5, 1.0, 1.5, 2.0], 1.0, 10.0);
-        assert_eq!(effective_metronome(MetronomeMode::Audio, &some, &mut warnings), MetronomeMode::Audio);
+        assert_eq!(
+            effective_metronome(MetronomeMode::Audio, &some, &mut warnings),
+            MetronomeMode::Audio
+        );
     }
 }

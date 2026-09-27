@@ -12,7 +12,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 
-use crate::timeline::PracticeTimeline;
+use crate::music::timeline::PracticeTimeline;
 
 pub const GUIDE_SAMPLE_RATE: u32 = 44_100;
 
@@ -35,7 +35,13 @@ pub fn synthesize_melody_guide_samples(timeline: &PracticeTimeline, sample_rate:
     let rate = sample_rate as f64;
     let mut samples = silent_buffer_for(timeline, sample_rate);
     for entry in &timeline.entries {
-        add_note_tone(&mut samples, rate, entry.start, entry.end, midi_to_frequency_hz(entry.midi));
+        add_note_tone(
+            &mut samples,
+            rate,
+            entry.start,
+            entry.end,
+            midi_to_frequency_hz(entry.midi),
+        );
     }
     samples
 }
@@ -45,7 +51,12 @@ pub fn synthesize_metronome_samples(timeline: &PracticeTimeline, sample_rate: u3
     let rate = sample_rate as f64;
     let mut samples = silent_buffer_for(timeline, sample_rate);
     for (beat_time, is_downbeat) in timeline.beat_times() {
-        add_click(&mut samples, rate, beat_time, if is_downbeat { 1_600.0 } else { 1_000.0 });
+        add_click(
+            &mut samples,
+            rate,
+            beat_time,
+            if is_downbeat { 1_600.0 } else { 1_000.0 },
+        );
     }
     samples
 }
@@ -53,17 +64,25 @@ pub fn synthesize_metronome_samples(timeline: &PracticeTimeline, sample_rate: u3
 /// Audible preparation: numbered speech and a short pulse on each count.
 /// macOS speech is local; unavailable speech falls back to pulses with a warning.
 pub fn count_in_samples(
-    timeline: &PracticeTimeline, ffmpeg: &Path, work: &Path,
+    timeline: &PracticeTimeline,
+    ffmpeg: &Path,
+    work: &Path,
 ) -> (Vec<f64>, Option<String>) {
     let mut samples = silent_buffer_for(timeline, GUIDE_SAMPLE_RATE);
-    let Some(count) = timeline.count_in else { return (samples, None) };
+    let Some(count) = timeline.count_in else {
+        return (samples, None);
+    };
     let mut warning = None;
     for index in 0..count.beats {
         let at = index as f64 * count.seconds_per_beat;
         add_click(&mut samples, GUIDE_SAMPLE_RATE as f64, at, 1_200.0);
         match spoken_number(index + 1, ffmpeg, work) {
             Ok(voice) => mix_spoken_number(&mut samples, &voice, at, count.seconds_per_beat),
-            Err(error) => warning = Some(format!("spoken count-in unavailable; using count-in clicks: {error}")),
+            Err(error) => {
+                warning = Some(format!(
+                    "spoken count-in unavailable; using count-in clicks: {error}"
+                ))
+            }
         }
     }
     (samples, warning)
@@ -73,28 +92,52 @@ fn spoken_number(number: u8, ffmpeg: &Path, work: &Path) -> Result<Vec<f64>> {
     let word = ["one", "two", "three", "four"][(number - 1) as usize];
     let speech = work.join(format!("count-{number}.aiff"));
     let status = std::process::Command::new("/usr/bin/say")
-        .args(["-v", "Samantha", "-r", "220", "-o"]).arg(&speech).arg(word)
-        .output().context("running macOS speech")?;
+        .args(["-v", "Samantha", "-r", "220", "-o"])
+        .arg(&speech)
+        .arg(word)
+        .output()
+        .context("running macOS speech")?;
     anyhow::ensure!(status.status.success(), "macOS speech failed");
     let output = std::process::Command::new(ffmpeg)
-        .args(["-v", "error", "-i"]).arg(&speech)
-        .args(["-af", "silenceremove=start_periods=1:start_duration=0.005:start_threshold=-50dB", "-ac", "1", "-ar", "44100", "-f", "s16le", "pipe:1"])
-        .output().context("decoding count-in speech")?;
+        .args(["-v", "error", "-i"])
+        .arg(&speech)
+        .args([
+            "-af",
+            "silenceremove=start_periods=1:start_duration=0.005:start_threshold=-50dB",
+            "-ac",
+            "1",
+            "-ar",
+            "44100",
+            "-f",
+            "s16le",
+            "pipe:1",
+        ])
+        .output()
+        .context("decoding count-in speech")?;
     anyhow::ensure!(output.status.success(), "count-in speech decode failed");
-    let mut voice: Vec<f64> = output.stdout.chunks_exact(2)
-        .map(|bytes| i16::from_le_bytes([bytes[0], bytes[1]]) as f64 / i16::MAX as f64).collect();
+    let mut voice: Vec<f64> = output
+        .stdout
+        .chunks_exact(2)
+        .map(|bytes| i16::from_le_bytes([bytes[0], bytes[1]]) as f64 / i16::MAX as f64)
+        .collect();
     // Remove trailing silence before fitting the word within a beat.
-    while voice.last().is_some_and(|sample| sample.abs() < 0.001) { voice.pop(); }
+    while voice.last().is_some_and(|sample| sample.abs() < 0.001) {
+        voice.pop();
+    }
     let peak = voice.iter().map(|s| s.abs()).fold(0.0_f64, f64::max);
     anyhow::ensure!(peak > 0.001, "count-in speech is empty");
-    for sample in &mut voice { *sample *= 0.55 / peak; }
+    for sample in &mut voice {
+        *sample *= 0.55 / peak;
+    }
     Ok(voice)
 }
 
 fn mix_spoken_number(samples: &mut [f64], voice: &[f64], at: f64, beat_seconds: f64) {
     let first = (at * GUIDE_SAMPLE_RATE as f64).round() as usize;
     // Keep even a fast count inside its own beat. Slower counts retain normal speech speed.
-    let length = voice.len().min((beat_seconds * GUIDE_SAMPLE_RATE as f64 * 0.85) as usize);
+    let length = voice
+        .len()
+        .min((beat_seconds * GUIDE_SAMPLE_RATE as f64 * 0.85) as usize);
     for offset in 0..length {
         if let Some(sample) = samples.get_mut(first + offset) {
             *sample += voice[offset * voice.len() / length];
@@ -124,7 +167,9 @@ fn add_click(samples: &mut [f64], rate: f64, at_seconds: f64, frequency_hz: f64)
     let first_sample = (at_seconds * rate).round() as usize;
     let click_samples = (CLICK_LENGTH_SECONDS * rate) as usize;
     for offset in 0..click_samples {
-        let Some(sample) = samples.get_mut(first_sample + offset) else { break };
+        let Some(sample) = samples.get_mut(first_sample + offset) else {
+            break;
+        };
         let elapsed = offset as f64 / rate;
         let decay = (-elapsed / (CLICK_LENGTH_SECONDS / 5.0)).exp();
         *sample += CLICK_PEAK_AMPLITUDE * decay * (TAU * frequency_hz * elapsed).sin();
@@ -180,14 +225,17 @@ mod tests {
     }
 
     fn demo_timeline() -> PracticeTimeline {
-        use crate::fingering::{Fingering, FingeringTimelineEntry, OctaveShift};
-        let entries = crate::notes::demo_melody(100.0)
+        use crate::instruments::fingering::{Fingering, FingeringTimelineEntry, OctaveShift};
+        let entries = crate::music::notes::demo_melody(100.0)
             .iter()
             .map(|note| FingeringTimelineEntry {
                 start: note.start,
                 end: note.end,
                 midi: note.midi,
-                fingering: Fingering { octave: OctaveShift::Normal, keys: vec![] },
+                fingering: Fingering {
+                    octave: OctaveShift::Normal,
+                    keys: vec![],
+                },
                 transition_to_next: None,
             })
             .collect();
@@ -203,7 +251,10 @@ mod tests {
         assert_eq!(melody.len(), expected_len);
         assert_eq!(clicks.len(), expected_len);
         // Mixed at render time with unity gain, so the sum must stay in range.
-        assert!(melody.iter().zip(&clicks).all(|(m, c)| (m + c).abs() <= 1.0));
+        assert!(melody
+            .iter()
+            .zip(&clicks)
+            .all(|(m, c)| (m + c).abs() <= 1.0));
     }
 
     #[test]

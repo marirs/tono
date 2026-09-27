@@ -98,7 +98,9 @@ mod tests {
 
     #[test]
     fn rejects_malformed_input() {
-        for bad in ["", "abc", "1:2:3:4", "01:75", "01:60:00", "-5", "1.5:00", "::"] {
+        for bad in [
+            "", "abc", "1:2:3:4", "01:75", "01:60:00", "-5", "1.5:00", "::",
+        ] {
             assert!(parse_timecode_to_seconds(bad).is_err(), "accepted `{bad}`");
         }
     }

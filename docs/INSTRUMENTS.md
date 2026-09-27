@@ -1,6 +1,6 @@
 # Instrument profiles
 
-These JSON files are Tono runtime data, not prompts or agent skills. Select one
+The JSON files in the root `instruments/` directory are Tono runtime data, not prompts or agent skills. Select one
 with `--instrument ae01|ae05|ae10|ae20|guitar`. No ML work is needed to load and
 validate a profile; invalid or missing data fails before processing the source.
 
@@ -56,7 +56,7 @@ read or change settings on a connected instrument.
 - `ae01.json` is the canonical AE-01 profile, including chart corrections and
   octave-key alternatives.
 - To update new sax data, check the manual first, edit `SAX_BASE` or the
-  model-specific layout in `build_profiles.py`, then run that script.
+  model-specific layout in `build_profiles.py`, then run `python3 instruments/build_profiles.py` from the repository root.
 - The generator also builds `guitar.json` from tuning and fret arithmetic.
 - Run `cargo test`; never change key mappings by guesswork or force `verified`.
 - Strict range fitting remains the default. A whole-octave shift also shifts

@@ -11,32 +11,29 @@
 //! drawn upright, mouthpiece at the top, with configurable hand labels above and below the accidental keys.
 //! Not yet compared against a physical instrument.
 
+#[cfg(test)]
 use std::collections::BTreeSet;
 use std::fmt::Write as _;
 
-use crate::fingering::KeyTransition;
+use super::diagram::{DiagramState, PressedStyle, UpperHand, FONT_FAMILY};
+use super::fingering::KeyTransition;
 
 /// Diagram coordinate space before scaling: the instrument spans
 /// 640 x 880 units, including hand labels and the separate rear-key inset.
 pub const DIAGRAM_WIDTH: f32 = 640.0;
 
-/// Display labels for the player's grip; physical key IDs never change.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum, serde::Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum UpperHand { Right, Left }
-
-impl UpperHand {
-    fn labels(self) -> (&'static str, &'static str, &'static str) {
-        match self {
-            Self::Right => ("RIGHT", "LEFT", "RIGHT THUMB"),
-            Self::Left => ("LEFT", "RIGHT", "LEFT THUMB"),
-        }
-    }
-}
-
 enum KeyShape {
-    Circle { center_x: f32, center_y: f32, radius: f32 },
-    RoundedRect { x: f32, y: f32, width: f32, height: f32 },
+    Circle {
+        center_x: f32,
+        center_y: f32,
+        radius: f32,
+    },
+    RoundedRect {
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    },
 }
 
 struct KeyRegion {
@@ -50,7 +47,11 @@ struct KeyRegion {
 const fn finger_hole(id: &'static str, center_y: f32) -> KeyRegion {
     KeyRegion {
         id,
-        shape: KeyShape::Circle { center_x: 300.0, center_y, radius: 31.0 },
+        shape: KeyShape::Circle {
+            center_x: 300.0,
+            center_y,
+            radius: 31.0,
+        },
         label: None,
     }
 }
@@ -59,7 +60,11 @@ const fn finger_hole(id: &'static str, center_y: f32) -> KeyRegion {
 const fn accidental_key(id: &'static str, center_y: f32, label: &'static str) -> KeyRegion {
     KeyRegion {
         id,
-        shape: KeyShape::Circle { center_x: 333.0, center_y, radius: 19.0 },
+        shape: KeyShape::Circle {
+            center_x: 333.0,
+            center_y,
+            radius: 19.0,
+        },
         label: Some(label),
     }
 }
@@ -67,16 +72,21 @@ const fn accidental_key(id: &'static str, center_y: f32, label: &'static str) ->
 const fn small_button(id: &'static str, x: f32, y: f32, label: &'static str) -> KeyRegion {
     KeyRegion {
         id,
-        shape: KeyShape::RoundedRect { x, y, width: 120.0, height: 50.0 },
+        shape: KeyShape::RoundedRect {
+            x,
+            y,
+            width: 120.0,
+            height: 50.0,
+        },
         label: Some(label),
     }
 }
 
 /// Ordered from the mouthpiece, matching Roland's key numbering.
 const KEY_REGIONS: [KeyRegion; 11] = [
-    finger_hole("left_1", 190.0),  // key 1
-    finger_hole("left_2", 270.0),  // key 2
-    finger_hole("left_3", 350.0),  // key 3
+    finger_hole("left_1", 190.0), // key 1
+    finger_hole("left_2", 270.0), // key 2
+    finger_hole("left_3", 350.0), // key 3
     accidental_key("sharp", 411.0, "#"),
     accidental_key("flat", 457.0, "b"),
     finger_hole("right_1", 525.0), // key 4
@@ -85,7 +95,11 @@ const KEY_REGIONS: [KeyRegion; 11] = [
     KeyRegion {
         // Key 7 is offset to the player's right, as in the front-view chart.
         id: "right_4",
-        shape: KeyShape::Circle { center_x: 275.0, center_y: 765.0, radius: 31.0 },
+        shape: KeyShape::Circle {
+            center_x: 275.0,
+            center_y: 765.0,
+            radius: 31.0,
+        },
         label: None,
     },
     small_button("octave_up", 460.0, 215.0, "UP"),
@@ -101,25 +115,6 @@ pub fn all_key_ids() -> Vec<&'static str> {
     KEY_REGIONS.iter().map(|region| region.id).collect()
 }
 
-/// How pressed keys are painted.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PressedStyle {
-    /// Note is sounding now: solid fill.
-    Sounding,
-    /// Note is coming up (count-in or articulation gap): outlined, dim fill.
-    Ready,
-    /// Small NEXT preview.
-    Preview,
-}
-
-pub struct DiagramState<'a> {
-    pub upper_hand: UpperHand,
-    pub pressed_keys: &'a BTreeSet<String>,
-    pub pressed_style: PressedStyle,
-    /// When set, keys that change are ringed (green = press, red = lift).
-    pub transition_hint: Option<&'a KeyTransition>,
-}
-
 /// Only label LIFT/PRESS when the change is small enough to read at a
 /// glance; for bigger changes the full diagram already says everything.
 const MAX_CHANGED_KEYS_FOR_TEXT_HINT: usize = 2;
@@ -130,12 +125,15 @@ const PRESSED_FILL: &str = "#ffb000";
 const READY_FILL: &str = "#6b4f0a";
 const PRESS_HINT_COLOR: &str = "#3ddc84";
 const LIFT_HINT_COLOR: &str = "#ff5c5c";
-pub const FONT_FAMILY: &str = "Helvetica Neue, Helvetica, Arial, sans-serif";
 
 /// Returns an SVG `<g>` drawing the instrument, positioned by `transform`.
 /// `region_id_prefix` keeps ids unique when several diagrams share a frame
 /// (e.g. `now-left_1`, `next-left_1`).
-pub fn instrument_group_svg(state: &DiagramState, transform: &str, region_id_prefix: &str) -> String {
+pub fn instrument_group_svg(
+    state: &DiagramState,
+    transform: &str,
+    region_id_prefix: &str,
+) -> String {
     let mut svg = String::new();
     let _ = write!(svg, r##"<g transform="{transform}">"##);
     svg.push_str(&instrument_body_svg(state.upper_hand));
@@ -182,7 +180,9 @@ fn instrument_body_svg(upper_hand: UpperHand) -> String {
         ),
         idle = IDLE_STROKE,
         font = FONT_FAMILY,
-        upper = upper, lower = lower, thumb = thumb,
+        upper = upper,
+        lower = lower,
+        thumb = thumb,
     )
 }
 
@@ -206,10 +206,19 @@ fn shape_svg(
         .map(|pattern| format!(r##" stroke-dasharray="{pattern}""##))
         .unwrap_or_default();
     match *shape {
-        KeyShape::Circle { center_x, center_y, radius } => format!(
+        KeyShape::Circle {
+            center_x,
+            center_y,
+            radius,
+        } => format!(
             r##"<circle cx="{center_x}" cy="{center_y}" r="{radius}" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width}"{dash}/>"##
         ),
-        KeyShape::RoundedRect { x, y, width, height } => format!(
+        KeyShape::RoundedRect {
+            x,
+            y,
+            width,
+            height,
+        } => format!(
             r##"<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="14" fill="{fill}" stroke="{stroke}" stroke-width="{stroke_width}"{dash}/>"##
         ),
     }
@@ -217,8 +226,15 @@ fn shape_svg(
 
 fn shape_center(shape: &KeyShape) -> (f32, f32) {
     match *shape {
-        KeyShape::Circle { center_x, center_y, .. } => (center_x, center_y),
-        KeyShape::RoundedRect { x, y, width, height } => (x + width / 2.0, y + height / 2.0),
+        KeyShape::Circle {
+            center_x, center_y, ..
+        } => (center_x, center_y),
+        KeyShape::RoundedRect {
+            x,
+            y,
+            width,
+            height,
+        } => (x + width / 2.0, y + height / 2.0),
     }
 }
 
@@ -235,7 +251,11 @@ fn transition_hint_svg(transition: &KeyTransition) -> String {
         let rings: Vec<KeyShape> = key_ids
             .iter()
             // Unknown ids cannot occur: they are rejected when the table loads.
-            .filter_map(|key_id| KEY_REGIONS.iter().find(|region| region.id == key_id.as_str()))
+            .filter_map(|key_id| {
+                KEY_REGIONS
+                    .iter()
+                    .find(|region| region.id == key_id.as_str())
+            })
             .map(|region| grow_shape(&region.shape, 12.0))
             .collect();
         for ring in &rings {
@@ -254,10 +274,21 @@ fn transition_hint_svg(transition: &KeyTransition) -> String {
 
 fn grow_shape(shape: &KeyShape, margin: f32) -> KeyShape {
     match *shape {
-        KeyShape::Circle { center_x, center_y, radius } => {
-            KeyShape::Circle { center_x, center_y, radius: radius + margin }
-        }
-        KeyShape::RoundedRect { x, y, width, height } => KeyShape::RoundedRect {
+        KeyShape::Circle {
+            center_x,
+            center_y,
+            radius,
+        } => KeyShape::Circle {
+            center_x,
+            center_y,
+            radius: radius + margin,
+        },
+        KeyShape::RoundedRect {
+            x,
+            y,
+            width,
+            height,
+        } => KeyShape::RoundedRect {
             x: x - margin,
             y: y - margin,
             width: width + 2.0 * margin,
@@ -289,7 +320,19 @@ mod tests {
 
     #[test]
     fn spec_example_ids_exist() {
-        for id in ["octave_up", "octave_down", "left_1", "left_2", "left_3", "right_1", "right_2", "right_3", "right_4", "sharp", "flat"] {
+        for id in [
+            "octave_up",
+            "octave_down",
+            "left_1",
+            "left_2",
+            "left_3",
+            "right_1",
+            "right_2",
+            "right_3",
+            "right_4",
+            "sharp",
+            "flat",
+        ] {
             assert!(is_known_key_id(id), "{id}");
         }
     }

@@ -11,8 +11,8 @@ use std::path::Path;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::ae01_diagram::is_known_key_id;
-use crate::notes::NoteEvent;
+use crate::instruments::ae01::is_known_key_id;
+use crate::music::notes::NoteEvent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -42,8 +42,12 @@ impl Fingering {
             OctaveShift::Down => {
                 pressed.insert("octave_down".to_owned());
             }
-            OctaveShift::Up2 => { pressed.insert("octave_up2".to_owned()); }
-            OctaveShift::Down2 => { pressed.insert("octave_down2".to_owned()); }
+            OctaveShift::Up2 => {
+                pressed.insert("octave_up2".to_owned());
+            }
+            OctaveShift::Down2 => {
+                pressed.insert("octave_down2".to_owned());
+            }
             OctaveShift::Normal => {}
         }
         pressed
@@ -78,7 +82,9 @@ pub struct FingeringTable {
 impl FingeringTable {
     pub fn load_instrument(instrument: crate::instruments::Instrument) -> Result<Self> {
         let table = Self::load_from_file(&instrument.profile_path())?;
-        if table.instrument != instrument.table_id() { bail!("profile identity does not match {}", instrument.id()); }
+        if table.instrument != instrument.table_id() {
+            bail!("profile identity does not match {}", instrument.id());
+        }
         Ok(table)
     }
 
@@ -87,51 +93,93 @@ impl FingeringTable {
             .with_context(|| format!("reading fingering table {}", path.display()))?;
         let table: FingeringTable = serde_json::from_str(&raw_json)
             .with_context(|| format!("parsing fingering table {}", path.display()))?;
-        table.validate().with_context(|| format!("validating {}", path.display()))?;
+        table
+            .validate()
+            .with_context(|| format!("validating {}", path.display()))?;
         Ok(table)
     }
 
     fn validate(&self) -> Result<()> {
-        if !["roland-ae01", "roland-ae05", "roland-ae10", "roland-ae20", "guitar"].contains(&self.instrument.as_str()) {
+        if ![
+            "roland-ae01",
+            "roland-ae05",
+            "roland-ae10",
+            "roland-ae20",
+            "guitar",
+        ]
+        .contains(&self.instrument.as_str())
+        {
             bail!("unsupported instrument profile `{}`", self.instrument);
         }
         if self.version != 1 {
-            bail!("unsupported fingering table version {} (expected 1)", self.version);
+            bail!(
+                "unsupported fingering table version {} (expected 1)",
+                self.version
+            );
         }
-        if self.fingerings.is_empty() { bail!("empty fingering table"); }
+        if self.fingerings.is_empty() {
+            bail!("empty fingering table");
+        }
         let mut ids = BTreeSet::new();
         for key in &self.layout_keys {
-            if !ids.insert(&key.id) || !key.x.is_finite() || !key.y.is_finite()
-                || !["circle", "rect", "octave"].contains(&key.shape.as_str()) {
+            if !ids.insert(&key.id)
+                || !key.x.is_finite()
+                || !key.y.is_finite()
+                || !["circle", "rect", "octave"].contains(&key.shape.as_str())
+            {
                 bail!("invalid or duplicate layout key {}", key.id);
             }
         }
-        if self.instrument == "guitar" && (self.tuning_midi != [64,59,55,50,45,40] || self.fret_count != 19) {
+        if self.instrument == "guitar"
+            && (self.tuning_midi != [64, 59, 55, 50, 45, 40] || self.fret_count != 19)
+        {
             bail!("guitar profile requires standard six-string tuning and 19 frets");
         }
         for (midi_key, fingering) in &self.fingerings {
-            let midi: u8 = midi_key.parse().with_context(|| format!("fingering key `{midi_key}` is not a MIDI number"))?;
-            if midi > 127 || midi.to_string() != *midi_key { bail!("invalid MIDI number {midi_key}"); }
+            let midi: u8 = midi_key
+                .parse()
+                .with_context(|| format!("fingering key `{midi_key}` is not a MIDI number"))?;
+            if midi > 127 || midi.to_string() != *midi_key {
+                bail!("invalid MIDI number {midi_key}");
+            }
             self.validate_fingering(midi, fingering)?;
         }
         for (midi, alternatives) in &self.alternatives {
-            if !self.fingerings.contains_key(midi) { bail!("alternatives without primary fingering: {midi}"); }
-            for fingering in alternatives { self.validate_fingering(midi.parse()?, fingering)?; }
+            if !self.fingerings.contains_key(midi) {
+                bail!("alternatives without primary fingering: {midi}");
+            }
+            for fingering in alternatives {
+                self.validate_fingering(midi.parse()?, fingering)?;
+            }
         }
         Ok(())
     }
 
     fn validate_fingering(&self, midi: u8, fingering: &Fingering) -> Result<()> {
         if self.instrument == "guitar" {
-            if fingering.octave != OctaveShift::Normal || fingering.keys.len() != 1 { bail!("MIDI {midi}: expected one guitar position"); }
-            let (string, fret) = crate::instruments::guitar_position(&fingering.keys[0]).context("invalid string/fret")?;
-            if fret > self.fret_count || self.tuning_midi[string-1] as u16 + fret as u16 != midi as u16 { bail!("MIDI {midi}: guitar pitch does not match string/fret"); }
+            if fingering.octave != OctaveShift::Normal || fingering.keys.len() != 1 {
+                bail!("MIDI {midi}: expected one guitar position");
+            }
+            let (string, fret) = crate::instruments::guitar::guitar_position(&fingering.keys[0])
+                .context("invalid string/fret")?;
+            if fret > self.fret_count
+                || self.tuning_midi[string - 1] as u16 + fret as u16 != midi as u16
+            {
+                bail!("MIDI {midi}: guitar pitch does not match string/fret");
+            }
         } else {
-            if fingering.keys.iter().collect::<BTreeSet<_>>().len() != fingering.keys.len() { bail!("MIDI {midi}: duplicate key"); }
+            if fingering.keys.iter().collect::<BTreeSet<_>>().len() != fingering.keys.len() {
+                bail!("MIDI {midi}: duplicate key");
+            }
             for key in fingering.pressed_key_ids() {
-                let known = if self.instrument == "roland-ae01" { is_known_key_id(&key) }
-                    else { self.layout_keys.iter().any(|region| region.id == key) };
-                if !known { bail!("MIDI {midi}: unknown {} key {key}", self.instrument); }
+                let known = if self.instrument == "roland-ae01" {
+                    is_known_key_id(&key)
+                } else {
+                    self.layout_keys.iter().any(|region| region.id == key)
+                };
+                if !known {
+                    bail!("MIDI {midi}: unknown {} key {key}", self.instrument);
+                }
             }
         }
         Ok(())
@@ -139,7 +187,10 @@ impl FingeringTable {
 
     /// Lowest and highest MIDI numbers with a charted fingering.
     pub fn charted_range(&self) -> Option<(u8, u8)> {
-        let charted = self.fingerings.keys().filter_map(|key| key.parse::<u8>().ok());
+        let charted = self
+            .fingerings
+            .keys()
+            .filter_map(|key| key.parse::<u8>().ok());
         Some((charted.clone().min()?, charted.max()?))
     }
 
@@ -250,14 +301,23 @@ mod tests {
     #[test]
     fn octave_shift_adds_octave_key() {
         let table = table_from_json(SMALL_TABLE).unwrap();
-        assert!(table.lookup(72).unwrap().pressed_key_ids().contains("octave_up"));
-        assert!(!table.lookup(60).unwrap().pressed_key_ids().contains("octave_up"));
+        assert!(table
+            .lookup(72)
+            .unwrap()
+            .pressed_key_ids()
+            .contains("octave_up"));
+        assert!(!table
+            .lookup(60)
+            .unwrap()
+            .pressed_key_ids()
+            .contains("octave_up"));
     }
 
     #[test]
     fn transition_lists_pressed_and_lifted_keys() {
         let table = table_from_json(SMALL_TABLE).unwrap();
-        let transition = KeyTransition::between(table.lookup(62).unwrap(), table.lookup(72).unwrap());
+        let transition =
+            KeyTransition::between(table.lookup(62).unwrap(), table.lookup(72).unwrap());
         let press: Vec<&str> = transition.press.iter().map(String::as_str).collect();
         assert_eq!(press, vec!["left_3", "octave_up"]);
         assert!(transition.lift.is_empty());
@@ -268,8 +328,18 @@ mod tests {
     fn mapping_fails_on_unmapped_note() {
         let table = table_from_json(SMALL_TABLE).unwrap();
         let notes = [
-            NoteEvent { start: 0.0, end: 0.5, midi: 60, confidence: 1.0 },
-            NoteEvent { start: 0.5, end: 1.0, midi: 61, confidence: 1.0 },
+            NoteEvent {
+                start: 0.0,
+                end: 0.5,
+                midi: 60,
+                confidence: 1.0,
+            },
+            NoteEvent {
+                start: 0.5,
+                end: 1.0,
+                midi: 61,
+                confidence: 1.0,
+            },
         ];
         assert!(map_notes_to_fingerings(&notes, &table).is_err());
         let mapped = map_notes_to_fingerings(&notes[..1], &table).unwrap();
@@ -288,14 +358,25 @@ mod tests {
             let fingering = table.lookup(midi).unwrap();
             assert_eq!(fingering.octave, OctaveShift::Normal, "MIDI {midi}");
         }
-        for midi in 47..=85 { table.lookup(midi).unwrap(); }
+        for midi in 47..=85 {
+            table.lookup(midi).unwrap();
+        }
         assert!(table.lookup(46).is_err() && table.lookup(86).is_err());
         assert_eq!(table.lookup(48).unwrap().octave, OctaveShift::Down);
         assert_eq!(table.lookup(84).unwrap().keys, vec!["left_2"]);
         assert_eq!(table.lookup(85).unwrap().keys.len(), 0);
-        assert!(table.lookup(85).unwrap().pressed_key_ids().contains("octave_up"));
-        assert!(table.alternatives["60"].iter().any(|f| f.octave == OctaveShift::Down && f.keys == vec!["left_2"]));
-        for midi in crate::notes::demo_melody(100.0).iter().map(|n| n.midi) {
+        assert!(table
+            .lookup(85)
+            .unwrap()
+            .pressed_key_ids()
+            .contains("octave_up"));
+        assert!(table.alternatives["60"]
+            .iter()
+            .any(|f| f.octave == OctaveShift::Down && f.keys == vec!["left_2"]));
+        for midi in crate::music::notes::demo_melody(100.0)
+            .iter()
+            .map(|n| n.midi)
+        {
             table.lookup(midi).unwrap();
         }
     }
@@ -306,9 +387,19 @@ mod tests {
         // transcription against accidental edits.
         let table = bundled_table();
         let keys = |midi: u8| table.lookup(midi).unwrap().keys.join(" ");
-        assert_eq!(keys(59), "left_1 left_2 left_3 flat right_1 right_2 right_3 right_4");
-        assert_eq!(keys(60), "left_1 left_2 left_3 right_1 right_2 right_3 right_4");
-        assert_eq!(keys(65), "left_1 left_2 left_3 right_1", "F4 is not forked on the AE-01");
+        assert_eq!(
+            keys(59),
+            "left_1 left_2 left_3 flat right_1 right_2 right_3 right_4"
+        );
+        assert_eq!(
+            keys(60),
+            "left_1 left_2 left_3 right_1 right_2 right_3 right_4"
+        );
+        assert_eq!(
+            keys(65),
+            "left_1 left_2 left_3 right_1",
+            "F4 is not forked on the AE-01"
+        );
         assert_eq!(keys(72), "left_2");
         assert_eq!(keys(73), "");
     }
