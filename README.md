@@ -120,6 +120,8 @@ Current profiles (select with `--instrument`):
 | Roland AE-05 (`ae05`) | Sax-style | MIDI 46–85 | Sax fingering, transpose 0, tone octave shift 0 |
 | Roland AE-10 (`ae10`) | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Oct Key OCT2 |
 | Roland AE-20 (`ae20`) | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Octave Key Oct2 |
+| Yamaha YDS-120 (`yds120`) | Sax-style | MIDI 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
+| Yamaha YDS-150 (`yds150`) | Sax-style | MIDI 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
 | Roland AE-BRISA (`ae-brisa`), Brisa mode | Horizontal flute | MIDI 60–97 | `--fingering-mode brisa`; matching instrument mode, transpose/tone octave 0, factory key/breath mapping |
 | Roland AE-BRISA (`ae-brisa`), Flute mode | Horizontal flute | MIDI 60–96 | `--fingering-mode flute`; matching instrument mode, transpose/tone octave 0, factory key/breath mapping |
 | Six-string guitar (`guitar`) | Fretboard | MIDI 40–83 | Standard E2 A2 D3 G3 B3 E4, no capo, frets 0–19 |
@@ -134,6 +136,10 @@ These are **profile coverage ranges**, not claims about the absolute limits of t
 `--piano` is shorthand for `--instrument piano`. Guitar profiles show a single-note
 melody; selecting bass does not extract the song's bass part. Keyboard profiles
 show which keys to play, without finger numbers or a two-hand arrangement.
+
+For Yamaha YDS profiles, the factory alto/tenor/soprano/baritone voices transpose.
+Use a voice with total transposition 0 to match the video and backing;
+[the instrument guide](instruments/README.md#yamaha-yds-120-and-yds-150) explains the setup.
 
 See [the instrument guide](instruments/README.md) for aliases, sources and verification details.
 
@@ -202,16 +208,20 @@ The aim is to keep generated practice material musically honest.
 
 ## Usage
 
+Give Tono the input file and instrument; the output filename is automatic.
+Videos go to `./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4`.
+Use `--practice-dir DIRECTORY` (or `-d DIRECTORY`) to choose another folder.
+
 AE-01:
 
 ```sh
-tono song.mp3 practice.mp4 --instrument ae01
+tono song.mp3 --instrument ae01
 ```
 
 Slow it down:
 
 ```sh
-tono song.mp3 practice.mp4 \
+tono song.mp3 \
   --instrument ae01 \
   --tempo-scale 0.70
 ```
@@ -219,7 +229,7 @@ tono song.mp3 practice.mp4 \
 AE-20 with metronome:
 
 ```sh
-tono song.mp3 sax.mp4 \
+tono song.mp3 \
   --instrument ae20 \
   --tempo-scale 0.75 \
   --metronome both
@@ -228,17 +238,15 @@ tono song.mp3 sax.mp4 \
 Guitar:
 
 ```sh
-tono song.mp3 guitar.mp4 \
+tono song.mp3 \
   --instrument guitar \
   --tempo-scale 0.50
 ```
 
-Instrument demo:
+Built-in melody demo (no input song; writes to `./tono-demo/`):
 
 ```sh
-tono demo \
-  --instrument ae05 \
-  --out /tmp/tono-ae05-demo
+tono demo --instrument ae05
 ```
 
 Help:
@@ -250,6 +258,18 @@ tono --help
 ---
 
 ## Examples
+
+Each run starts with a colored title, the installed version and the resolved paths:
+
+```text
+Tono - Play what you love.
+v0.1.0
+Input: /path/to/song.mp3
+Output: /path/to/tono-practices/song_ae01_YYYYMMDD.mp4
+```
+
+The version comes from Cargo at build time. Redirected output stays plain text;
+set `NO_COLOR=1` to disable the title color in a terminal.
 
 Create an AE-01 practice video with an automatic filename:
 
@@ -279,6 +299,13 @@ tono song.mp3 --piano                       # Full-size 88-key piano
 tono song.mp3 --instrument keyboard-61      # 61-key keyboard
 tono song.mp3 --instrument guitar-bass      # Four-string bass
 tono song.mp3 --instrument guitar-bass-5string
+```
+
+Practice with a Yamaha digital saxophone (set up the voice as described above):
+
+```sh
+tono song.mp3 --instrument yds120 --tempo-scale 0.75
+tono song.mp3 --instrument yds150 --metronome both
 ```
 
 For Aerophone Brisa, specify the fingering mode set on your instrument:
