@@ -55,8 +55,15 @@ impl Fingering {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct EasyFingeringRules {
+    pub allowed_keys: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct FingeringTable {
     pub instrument: String,
+    #[serde(default)]
+    pub easy_fingering: Option<EasyFingeringRules>,
     #[serde(default)]
     pub fingering_mode: Option<super::brisa::FingeringMode>,
     #[serde(default)]

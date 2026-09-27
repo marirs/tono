@@ -60,6 +60,7 @@ pub struct PrepOptions {
     pub upper_hand: UpperHand,
     pub metronome: MetronomeMode,
     pub range_policy: RangePolicy,
+    pub easy_fingering: bool,
 }
 
 /// Resolve the heading independently of the destination or selected instrument.
@@ -98,6 +99,16 @@ pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<
         bail!("--tempo-scale must be between 0.5 and 2.0");
     }
     crate::instruments::brisa::validate_mode(options.instrument, options.fingering_mode)?;
+    if options.easy_fingering {
+        let table = crate::instruments::fingering::FingeringTable::load_for_mode(
+            options.instrument,
+            options.fingering_mode,
+        )?;
+        if table.easy_fingering.is_none() {
+            eprintln!("Warning: Easy fingering is not available for this instrument. Continuing with normal fingerings.");
+        }
+    }
+
     crate::runtime::ensure_ready_cli()?;
     crate::instruments::fingering::FingeringTable::load_for_mode(
         options.instrument,
@@ -213,6 +224,7 @@ fn prepare_project(
         upper_hand: options.upper_hand,
         metronome: options.metronome,
         range_policy: options.range_policy,
+        easy_fingering: options.easy_fingering,
         low_confidence: separation_quality.low_confidence,
         out_dir: out,
         output_video: options.output_video.as_deref(),
@@ -269,10 +281,10 @@ fn describe_cleanup(
 fn report_practice(practice: &PracticeOutcome) {
     let fitted = &practice.fitted;
     let mut adjustments = Vec::new();
-    if fitted.octave_shift != 0 {
+    if !fitted.is_unchanged() {
         adjustments.push(format!(
-            "melody and backing shifted {:+} octave(s) into range",
-            fitted.octave_shift
+            "melody and backing shifted {:+} semitone(s) into range",
+            fitted.transpose_semitones()
         ));
     }
     let detail = if fitted.is_unchanged() {
@@ -603,7 +615,9 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
             "table_verified": practice.table_verified,
             "range_policy": practice.fitted.policy,
             "octave_shift": practice.fitted.octave_shift,
-            "backing_transpose_semitones": practice.fitted.octave_shift * 12,
+            "semitone_offset": practice.fitted.semitone_offset,
+            "backing_transpose_semitones": practice.fitted.transpose_semitones(),
+            "easy_fingering": practice.fitted.easy_fingering,
             // Individual folding does not exist; intervals are always preserved.
             "melody_shape_changed": false,
         },

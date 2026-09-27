@@ -42,15 +42,18 @@ pub struct FittedMelody {
     pub policy: RangePolicy,
     /// Whole-melody shift; the backing is transposed by the same amount.
     pub octave_shift: i32,
+    /// Additional semitones beyond the whole-octave component.
+    pub semitone_offset: i32,
+    pub easy_fingering: &'static str,
 }
 
 impl FittedMelody {
     pub fn is_unchanged(&self) -> bool {
-        self.octave_shift == 0
+        self.transpose_semitones() == 0
     }
 
     pub fn transpose_semitones(&self) -> i32 {
-        self.octave_shift * 12
+        self.octave_shift * 12 + self.semitone_offset
     }
 }
 
@@ -89,6 +92,8 @@ pub fn fit_melody_to_table(
             notes: shifted,
             policy,
             octave_shift,
+            semitone_offset: 0,
+            easy_fingering: "not_requested",
         });
     }
 
@@ -101,6 +106,103 @@ pub fn fit_melody_to_table(
         .max_by_key(|&octaves| fitting_count(octaves))
         .unwrap_or(0);
     bail!(range_failure_message(notes, table, best_shift, &fits))
+}
+
+/// Restrict the actual lookup table, including alternatives, before fitting.
+/// Every possible MIDI shift is checked: all 12 keys and valid octave placements.
+/// Prefer original pitch, then smallest absolute change (upward wins ties).
+pub fn fit_easy_melody(
+    notes: &[NoteEvent],
+    table: &mut FingeringTable,
+    policy: RangePolicy,
+) -> Result<FittedMelody> {
+    use crate::instruments::fingering::OctaveShift;
+    if policy == RangePolicy::Fold {
+        bail!(FOLDING_DISABLED_MESSAGE);
+    }
+    if notes.is_empty() {
+        bail!("Easy Fingering requires a nonempty melody");
+    }
+    let rules = table
+        .easy_fingering
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Easy fingering is not available for this instrument"))?;
+    let allowed = |f: &crate::instruments::fingering::Fingering| {
+        f.octave == OctaveShift::Normal && f.keys.iter().all(|k| rules.allowed_keys.contains(k))
+    };
+    let mut restricted = table.clone();
+    restricted.fingerings.clear();
+    restricted.alternatives.clear();
+    for (pitch, primary) in &table.fingerings {
+        let mut choices: Vec<_> = std::iter::once(primary)
+            .chain(table.alternatives.get(pitch).into_iter().flatten())
+            .filter(|f| allowed(f))
+            .cloned()
+            .collect();
+        if !choices.is_empty() {
+            restricted
+                .fingerings
+                .insert(pitch.clone(), choices.remove(0));
+            if !choices.is_empty() {
+                restricted.alternatives.insert(pitch.clone(), choices);
+            }
+        }
+    }
+    let fits = |n: &NoteEvent, shift| {
+        shift_midi(n.midi, shift).is_some_and(|m| restricted.lookup(m).is_ok())
+    };
+    let shifts: Vec<i32> = std::iter::once(0)
+        .chain((1..=127).flat_map(|n| [n, -n]))
+        .collect();
+    let shift = shifts
+        .iter()
+        .copied()
+        .find(|&shift| notes.iter().all(|n| fits(n, shift)));
+    let Some(shift) = shift else {
+        let best = shifts
+            .iter()
+            .rev()
+            .copied()
+            .max_by_key(|&shift| notes.iter().filter(|n| fits(n, shift)).count())
+            .unwrap();
+        let mut spans = Vec::new();
+        let mut start = 0;
+        while start < notes.len() {
+            if !fits(&notes[start], best) {
+                start += 1;
+                continue;
+            }
+            let mut end = start + 1;
+            while end < notes.len() && fits(&notes[end], best) {
+                end += 1;
+            }
+            if end - start >= 2 {
+                spans.push(format!(
+                    "{:.2}s–{:.2}s ({} notes)",
+                    notes[start].start,
+                    notes[end - 1].end,
+                    end - start
+                ));
+            }
+            start = end;
+        }
+        bail!("This passage cannot fit this instrument’s easy-fingering mode without changing the melody. No single transposition fits every note. Choose a shorter section with --from/--to or omit --easy-fingering. Compatible note spans at {best:+} semitones (relative to selected region, before tempo scaling): {}. No notes were folded or dropped.", if spans.is_empty() { "none with two or more consecutive notes".into() } else { spans.into_iter().take(4).collect::<Vec<_>>().join(", ") });
+    };
+    let shifted = notes
+        .iter()
+        .map(|n| NoteEvent {
+            midi: shift_midi(n.midi, shift).expect("validated shift"),
+            ..*n
+        })
+        .collect();
+    *table = restricted;
+    Ok(FittedMelody {
+        notes: shifted,
+        policy,
+        octave_shift: shift / 12,
+        semitone_offset: shift % 12,
+        easy_fingering: "applied",
+    })
 }
 
 fn range_failure_message(
@@ -164,6 +266,62 @@ mod tests {
 
     fn played(fitted: &FittedMelody) -> Vec<u8> {
         fitted.notes.iter().map(|n| n.midi).collect()
+    }
+
+    #[test]
+    fn easy_mode_preserves_notes_and_uses_only_six_controls() {
+        let mut table = table();
+        let original = melody(&[61, 63, 64, 66, 68, 70, 71, 72]);
+        let fitted = fit_easy_melody(&original, &mut table, RangePolicy::Strict).unwrap();
+        assert_eq!(fitted.transpose_semitones(), 1);
+        assert_eq!(fitted.easy_fingering, "applied");
+        for (before, after) in original.iter().zip(&fitted.notes) {
+            assert_eq!(after.midi as i32 - before.midi as i32, 1);
+            assert_eq!(
+                (after.start, after.end, after.confidence),
+                (before.start, before.end, before.confidence)
+            );
+            let f = table.lookup(after.midi).unwrap();
+            assert!(f.pressed_key_ids().iter().all(|k| table
+                .easy_fingering
+                .as_ref()
+                .unwrap()
+                .allowed_keys
+                .contains(k)));
+        }
+        assert!(table.lookup(60).is_err()); // seventh front key forbidden
+        let same =
+            fit_easy_melody(&melody(&[62, 64, 65, 67]), &mut table, RangePolicy::Strict).unwrap();
+        assert_eq!(same.transpose_semitones(), 0);
+    }
+
+    #[test]
+    fn easy_mode_refuses_chromatic_and_wide_passages_without_relaxing_rules() {
+        for pitches in [vec![60, 61, 62, 63], vec![48, 72]] {
+            let mut t = table();
+            let before = t.fingerings.clone();
+            let e = fit_easy_melody(&melody(&pitches), &mut t, RangePolicy::Strict)
+                .unwrap_err()
+                .to_string();
+            assert!(e.contains("cannot fit") && e.contains("--from/--to"));
+            assert_eq!(t.fingerings, before);
+        }
+        assert!(fit_easy_melody(&melody(&[62]), &mut table(), RangePolicy::Fold).is_err());
+    }
+
+    #[test]
+    fn easy_mode_can_use_a_documented_alternative() {
+        let mut t = table();
+        let easy = t.fingerings["62"].clone();
+        t.fingerings
+            .get_mut("62")
+            .unwrap()
+            .keys
+            .push("sharp".into());
+        t.alternatives.insert("62".into(), vec![easy.clone()]);
+        let fit = fit_easy_melody(&melody(&[62]), &mut t, RangePolicy::Strict).unwrap();
+        assert!(fit.is_unchanged());
+        assert_eq!(t.lookup(62).unwrap(), &easy);
     }
 
     #[test]

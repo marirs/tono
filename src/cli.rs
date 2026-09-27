@@ -81,6 +81,10 @@ struct PreparationArgs {
     /// Octave fitting: strict preserves intervals (default); legacy fold is rejected.
     #[arg(long, value_enum)]
     range_policy: Option<RangePolicy>,
+    /// Use beginner controls; transpose melody and backing together if needed.
+    /// Unsupported instruments warn and continue normally.
+    #[arg(long)]
+    easy_fingering: bool,
     /// Transcribed notes below this confidence are discarded.
     #[arg(long, default_value_t = 0.3)]
     min_note_confidence: f64,
@@ -141,6 +145,7 @@ impl PreparationArgs {
                 .unwrap_or_else(|| instrument.default_upper_hand()),
             metronome: self.metronome,
             range_policy: self.range_policy.unwrap_or(RangePolicy::Strict),
+            easy_fingering: self.easy_fingering,
         })
     }
 }
@@ -642,6 +647,27 @@ mod cli_tests {
             .unwrap()
             .to_string()
             .contains("folding is disabled"));
+    }
+
+    #[test]
+    fn easy_fingering_is_opt_in_and_reaches_pipeline_for_all_instruments() {
+        for instrument in ["ae01", "guitar"] {
+            let cli = Cli::try_parse_from([
+                "tono",
+                "song.mp3",
+                "--instrument",
+                instrument,
+                "--easy-fingering",
+            ])
+            .unwrap();
+            let options = cli
+                .options
+                .into_options(cli.input.unwrap(), PathBuf::from("out.tono"), None)
+                .unwrap();
+            assert!(options.easy_fingering);
+        }
+        let cli = Cli::try_parse_from(["tono", "song.mp3", "--instrument", "ae01"]).unwrap();
+        assert!(!cli.options.easy_fingering);
     }
 
     #[test]

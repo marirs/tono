@@ -35,6 +35,7 @@ pub struct PracticeRequest<'a> {
     pub upper_hand: UpperHand,
     pub metronome: MetronomeMode,
     pub range_policy: RangePolicy,
+    pub easy_fingering: bool,
     pub low_confidence: bool,
     pub out_dir: &'a Path,
     pub output_video: Option<&'a Path>,
@@ -65,13 +66,31 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     }
     let mut warnings = Vec::new();
 
-    let table = FingeringTable::load_for_mode(request.instrument, request.fingering_mode)?;
+    let mut table = FingeringTable::load_for_mode(request.instrument, request.fingering_mode)?;
     println!(
         "· {} setup: {}",
         request.instrument.name(),
         table.required_settings
     );
-    let fitted = fit_melody_to_table(request.cleaned_notes, &table, request.range_policy)?;
+    let fitted = if request.easy_fingering && table.easy_fingering.is_some() {
+        let fitted = crate::music::range::fit_easy_melody(
+            request.cleaned_notes,
+            &mut table,
+            request.range_policy,
+        )?;
+        println!(
+            "✓ Easy Fingering: six main controls only; melody and backing shift {:+} semitones",
+            fitted.transpose_semitones()
+        );
+        fitted
+    } else {
+        let mut fitted = fit_melody_to_table(request.cleaned_notes, &table, request.range_policy)?;
+        if request.easy_fingering {
+            fitted.easy_fingering = "unsupported_fallback";
+            warnings.push("Easy fingering is not available for this instrument. Continuing with normal fingerings.".into());
+        }
+        fitted
+    };
     let practice_notes = scale_note_times(&fitted.notes, request.tempo_scale);
     validate_monophonic_sequence(&practice_notes)?;
     let entries = map_notes_to_fingerings(&practice_notes, &table)?;
@@ -105,7 +124,7 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     let (bed, bed_offset_seconds) = practice_audio_bed(
         request,
         count_in_seconds,
-        fitted.octave_shift,
+        fitted.transpose_semitones(),
         &mut warnings,
     )?;
     let click_track = if metronome.plays_click() || timeline.count_in.is_some() {
@@ -218,18 +237,18 @@ fn effective_metronome(
 fn practice_audio_bed(
     request: &PracticeRequest,
     count_in_seconds: f64,
-    octave_shift: i32,
+    semitones: i32,
     warnings: &mut Vec<String>,
 ) -> Result<(PathBuf, Option<f64>)> {
     let backing = request.out_dir.join("backing.wav");
-    if request.tempo_scale == 1.0 && count_in_seconds == 0.0 && octave_shift == 0 {
+    if request.tempo_scale == 1.0 && count_in_seconds == 0.0 && semitones == 0 {
         return Ok((backing, None));
     }
     let scaled = request.work_dir.join("practice_bed.wav");
     let mut filters = Vec::new();
-    if octave_shift != 0 {
+    if semitones != 0 {
         // Resample pitch, then restore duration with bounded atempo stages.
-        let ratio = 2.0_f64.powi(octave_shift);
+        let ratio = 2.0_f64.powf(semitones as f64 / 12.0);
         filters.push(format!(
             "asetrate={},aresample={}",
             (GUIDE_SAMPLE_RATE as f64 * ratio).round() as u32,
@@ -316,11 +335,14 @@ fn subtitle(practice_bpm: Option<f64>, tempo_scale: f64) -> String {
 /// Conditions the player must see on screen, not just in the terminal.
 fn video_warnings(fitted: &FittedMelody, low_confidence: bool) -> Vec<String> {
     let mut lines = Vec::new();
-    if fitted.octave_shift != 0 {
+    if !fitted.is_unchanged() {
         lines.push(format!(
             "MELODY AND BACKING TRANSPOSED {:+} SEMITONES",
-            fitted.octave_shift * 12
+            fitted.transpose_semitones()
         ));
+    }
+    if fitted.easy_fingering == "applied" {
+        lines.push("EASY FINGERING - SIX MAIN KEYS ONLY".into());
     }
     if low_confidence {
         lines.push("LOW-CONFIDENCE TRANSCRIPTION".to_owned());
@@ -362,6 +384,97 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore = "requires ffmpeg/ffprobe; renders two integration videos"]
+    fn easy_render_and_unsupported_fallback() {
+        let ffmpeg = crate::paths::ffmpeg_executable().unwrap();
+        let ffprobe = crate::paths::ffprobe_executable().unwrap();
+        for instrument in [
+            crate::instruments::Instrument::Ae01,
+            crate::instruments::Instrument::Guitar,
+        ] {
+            let dir = tempfile::tempdir().unwrap();
+            let notes: Vec<_> = [61, 63, 64, 66, 68, 70, 71, 72]
+                .iter()
+                .enumerate()
+                .map(|(i, &midi)| NoteEvent {
+                    start: i as f64 * 0.2,
+                    end: (i + 1) as f64 * 0.2,
+                    midi,
+                    confidence: 1.0,
+                })
+                .collect();
+            let samples: Vec<f64> = (0..GUIDE_SAMPLE_RATE * 2)
+                .map(|i| {
+                    (2.0 * std::f64::consts::PI * 220.0 * i as f64 / GUIDE_SAMPLE_RATE as f64).sin()
+                        * 0.2
+                })
+                .collect();
+            write_mono_wav(&dir.path().join("backing.wav"), &samples, GUIDE_SAMPLE_RATE).unwrap();
+            let analysis = crate::analysis::worker::analysis_for_tests(2.0, vec![]);
+            let request = PracticeRequest {
+                title: "Easy test",
+                instrument,
+                fingering_mode: None,
+                cleaned_notes: &notes,
+                analysis: &analysis,
+                region_duration_seconds: 2.0,
+                tempo_scale: 0.75,
+                count_in_beats: 0,
+                upper_hand: UpperHand::Left,
+                metronome: MetronomeMode::Off,
+                range_policy: RangePolicy::Strict,
+                easy_fingering: true,
+                low_confidence: false,
+                out_dir: dir.path(),
+                output_video: None,
+                work_dir: dir.path(),
+                ffmpeg: &ffmpeg,
+                ffprobe: &ffprobe,
+            };
+            let result = build_practice_video(&request).unwrap();
+            if instrument == crate::instruments::Instrument::Ae01 {
+                assert_eq!(result.fitted.transpose_semitones(), 1);
+                let audio = Command::new(&ffmpeg)
+                    .args(["-v", "error", "-i"])
+                    .arg(dir.path().join("practice_bed.wav"))
+                    .args(["-f", "f32le", "-ac", "1", "-ar", "44100", "-"])
+                    .output()
+                    .unwrap();
+                assert!(audio.status.success());
+                let samples: Vec<f32> = audio
+                    .stdout
+                    .chunks_exact(4)
+                    .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+                    .collect();
+                let section = &samples[22050..66150];
+                let cycles = section
+                    .windows(2)
+                    .filter(|w| w[0] <= 0.0 && w[1] > 0.0)
+                    .count();
+                assert!(
+                    (cycles as f64 - 220.0 * 2.0_f64.powf(1.0 / 12.0)).abs() < 2.0,
+                    "pitch {cycles}"
+                );
+                assert!((samples.len() as f64 / 44100.0 - 2.0 / 0.75).abs() < 0.02);
+            } else {
+                assert_eq!(result.fitted.easy_fingering, "unsupported_fallback");
+                assert_eq!(result.fitted.transpose_semitones(), 0);
+                assert!(result
+                    .warnings
+                    .iter()
+                    .any(|w| w.contains("Continuing with normal")));
+            }
+            let report: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(dir.path().join("fingering.json")).unwrap())
+                    .unwrap();
+            assert_eq!(
+                report["range_fit"]["easy_fingering"],
+                result.fitted.easy_fingering
+            );
+        }
+    }
+
+    #[test]
     fn slower_tempo_stretches_note_times() {
         let notes = [NoteEvent {
             start: 1.5,
@@ -385,6 +498,8 @@ mod tests {
             notes: vec![],
             policy: RangePolicy::Strict,
             octave_shift,
+            semitone_offset: 0,
+            easy_fingering: "not_requested",
         }
     }
 

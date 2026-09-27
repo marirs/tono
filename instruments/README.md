@@ -354,3 +354,31 @@ Source: [Yamaha YVS-120 Let’s Play Venova](https://data.yamaha.com/files/downl
 printed pp. 102–103 (concert-pitch chart), 17 and 92–93 (controls). The JSON is a
 manual chart transcription, not generated from a recorder or sax table.
 `verified: false` remains until checked on a physical YVS-120.
+
+## Easy Fingering
+
+```bash
+tono song.mp3 --instrument ae01 --easy-fingering --tempo-scale 0.60
+```
+
+AE-01 Easy Fingering allows only the six main controls, in combinations from the
+existing chart. It excludes sharp/flat, the seventh front key, and octave keys.
+It currently covers D4, E4, F4, G4, A4, B4, C5 and the open C♯5 fingering.
+All twelve keys and MIDI-valid octave placements are considered. Original pitch
+is preferred, then the smallest whole-melody pitch shift (upward wins ties).
+The backing in the video is shifted by the same number of semitones. No notes
+are individually folded, removed or replaced; rhythm is preserved. Pitch shifting
+can change the backing’s timbre. `backing.wav` remains the original separated bed.
+
+If the whole selected passage cannot fit, generation stops with compatible note
+spans when available. Those times are **relative to the selected region**, before
+slowing; add the region’s source start to use them with `--from` / `--to`.
+Spans are suggestions, not automatically selected phrases. Fast passages can
+still be hard: use `--tempo-scale` to slow them down.
+
+Other instruments currently print a warning and continue with normal fingerings.
+`project.json` and `fingering.json` record `easy_fingering` as `applied`,
+`unsupported_fallback` or `not_requested`, plus the total
+`backing_transpose_semitones`. `octave_shift` and `semitone_offset` describe its
+whole-octave and remaining-semitone components. Successful easy-mode videos are
+labelled on screen. Profiles remain unverified until checked on the instrument.
