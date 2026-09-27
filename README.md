@@ -112,17 +112,30 @@ Each supported instrument has a deterministic runtime profile describing things 
 - source references;
 - verification status.
 
-Current profiles:
+Current profiles (select with `--instrument`):
 
 | Instrument | Renderer | Current profile coverage | Required setup |
 | --- | --- | ---: | --- |
-| Roland AE-01 | Recorder-style | MIDI 47–85 | Recorder fingering, transpose 0 |
-| Roland AE-05 | Sax-style | MIDI 46–85 | Sax fingering, transpose 0, tone octave shift 0 |
-| Roland AE-10 | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Oct Key OCT2 |
-| Roland AE-20 | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Octave Key Oct2 |
-| Guitar | Fretboard | MIDI 40–83 | Standard E A D G B E, no capo, frets 0–19 |
+| Roland AE-01 (`ae01`) | Recorder-style | MIDI 47–85 | Recorder fingering, transpose 0 |
+| Roland AE-05 (`ae05`) | Sax-style | MIDI 46–85 | Sax fingering, transpose 0, tone octave shift 0 |
+| Roland AE-10 (`ae10`) | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Oct Key OCT2 |
+| Roland AE-20 (`ae20`) | Sax-style | MIDI 34–97 | Sax fingering, transpose 0, tone octave shift 0, Octave Key Oct2 |
+| Roland AE-BRISA (`ae-brisa`), Brisa mode | Horizontal flute | MIDI 60–97 | `--fingering-mode brisa`; matching instrument mode, transpose/tone octave 0, factory key/breath mapping |
+| Roland AE-BRISA (`ae-brisa`), Flute mode | Horizontal flute | MIDI 60–96 | `--fingering-mode flute`; matching instrument mode, transpose/tone octave 0, factory key/breath mapping |
+| Six-string guitar (`guitar`) | Fretboard | MIDI 40–83 | Standard E2 A2 D3 G3 B3 E4, no capo, frets 0–19 |
+| Four-string bass (`guitar-bass`) | Fretboard | MIDI 28–62 | Standard E1 A1 D2 G2, no capo, frets 0–19 |
+| Five-string bass (`guitar-bass-5string`) | Fretboard | MIDI 23–62 | Standard B0 E1 A1 D2 G2, no capo, frets 0–19 |
+| Full-size piano (`piano` / `piano-88`) | 88-key keyboard | MIDI 21–108 | Transpose 0, middle C = C4 |
+| 76-key keyboard (`keyboard-76`) | 76-key keyboard | MIDI 28–103 | Transpose 0, middle C = C4 |
+| 61-key keyboard (`keyboard-61`) | 61-key keyboard | MIDI 36–96 | Transpose 0, middle C = C4 |
 
 These are **profile coverage ranges**, not claims about the absolute limits of the physical instruments.
+
+`--piano` is shorthand for `--instrument piano`. Guitar profiles show a single-note
+melody; selecting bass does not extract the song's bass part. Keyboard profiles
+show which keys to play, without finger numbers or a two-hand arrangement.
+
+See [the instrument guide](instruments/README.md) for aliases, sources and verification details.
 
 The long-term goal is simple: adding an instrument should mostly mean adding a reliable profile and a suitable renderer, not rewriting the transcription engine.
 
