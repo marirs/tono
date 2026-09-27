@@ -236,6 +236,47 @@ tono --help
 
 ---
 
+## Examples
+
+Create an AE-01 practice video with an automatic filename:
+
+```sh
+tono ~/Downloads/song.mp3 --instrument ae01
+```
+
+The video goes to `./tono-practices/song_ae01_YYYYMMDD.mp4`.
+Use `-d` (or `--practice-dir`) to choose another folder:
+
+```sh
+tono ~/Downloads/song.mp3 --instrument ae20 -d ~/Movies/Practices
+```
+
+Practice a short section from a video at half speed, with a four-count start and an audible/visual metronome:
+
+```sh
+tono ~/Downloads/reel.mp4 --instrument ae01 \
+  --from 00:12 --to 00:30 \
+  --tempo-scale 0.5 --count-in 4 --metronome both
+```
+
+Choose a keyboard or bass guitar:
+
+```sh
+tono song.mp3 --piano                       # Full-size 88-key piano
+tono song.mp3 --instrument keyboard-61      # 61-key keyboard
+tono song.mp3 --instrument guitar-bass      # Four-string bass
+tono song.mp3 --instrument guitar-bass-5string
+```
+
+For Aerophone Brisa, specify the fingering mode set on your instrument:
+
+```sh
+tono song.mp3 --instrument ae-brisa --fingering-mode brisa
+tono song.mp3 --instrument ae-brisa --fingering-mode flute
+```
+
+---
+
 ## Architecture
 
 Tono is intentionally local-first.
