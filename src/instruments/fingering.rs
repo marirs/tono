@@ -135,6 +135,14 @@ impl FingeringTable {
             "piano",
             "keyboard-76",
             "keyboard-61",
+            "ukulele",
+            "ukulele-low-g",
+            "ukulele-baritone",
+            "recorder-baroque",
+            "recorder-german",
+            "flute",
+            "flute-bfoot",
+            "violin",
         ]
         .contains(&self.instrument.as_str())
         {
@@ -163,12 +171,25 @@ impl FingeringTable {
             "guitar" => Some(&[64, 59, 55, 50, 45, 40]),
             "guitar-bass" => Some(&[43, 38, 33, 28]),
             "guitar-bass-5string" => Some(&[43, 38, 33, 28, 23]),
+            "ukulele" => Some(&[69, 64, 60, 67]),
+            "ukulele-low-g" => Some(&[69, 64, 60, 55]),
+            "ukulele-baritone" => Some(&[64, 59, 55, 50]),
             _ => None,
         };
         if let Some(tuning) = expected_tuning {
-            if self.tuning_midi != tuning || self.fret_count != 19 {
-                bail!("profile requires its documented tuning and 19 frets");
+            let frets = if self.instrument.starts_with("ukulele") {
+                12
+            } else {
+                19
+            };
+            if self.tuning_midi != tuning || self.fret_count != frets {
+                bail!("profile requires its documented tuning and {frets} frets");
             }
+        }
+        if self.instrument == "violin"
+            && (self.tuning_midi != [76, 69, 62, 55] || self.fret_count != 0)
+        {
+            bail!("violin requires standard E5 A4 D4 G3 tuning and no frets");
         }
         let keyboard_range = match self.instrument.as_str() {
             "piano" => Some((21, 108)),
@@ -209,7 +230,16 @@ impl FingeringTable {
             {
                 bail!("MIDI {midi}: keyboard key must match sounding pitch");
             }
-        } else if self.instrument.starts_with("guitar") {
+        } else if self.instrument == "violin" {
+            if fingering.octave != OctaveShift::Normal || fingering.keys.len() != 1 {
+                bail!("MIDI {midi}: expected one first-position violin placement");
+            }
+            let (string, semitones, _) = super::violin::position(&fingering.keys[0])
+                .context("invalid or uncharted first-position violin fingering")?;
+            if self.tuning_midi[string - 1] + semitones != midi {
+                bail!("MIDI {midi}: violin pitch does not match string/placement");
+            }
+        } else if self.instrument.starts_with("guitar") || self.instrument.starts_with("ukulele") {
             if fingering.octave != OctaveShift::Normal || fingering.keys.len() != 1 {
                 bail!("MIDI {midi}: expected one guitar position");
             }
@@ -222,6 +252,36 @@ impl FingeringTable {
                 bail!("MIDI {midi}: guitar pitch does not match string/fret");
             }
         } else {
+            if self.instrument.starts_with("recorder-") || self.instrument.starts_with("flute") {
+                if fingering.octave != OctaveShift::Normal {
+                    bail!("acoustic winds require explicit holes/keys, not octave buttons");
+                }
+                if fingering.keys.iter().any(|k| k == "0")
+                    && fingering.keys.iter().any(|k| k == "0_vent")
+                {
+                    bail!("recorder thumb cannot be closed and vented together");
+                }
+                if self.instrument.starts_with("flute") {
+                    let expected = if midi < 72 {
+                        "register_low"
+                    } else if midi < 86 {
+                        "register_middle"
+                    } else {
+                        "register_high"
+                    };
+                    let registers: Vec<_> = fingering
+                        .keys
+                        .iter()
+                        .filter(|k| k.starts_with("register_"))
+                        .collect();
+                    if registers.len() != 1 || registers[0] != expected {
+                        bail!("flute register cue must match sounding pitch");
+                    }
+                    if self.instrument == "flute" && fingering.keys.iter().any(|k| k == "B") {
+                        bail!("C-foot flute has no low B key");
+                    }
+                }
+            }
             if self.instrument.starts_with("yamaha-yds") && fingering.octave != OctaveShift::Normal
             {
                 bail!("YDS requires charted Oct/Low A key states, not generic octave shifts");

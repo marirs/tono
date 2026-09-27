@@ -130,6 +130,13 @@ Current profiles (select with `--instrument`):
 | Full-size piano (`piano` / `piano-88`) | 88-key keyboard | MIDI 21–108 | Transpose 0, middle C = C4 |
 | 76-key keyboard (`keyboard-76`) | 76-key keyboard | MIDI 28–103 | Transpose 0, middle C = C4 |
 | 61-key keyboard (`keyboard-61`) | 61-key keyboard | MIDI 36–96 | Transpose 0, middle C = C4 |
+| Ukulele (`ukulele` / `ukulele-high-g`) | Fretboard | MIDI 60–81 | G4 C4 E4 A4, no capo, frets 0–12 |
+| Low-G ukulele (`ukulele-low-g`) | Fretboard | MIDI 55–81 | G3 C4 E4 A4, no capo, frets 0–12 |
+| Baritone ukulele (`ukulele-baritone`) | Fretboard | MIDI 50–76 | D3 G3 B3 E4, no capo, frets 0–12 |
+| Soprano recorder (`recorder-baroque`) | Vertical holes | MIDI 72–98 | Baroque system, double holes 6/7 |
+| Soprano recorder (`recorder-german`) | Vertical holes | MIDI 72–98 | German system, double holes 6/7 |
+| Concert flute (`flute` / `flute-cfoot`) | Horizontal keys | MIDI 60–96 | Standard Boehm system, C footjoint |
+| Concert flute (`flute-bfoot`) | Horizontal keys | MIDI 59–96 | Standard Boehm system, B footjoint |
 
 These are **profile coverage ranges**, not claims about the absolute limits of the physical instruments.
 
@@ -307,6 +314,21 @@ Practice with a Yamaha digital saxophone (set up the voice as described above):
 tono song.mp3 --instrument yds120 --tempo-scale 0.75
 tono song.mp3 --instrument yds150 --metronome both
 ```
+
+Ukulele, recorder or acoustic flute:
+
+```sh
+tono song.mp3 --instrument ukulele --tempo-scale 0.75
+tono song.mp3 --instrument ukulele-low-g
+tono song.mp3 --instrument ukulele-baritone
+tono song.mp3 --instrument recorder-baroque   # Choose your recorder's system
+tono song.mp3 --instrument recorder-german
+tono song.mp3 --instrument flute              # C footjoint
+tono song.mp3 --instrument flute-bfoot        # B footjoint
+```
+
+Ukulele shows individual melody notes, not chords or strumming. Recorder cues
+include split holes and thumb venting; flute cues include air/embouchure register.
 
 For Aerophone Brisa, specify the fingering mode set on your instrument:
 

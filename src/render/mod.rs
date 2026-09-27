@@ -285,10 +285,7 @@ fn static_layer_svg(
     );
 
     push_header(&mut svg, settings);
-    if settings.instrument.is_fretted()
-        || settings.instrument.keyboard_range().is_some()
-        || settings.instrument == crate::instruments::Instrument::AeBrisa
-    {
+    if settings.instrument.is_horizontal() {
         push_horizontal_sections(&mut svg, timeline, now_state, settings, count);
     } else {
         push_next_section(&mut svg, timeline, now_state, settings);

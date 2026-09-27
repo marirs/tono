@@ -1,0 +1,774 @@
+{
+  "version": 1,
+  "instrument": "flute",
+  "verified": false,
+  "required_settings": "Concert C flute; C footjoint; standard Boehm keys; seal open holes fully",
+  "sources": [
+    {
+      "url": "https://www.yamaha.com/en/musical_instrument_guide/common/images/flute/fingering.pdf",
+      "pages": [
+        1
+      ],
+      "method": "reviewed red chart keys and all charted alternatives; concert pitch"
+    }
+  ],
+  "layout_keys": [
+    {
+      "id": "1",
+      "label": "1",
+      "x": 140,
+      "y": 150,
+      "shape": "circle"
+    },
+    {
+      "id": "2",
+      "label": "2",
+      "x": 220,
+      "y": 150,
+      "shape": "circle"
+    },
+    {
+      "id": "3",
+      "label": "3",
+      "x": 300,
+      "y": 150,
+      "shape": "circle"
+    },
+    {
+      "id": "Gs",
+      "label": "G#",
+      "x": 340,
+      "y": 80,
+      "shape": "rect"
+    },
+    {
+      "id": "4",
+      "label": "4",
+      "x": 440,
+      "y": 150,
+      "shape": "circle"
+    },
+    {
+      "id": "5",
+      "label": "5",
+      "x": 520,
+      "y": 150,
+      "shape": "circle"
+    },
+    {
+      "id": "6",
+      "label": "6",
+      "x": 600,
+      "y": 150,
+      "shape": "circle"
+    },
+    {
+      "id": "Eb",
+      "label": "Eb",
+      "x": 680,
+      "y": 105,
+      "shape": "rect"
+    },
+    {
+      "id": "Cs",
+      "label": "C#",
+      "x": 680,
+      "y": 185,
+      "shape": "rect"
+    },
+    {
+      "id": "C",
+      "label": "C",
+      "x": 750,
+      "y": 185,
+      "shape": "rect"
+    },
+    {
+      "id": "thumb_b",
+      "label": "B",
+      "x": 140,
+      "y": 280,
+      "shape": "rect"
+    },
+    {
+      "id": "thumb_bb",
+      "label": "Bb",
+      "x": 220,
+      "y": 280,
+      "shape": "rect"
+    },
+    {
+      "id": "trill1",
+      "label": "T1",
+      "x": 455,
+      "y": 225,
+      "shape": "rect"
+    },
+    {
+      "id": "trill2",
+      "label": "T2",
+      "x": 540,
+      "y": 225,
+      "shape": "rect"
+    },
+    {
+      "id": "register_low",
+      "label": "low",
+      "x": 0,
+      "y": 0,
+      "shape": "rect"
+    },
+    {
+      "id": "register_middle",
+      "label": "middle",
+      "x": 0,
+      "y": 0,
+      "shape": "rect"
+    },
+    {
+      "id": "register_high",
+      "label": "high",
+      "x": 0,
+      "y": 0,
+      "shape": "rect"
+    }
+  ],
+  "fingerings": {
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "C",
+        "Cs",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Cs",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "6",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Eb",
+        "Gs",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "4",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "Eb",
+        "thumb_b",
+        "register_low"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "Eb",
+        "register_middle"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": [
+        "Eb",
+        "register_middle"
+      ]
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "78": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "6",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "79": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "80": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Eb",
+        "Gs",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "81": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "82": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "4",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "83": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "Eb",
+        "thumb_b",
+        "register_middle"
+      ]
+    },
+    "84": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "Eb",
+        "register_middle"
+      ]
+    },
+    "85": {
+      "octave": "normal",
+      "keys": [
+        "Eb",
+        "register_middle"
+      ]
+    },
+    "86": {
+      "octave": "normal",
+      "keys": [
+        "2",
+        "3",
+        "Eb",
+        "thumb_b",
+        "register_high"
+      ]
+    },
+    "87": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "Eb",
+        "Gs",
+        "thumb_b",
+        "register_high"
+      ]
+    },
+    "88": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "4",
+        "5",
+        "Eb",
+        "thumb_b",
+        "register_high"
+      ]
+    },
+    "89": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "3",
+        "4",
+        "Eb",
+        "thumb_b",
+        "register_high"
+      ]
+    },
+    "90": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "3",
+        "6",
+        "Eb",
+        "thumb_b",
+        "register_high"
+      ]
+    },
+    "91": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "Eb",
+        "register_high"
+      ]
+    },
+    "92": {
+      "octave": "normal",
+      "keys": [
+        "2",
+        "3",
+        "Eb",
+        "Gs",
+        "register_high"
+      ]
+    },
+    "93": {
+      "octave": "normal",
+      "keys": [
+        "2",
+        "4",
+        "Eb",
+        "thumb_b",
+        "register_high"
+      ]
+    },
+    "94": {
+      "octave": "normal",
+      "keys": [
+        "4",
+        "thumb_b",
+        "trill1",
+        "register_high"
+      ]
+    },
+    "95": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "3",
+        "thumb_b",
+        "trill2",
+        "register_high"
+      ]
+    },
+    "96": {
+      "octave": "normal",
+      "keys": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "Gs",
+        "register_high"
+      ]
+    }
+  },
+  "alternatives": {
+    "66": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "5",
+          "Eb",
+          "thumb_b",
+          "register_low"
+        ]
+      }
+    ],
+    "69": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "4",
+          "6",
+          "Eb",
+          "Gs",
+          "thumb_b",
+          "register_low"
+        ]
+      }
+    ],
+    "70": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "Eb",
+          "thumb_bb",
+          "register_low"
+        ]
+      }
+    ],
+    "72": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "C",
+          "Cs",
+          "register_middle"
+        ]
+      }
+    ],
+    "73": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "Cs",
+          "register_middle"
+        ]
+      }
+    ],
+    "78": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "5",
+          "Eb",
+          "thumb_b",
+          "register_middle"
+        ]
+      }
+    ],
+    "81": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "4",
+          "6",
+          "Eb",
+          "Gs",
+          "thumb_b",
+          "register_middle"
+        ]
+      }
+    ],
+    "82": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "Eb",
+          "thumb_bb",
+          "register_middle"
+        ]
+      }
+    ],
+    "84": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "C",
+          "Cs",
+          "register_middle"
+        ]
+      }
+    ],
+    "85": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "Cs",
+          "register_middle"
+        ]
+      }
+    ],
+    "90": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "3",
+          "6",
+          "Cs",
+          "thumb_b",
+          "register_high"
+        ]
+      }
+    ],
+    "92": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2",
+          "3",
+          "5",
+          "6",
+          "Eb",
+          "Gs",
+          "register_high"
+        ]
+      }
+    ],
+    "93": [
+      {
+        "octave": "normal",
+        "keys": [
+          "2",
+          "4",
+          "C",
+          "Cs",
+          "thumb_b",
+          "register_high"
+        ]
+      }
+    ],
+    "94": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "3",
+          "6",
+          "thumb_bb",
+          "trill1",
+          "register_high"
+        ]
+      }
+    ],
+    "95": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "3",
+          "6",
+          "Eb",
+          "thumb_b",
+          "trill1",
+          "trill2",
+          "register_high"
+        ]
+      }
+    ],
+    "96": [
+      {
+        "octave": "normal",
+        "keys": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Gs",
+          "trill2",
+          "register_high"
+        ]
+      }
+    ]
+  },
+  "renderer": "flute",
+  "coverage": "Sounding MIDI 60-96; charted fingerings only",
+  "key_semantics": "1-3 left fingers, 4-6 right fingers; rear B/Bb thumb levers; foot C#/C/B and Eb. T1/T2 are trill levers. register_* are air/embouchure cues, NOT physical keys."
+}

@@ -27,13 +27,16 @@ pub fn render(
         .iter()
         .find_map(|key| guitar_position(key));
     let fret = selected.map_or(0, |(_, f)| f);
-    let first = fret.saturating_sub(2).max(1).min(15);
+    let first = fret
+        .saturating_sub(2)
+        .max(1)
+        .min(instrument.fret_count() - 4);
     let mut svg = format!(
         r##"<g transform="translate({x} {y}) scale({scale})" font-family="{FONT_FAMILY}"><rect x="110" y="30" width="660" height="260" rx="12" fill="#30271f" stroke="#6a5b48" stroke-width="3"/>"##
     );
     let _ = write!(
         svg,
-        r##"<text x="115" y="0" fill="#c8cfdb" font-size="24">FRETS {first}–{} · HIGHEST STRING AT TOP</text>"##,
+        r##"<text x="115" y="0" fill="#c8cfdb" font-size="24">FRETS {first}–{} · STRING 1 AT TOP</text>"##,
         first + 4
     );
     for col in 0..=5 {

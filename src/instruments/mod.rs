@@ -6,10 +6,13 @@ pub mod ae20;
 pub mod brisa;
 pub mod diagram;
 pub mod fingering;
+pub mod flute;
 pub mod guitar;
 pub mod piano;
+pub mod recorder;
 mod sax;
 pub mod yamaha;
+pub mod violin;
 
 use self::diagram::UpperHand;
 #[cfg(test)]
@@ -59,6 +62,26 @@ pub enum Instrument {
     #[value(name = "keyboard-61", alias = "piano-61")]
     #[serde(rename = "keyboard-61")]
     Keyboard61,
+    #[value(name = "ukulele", alias = "ukulele-high-g")]
+    Ukulele,
+    #[value(name = "ukulele-low-g")]
+    #[serde(rename = "ukulele-low-g")]
+    UkuleleLowG,
+    #[value(name = "ukulele-baritone")]
+    #[serde(rename = "ukulele-baritone")]
+    UkuleleBaritone,
+    #[value(name = "recorder-baroque", alias = "recorder-soprano-baroque")]
+    #[serde(rename = "recorder-baroque")]
+    RecorderBaroque,
+    #[value(name = "recorder-german", alias = "recorder-soprano-german")]
+    #[serde(rename = "recorder-german")]
+    RecorderGerman,
+    #[value(name = "flute", alias = "flute-cfoot")]
+    Flute,
+    #[value(name = "flute-bfoot")]
+    #[serde(rename = "flute-bfoot")]
+    FluteBFoot,
+    Violin,
 }
 
 impl Instrument {
@@ -77,6 +100,14 @@ impl Instrument {
             Self::Piano => "piano",
             Self::Keyboard76 => "keyboard-76",
             Self::Keyboard61 => "keyboard-61",
+            Self::Ukulele => "ukulele",
+            Self::UkuleleLowG => "ukulele-low-g",
+            Self::UkuleleBaritone => "ukulele-baritone",
+            Self::RecorderBaroque => "recorder-baroque",
+            Self::RecorderGerman => "recorder-german",
+            Self::Flute => "flute",
+            Self::FluteBFoot => "flute-bfoot",
+            Self::Violin => "violin",
         }
     }
     pub fn name(self) -> &'static str {
@@ -94,10 +125,23 @@ impl Instrument {
             Self::Piano => "Piano (88 keys)",
             Self::Keyboard76 => "Keyboard (76 keys)",
             Self::Keyboard61 => "Keyboard (61 keys)",
+            Self::Ukulele => "Ukulele (high G)",
+            Self::UkuleleLowG => "Ukulele (low G)",
+            Self::UkuleleBaritone => "Baritone ukulele",
+            Self::RecorderBaroque => "Soprano recorder (Baroque)",
+            Self::RecorderGerman => "Soprano recorder (German)",
+            Self::Flute => "Concert flute (C foot)",
+            Self::FluteBFoot => "Concert flute (B foot)",
+            Self::Violin => "Violin (first position)",
         }
     }
     pub fn table_id(self) -> String {
-        if self.is_fretted() || self.keyboard_range().is_some() {
+        if self.is_fretted()
+            || self.keyboard_range().is_some()
+            || self.is_recorder()
+            || self.is_flute()
+            || self == Self::Violin
+        {
             self.id().to_owned()
         } else if matches!(self, Self::Yds120 | Self::Yds150) {
             format!("yamaha-{}", self.id())
@@ -111,7 +155,35 @@ impl Instrument {
             .join(format!("{}.json", self.id()))
     }
     pub fn is_fretted(self) -> bool {
-        matches!(self, Self::Guitar | Self::Bass | Self::Bass5)
+        matches!(
+            self,
+            Self::Guitar
+                | Self::Bass
+                | Self::Bass5
+                | Self::Ukulele
+                | Self::UkuleleLowG
+                | Self::UkuleleBaritone
+        )
+    }
+    pub fn is_recorder(self) -> bool {
+        matches!(self, Self::RecorderBaroque | Self::RecorderGerman)
+    }
+    pub fn is_flute(self) -> bool {
+        matches!(self, Self::Flute | Self::FluteBFoot)
+    }
+    pub fn is_horizontal(self) -> bool {
+        self.is_fretted()
+            || self.keyboard_range().is_some()
+            || self.is_flute()
+            || self == Self::Violin
+            || self == Self::AeBrisa
+    }
+    pub fn fret_count(self) -> u8 {
+        match self {
+            Self::Ukulele | Self::UkuleleLowG | Self::UkuleleBaritone => 12,
+            Self::Guitar | Self::Bass | Self::Bass5 => 19,
+            _ => 0,
+        }
     }
     /// Sounding MIDI range, with middle C = 60 (C4).
     pub fn keyboard_range(self) -> Option<(u8, u8)> {
@@ -122,12 +194,16 @@ impl Instrument {
             _ => None,
         }
     }
-    /// String 1 is the highest-pitched string. Profiles use a conservative 19 frets.
+    /// Open-string sounding MIDI, string 1 first (high-G ukulele is reentrant).
     pub fn tuning(self) -> &'static [u8] {
         match self {
+            Self::Violin => &[76, 69, 62, 55],
             Self::Guitar => &[64, 59, 55, 50, 45, 40],
             Self::Bass => &[43, 38, 33, 28],
             Self::Bass5 => &[43, 38, 33, 28, 23],
+            Self::Ukulele => &[69, 64, 60, 67],
+            Self::UkuleleLowG => &[69, 64, 60, 55],
+            Self::UkuleleBaritone => &[64, 59, 55, 50],
             _ => &[],
         }
     }
@@ -171,6 +247,14 @@ mod tests {
             (Instrument::Piano, 21, 108),
             (Instrument::Keyboard76, 28, 103),
             (Instrument::Keyboard61, 36, 96),
+            (Instrument::Ukulele, 60, 81),
+            (Instrument::UkuleleLowG, 55, 81),
+            (Instrument::UkuleleBaritone, 50, 76),
+            (Instrument::RecorderBaroque, 72, 98),
+            (Instrument::RecorderGerman, 72, 98),
+            (Instrument::Flute, 60, 96),
+            (Instrument::FluteBFoot, 59, 96),
+            (Instrument::Violin, 55, 83),
         ] {
             let table = FingeringTable::load_instrument(instrument).unwrap();
             assert_eq!(table.charted_range(), Some((low, high)));
@@ -228,6 +312,45 @@ mod tests {
         assert_eq!(table.lookup(83).unwrap().keys, ["s1_f19"]);
         assert!(table.alternatives["64"].iter().any(|f| f.keys == ["s2_f5"]));
         assert!(guitar_position("s7_f0").is_none());
+    }
+
+    #[test]
+    fn ukulele_positions_respect_reentrant_tuning_and_twelve_frets() {
+        for instrument in [
+            Instrument::Ukulele,
+            Instrument::UkuleleLowG,
+            Instrument::UkuleleBaritone,
+        ] {
+            let table = FingeringTable::load_instrument(instrument).unwrap();
+            assert_eq!(table.fret_count, 12);
+            for (midi, primary) in &table.fingerings {
+                for f in std::iter::once(primary)
+                    .chain(table.alternatives.get(midi).into_iter().flatten())
+                {
+                    let (string, fret) = guitar_position(&f.keys[0]).unwrap();
+                    assert!(string <= 4 && fret <= 12);
+                    assert_eq!(
+                        instrument.tuning()[string - 1] + fret,
+                        midi.parse::<u8>().unwrap()
+                    );
+                }
+            }
+            let pressed = ["s1_f12".to_owned()].into();
+            let state = diagram::DiagramState {
+                upper_hand: UpperHand::Left,
+                pressed_keys: &pressed,
+                pressed_style: diagram::PressedStyle::Sounding,
+                transition_hint: None,
+            };
+            let svg = guitar::render(instrument, &state, 0.0, 0.0, 1.0, "now-");
+            assert!(svg.contains("FRETS 8–12"));
+            assert!(svg.contains("STRING 1 AT TOP"));
+        }
+        let high = FingeringTable::load_instrument(Instrument::Ukulele).unwrap();
+        assert_eq!(high.lookup(67).unwrap().keys, ["s4_f0"]);
+        assert!(high.lookup(55).is_err());
+        let low = FingeringTable::load_instrument(Instrument::UkuleleLowG).unwrap();
+        assert_eq!(low.lookup(55).unwrap().keys, ["s4_f0"]);
     }
 
     #[test]
@@ -318,6 +441,9 @@ pub fn wind_svg(
         Instrument::Ae05 => ae05::render(keys, state, transform, prefix),
         Instrument::Ae10 => ae10::render(keys, state, transform, prefix),
         Instrument::Ae20 => ae20::render(keys, state, transform, prefix),
+        Instrument::RecorderBaroque | Instrument::RecorderGerman => {
+            recorder::render(keys, state, transform, prefix)
+        }
         Instrument::Yds120 | Instrument::Yds150 => yamaha::render(keys, state, transform, prefix),
         _ => unreachable!("keyboards and fretted instruments use horizontal rendering"),
     }
@@ -335,6 +461,10 @@ pub fn horizontal_svg(
 ) -> String {
     if instrument == Instrument::AeBrisa {
         brisa::render(keys, state, x, y, scale, prefix)
+    } else if instrument == Instrument::Violin {
+        violin::render(state, x, y, scale, prefix)
+    } else if instrument.is_flute() {
+        flute::render(keys, state, x, y, scale, prefix)
     } else if let Some(range) = instrument.keyboard_range() {
         piano::render(range, state, x, y, scale, prefix)
     } else {

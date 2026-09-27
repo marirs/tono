@@ -146,6 +146,8 @@ def make_brisa():
  return dict(version=1,instrument="roland-ae-brisa",modes=dict(brisa=brisa,flute=flute))
 
 if __name__ == "__main__":
+ from build_acoustic_profiles import build as build_acoustic
+ build_acoustic(write)
  for name,filename,chart,panel,octaves in [
   ("ae05","AE-05_eng05_W.pdf",13,6,1),
   ("ae10","AE-10_eng03_W.pdf",13,4,2),

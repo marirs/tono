@@ -1,0 +1,370 @@
+{
+  "version": 1,
+  "instrument": "ukulele",
+  "verified": false,
+  "required_settings": "G4 C4 E4 A4 (high G); no capo; frets 0-12; single-note melody",
+  "sources": [
+    {
+      "url": "https://kalabrand.com/blogs/home/ukulele-tuning-decoded",
+      "method": "documented tuning plus one semitone per fret; string 1 is A4/E4"
+    }
+  ],
+  "layout_keys": [],
+  "fingerings": {
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "s3_f0"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "s3_f1"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "s3_f2"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "s3_f3"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "s2_f0"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "s2_f1"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "s2_f2"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "s4_f0"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "s4_f1"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "s1_f0"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "s1_f1"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "s1_f2"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "s1_f3"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": [
+        "s1_f4"
+      ]
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "s1_f5"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "s1_f6"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "s1_f7"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "s1_f8"
+      ]
+    },
+    "78": {
+      "octave": "normal",
+      "keys": [
+        "s1_f9"
+      ]
+    },
+    "79": {
+      "octave": "normal",
+      "keys": [
+        "s1_f10"
+      ]
+    },
+    "80": {
+      "octave": "normal",
+      "keys": [
+        "s1_f11"
+      ]
+    },
+    "81": {
+      "octave": "normal",
+      "keys": [
+        "s1_f12"
+      ]
+    }
+  },
+  "alternatives": {
+    "64": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f4"
+        ]
+      }
+    ],
+    "65": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f5"
+        ]
+      }
+    ],
+    "66": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f6"
+        ]
+      }
+    ],
+    "67": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f3"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f7"
+        ]
+      }
+    ],
+    "68": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f4"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f8"
+        ]
+      }
+    ],
+    "69": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f2"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f5"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f9"
+        ]
+      }
+    ],
+    "70": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f3"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f6"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f10"
+        ]
+      }
+    ],
+    "71": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f4"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f7"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f11"
+        ]
+      }
+    ],
+    "72": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f5"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f8"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s3_f12"
+        ]
+      }
+    ],
+    "73": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f6"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f9"
+        ]
+      }
+    ],
+    "74": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f7"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f10"
+        ]
+      }
+    ],
+    "75": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f8"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f11"
+        ]
+      }
+    ],
+    "76": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f9"
+        ]
+      },
+      {
+        "octave": "normal",
+        "keys": [
+          "s2_f12"
+        ]
+      }
+    ],
+    "77": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f10"
+        ]
+      }
+    ],
+    "78": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f11"
+        ]
+      }
+    ],
+    "79": [
+      {
+        "octave": "normal",
+        "keys": [
+          "s4_f12"
+        ]
+      }
+    ]
+  },
+  "renderer": "guitar",
+  "tuning_midi": [
+    69,
+    64,
+    60,
+    67
+  ],
+  "fret_count": 12,
+  "coverage": "Conservative first 12 frets; all positions retained, lowest-fret primary"
+}

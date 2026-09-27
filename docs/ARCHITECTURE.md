@@ -25,8 +25,10 @@ Tests remain next to the implementation they exercise.
 - `brisa.rs`: AE-BRISA mode validation, horizontal keys and breath/register cues.
 - `ae05.rs`, `ae10.rs`, `ae20.rs`: model entry points using the shared sax renderer.
 - `yamaha.rs`: YDS-120/150 entry point with charted Oct and Low A controls.
+- `recorder.rs`: acoustic soprano recorder holes, split holes and thumb venting.
+- `flute.rs`: acoustic concert flute keys, footjoint controls and register cues.
 - `sax.rs`: common sax drawing, parameterized by each profile's key layout.
-- `guitar.rs`: horizontal guitar/bass fretboards, string/fret decoding and playing cues.
+- `guitar.rs`: horizontal guitar/bass/ukulele fretboards, string/fret decoding and playing cues.
 - `piano.rs`: full keyboard overview, active-key detail and press/release cues.
 - `diagram.rs`: shared drawing state, grip labels and display primitives.
 - `fingering.rs`: profile loading/validation, note mapping and key transitions.

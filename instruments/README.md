@@ -18,6 +18,13 @@ validate a profile; invalid or missing data fails before processing the source.
 | piano | Full 88-key overview + active-key detail | 21–108 | A0–C8, transpose 0 |
 | keyboard-76 | Full 76-key overview + active-key detail | 28–103 | E1–G7, transpose 0 |
 | keyboard-61 | Full 61-key overview + active-key detail | 36–96 | C2–C7, transpose 0 |
+| ukulele | Horizontal four-string fretboard | 60–81 | High G: G4 C4 E4 A4, no capo, frets 0–12 |
+| ukulele-low-g | Horizontal four-string fretboard | 55–81 | G3 C4 E4 A4, no capo, frets 0–12 |
+| ukulele-baritone | Horizontal four-string fretboard | 50–76 | D3 G3 B3 E4, no capo, frets 0–12 |
+| recorder-baroque | Vertical holes and thumb vent | 72–98 | Soprano in C, Baroque, double holes 6/7 |
+| recorder-german | Vertical holes and thumb vent | 72–98 | Soprano in C, German, double holes 6/7 |
+| flute | Horizontal keys and register cues | 60–96 | Concert C flute, Boehm system, C footjoint |
+| flute-bfoot | Horizontal keys and register cues | 59–96 | Concert C flute, Boehm system, B footjoint |
 
 AE-01 keeps the user's right-hand-upper label preference. Other winds default
 to the manuals' left-hand-upper grip. `--upper-hand right|left` changes labels
@@ -82,6 +89,53 @@ Output filenames are automatic: `./tono-practices/<song>_<instrument>_<YYYYMMDD>
 Use `--practice-dir` (or `-d`) to change the output folder.
 `tono demo --instrument ae05` is a separate built-in melody demo, requiring no
 input song and writing to `./tono-demo/`.
+
+## Ukulele, soprano recorder and concert flute
+
+```sh
+tono song.mp3 --instrument ukulele --tempo-scale 0.75
+tono song.mp3 --instrument ukulele-low-g
+tono song.mp3 --instrument ukulele-baritone
+tono song.mp3 --instrument recorder-baroque
+tono song.mp3 --instrument recorder-german
+tono song.mp3 --instrument flute
+tono song.mp3 --instrument flute-bfoot
+```
+
+Ukulele profiles use [Kala's documented tunings](https://kalabrand.com/blogs/home/ukulele-tuning-decoded).
+`ukulele-high-g` aliases `ukulele`; choose the profile matching your actual strings
+and tuning, rather than the instrument's body size. String 1 (A4, or E4 on baritone)
+is at the top of the diagram. High-G tuning is reentrant: string 4 is higher than
+string 3. Each profile conservatively covers frets 0–12, preserves alternate
+positions, and chooses the lowest fret first. These are single-note melody guides,
+not chord or strumming arrangements.
+
+Recorder requires an explicit system in the profile name; `recorder` alone is not
+accepted. `recorder-soprano-baroque` and `recorder-soprano-german` are longer aliases.
+The profiles cover **sounding C5–D7**, not C4–D6: Yamaha's chart uses an octave-up
+treble clef. Hole 0 is the rear thumb; `0_vent` means leave approximately a quarter
+of that hole open, not press another key. Holes 6 and 7 each have a larger `a`
+and smaller `b` opening; the diagram shows their coverage independently. These
+profiles assume double-hole instruments and do not cover alto/tenor recorders.
+Sources: Yamaha's [Baroque chart](https://www.yamaha.com/en/musical_instrument_guide/common/images/recorder/fingering_baroque.pdf)
+and [German chart](https://www.yamaha.com/en/musical_instrument_guide/common/images/recorder/fingering_german.pdf).
+Each table and its alternatives were reviewed independently.
+
+`flute-cfoot` aliases `flute`. Both acoustic flute profiles use Yamaha's
+[concert flute chart](https://www.yamaha.com/en/musical_instrument_guide/common/images/flute/fingering.pdf),
+with charted alternatives preserved; `flute-bfoot` additionally includes the low B
+from the [owner's manual](https://usa.yamaha.com/files/download/other_assets/3/335903/piccolo_flute_en_om_a0.pdf),
+printed p16. They are standard Boehm-system concert C flutes, not piccolo, alto,
+bansuri or Brisa. Open-hole keys must be sealed fully for the shown fingerings.
+The thumb B/Bb levers, trill levers and foot keys are shown separately.
+Register cues describe the air/embouchure change: there is no acoustic flute
+octave button. A fingering picture alone cannot teach tone production or guarantee
+the register; these charts still need instrument and musician verification.
+
+Reviewed acoustic tables live in `build_acoustic_profiles.py`, called by
+`python3 instruments/build_profiles.py`. Runtime uses only the flat JSON profiles;
+no PDFs, browser access or extra Python packages are required. All remain
+`verified: false`; no unsupported notes or octave fingerings are invented.
 
 ## Yamaha YDS-120 and YDS-150
 

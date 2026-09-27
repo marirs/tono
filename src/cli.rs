@@ -269,6 +269,26 @@ mod cli_tests {
     use super::*;
 
     #[test]
+    fn acoustic_profiles_and_aliases_select_explicit_setups() {
+        for (id, expected) in [
+            ("ukulele", Instrument::Ukulele),
+            ("ukulele-high-g", Instrument::Ukulele),
+            ("ukulele-low-g", Instrument::UkuleleLowG),
+            ("ukulele-baritone", Instrument::UkuleleBaritone),
+            ("recorder-baroque", Instrument::RecorderBaroque),
+            ("recorder-german", Instrument::RecorderGerman),
+            ("flute", Instrument::Flute),
+            ("flute-cfoot", Instrument::Flute),
+            ("flute-bfoot", Instrument::FluteBFoot),
+        ] {
+            let cli = Cli::try_parse_from(["tono", "song.mp3", "--instrument", id]).unwrap();
+            assert_eq!(cli.options.selected_instrument().unwrap(), expected);
+            assert!(cli.options.fingering_mode.is_none());
+        }
+        assert!(Cli::try_parse_from(["tono", "song.mp3", "--instrument", "recorder"]).is_err());
+    }
+
+    #[test]
     fn brisa_requires_a_mode_in_direct_prep_and_demo_commands() {
         for args in [
             vec!["tono", "song.mp3", "--instrument", "ae-brisa"],
