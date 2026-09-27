@@ -41,6 +41,9 @@ struct Cli {
 
 #[derive(Args)]
 struct PreparationArgs {
+    /// Video heading; defaults to the input filename without its extension.
+    #[arg(long, value_name = "TEXT", value_parser = parse_title)]
+    title: Option<String>,
     /// Instrument profile, fingering table and diagram.
     #[arg(
         long,
@@ -86,6 +89,15 @@ struct PreparationArgs {
     keep_work: bool,
 }
 
+fn parse_title(value: &str) -> std::result::Result<String, String> {
+    let title = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    if title.is_empty() || title.chars().any(char::is_control) {
+        Err("title must contain visible text without control characters".into())
+    } else {
+        Ok(title)
+    }
+}
+
 impl PreparationArgs {
     fn selected_instrument(&self) -> Result<Instrument> {
         if self.piano {
@@ -102,7 +114,7 @@ impl PreparationArgs {
         video: Option<PathBuf>,
     ) -> Result<prep::PrepOptions> {
         if self.range_policy == Some(RangePolicy::Fold) {
-            bail!("individual octave folding is disabled; use --range-policy strict to preserve the melody");
+            bail!(tono::music::range::FOLDING_DISABLED_MESSAGE);
         }
         let instrument = self.selected_instrument()?;
         validate_mode(instrument, self.fingering_mode)?;
@@ -110,6 +122,7 @@ impl PreparationArgs {
             bail!("--min-note-confidence must be between 0 and 1");
         }
         Ok(prep::PrepOptions {
+            title: self.title,
             input,
             instrument,
             fingering_mode: self.fingering_mode,
@@ -267,6 +280,42 @@ pub fn run() -> Result<()> {
 #[cfg(test)]
 mod cli_tests {
     use super::*;
+
+    #[test]
+    fn title_override_reaches_direct_and_prep_options() {
+        for command in [None, Some("prep")] {
+            let mut args = vec!["tono"];
+            args.extend(command);
+            args.extend([
+                "original.mp3",
+                "--instrument",
+                "ae20",
+                "--title",
+                "  Love & Music  ",
+            ]);
+            let cli = Cli::try_parse_from(args).unwrap();
+            let options = match cli.command {
+                Some(Commands::Prep {
+                    input,
+                    out,
+                    options,
+                }) => options.into_options(input, out, None),
+                None => cli
+                    .options
+                    .into_options(cli.input.unwrap(), PathBuf::from("out"), None),
+                _ => unreachable!(),
+            }
+            .unwrap();
+            assert_eq!(
+                prep::practice_title(&options.input, options.title.as_deref()),
+                "Love & Music"
+            );
+        }
+        assert!(
+            Cli::try_parse_from(["tono", "song.mp3", "--instrument", "ae20", "--title", "  "])
+                .is_err()
+        );
+    }
 
     #[test]
     fn acoustic_profiles_and_aliases_select_explicit_setups() {

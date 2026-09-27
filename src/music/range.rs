@@ -1,16 +1,16 @@
-//! Fits a transcribed melody into the fingerable AE-01 range.
+//! Fits a transcribed melody into an instrument profile's charted range.
 //!
-//! Only notes present in the verified-data fingering table can be shown
-//! (rule 9), expanded by Roland's documented octave controls to B2-C#6. Two policies:
+//! Only notes present in the profile's fingering table can be shown (never
+//! guessed). The melody is shifted as a WHOLE by the smallest whole-octave
+//! amount that puts every note in range, so every interval is preserved and
+//! the practice backing is transposed by the same amount. If no shift fits,
+//! fitting fails and lists the offending notes.
 //!
-//! * `strict` (default): shift the WHOLE melody by the smallest whole-octave
-//!   amount that puts every note in range. Intervals are preserved, so the
-//!   melody is the same tune an octave up/down. If no shift fits, fail and
-//!   list the offending notes.
-//! * `fold` (explicit opt-in): best whole-octave shift, then move each
-//!   remaining outlier by octaves into range. This CHANGES the melody's
-//!   shape (a rising step can become a downward leap), so it is reported on
-//!   the console, in fingering.json and as a warning in the video.
+//! Individual octave folding (moving single notes by octaves) is not
+//! implemented: it changes the melody's shape (a rising step can become a
+//! downward leap). `RangePolicy::Fold` survives only so the existing
+//! `--range-policy` option still parses; the engine rejects it here too, so
+//! no frontend can bypass the CLI check.
 
 use anyhow::{bail, Result};
 use serde::Serialize;
@@ -21,23 +21,18 @@ use crate::music::notes::NoteEvent;
 /// Candidate whole-melody shifts in octaves, in order of preference.
 const OCTAVE_SHIFT_CANDIDATES: [i32; 5] = [0, 1, -1, 2, -2];
 
-/// Out-of-range notes listed in the strict-mode error.
+/// Out-of-range notes listed in the failure message.
 const MAX_LISTED_NOTES: usize = 8;
+
+pub const FOLDING_DISABLED_MESSAGE: &str =
+    "individual octave folding is disabled; use --range-policy strict to preserve the melody";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, clap::ValueEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum RangePolicy {
     Strict,
+    /// Legacy value: accepted by the parser, always rejected by the engine.
     Fold,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct FoldedNote {
-    pub index: usize,
-    pub start: f64,
-    /// Pitch after the whole-melody shift, before folding.
-    pub shifted_midi: u8,
-    pub played_midi: u8,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -45,19 +40,17 @@ pub struct FittedMelody {
     #[serde(skip)]
     pub notes: Vec<NoteEvent>,
     pub policy: RangePolicy,
+    /// Whole-melody shift; the backing is transposed by the same amount.
     pub octave_shift: i32,
-    /// Always empty under `strict`.
-    pub folded_notes: Vec<FoldedNote>,
 }
 
 impl FittedMelody {
     pub fn is_unchanged(&self) -> bool {
-        self.octave_shift == 0 && self.folded_notes.is_empty()
+        self.octave_shift == 0
     }
 
-    /// True when the played melody no longer has the original intervals.
-    pub fn shape_changed(&self) -> bool {
-        !self.folded_notes.is_empty()
+    pub fn transpose_semitones(&self) -> i32 {
+        self.octave_shift * 12
     }
 }
 
@@ -72,6 +65,9 @@ pub fn fit_melody_to_table(
     table: &FingeringTable,
     policy: RangePolicy,
 ) -> Result<FittedMelody> {
+    if policy == RangePolicy::Fold {
+        bail!(FOLDING_DISABLED_MESSAGE);
+    }
     let playable = |midi: u8| table.lookup(midi).is_ok();
     let fits =
         |note: &NoteEvent, octaves: i32| shift_midi(note.midi, octaves * 12).is_some_and(playable);
@@ -93,7 +89,6 @@ pub fn fit_melody_to_table(
             notes: shifted,
             policy,
             octave_shift,
-            folded_notes: Vec::new(),
         });
     }
 
@@ -105,13 +100,10 @@ pub fn fit_melody_to_table(
         .copied()
         .max_by_key(|&octaves| fitting_count(octaves))
         .unwrap_or(0);
-    match policy {
-        RangePolicy::Strict => bail!(strict_failure_message(notes, table, best_shift, &fits)),
-        RangePolicy::Fold => fold_outliers(notes, best_shift, &playable),
-    }
+    bail!(range_failure_message(notes, table, best_shift, &fits))
 }
 
-fn strict_failure_message(
+fn range_failure_message(
     notes: &[NoteEvent],
     table: &FingeringTable,
     best_shift: i32,
@@ -135,56 +127,6 @@ fn strict_failure_message(
         outliers.join(", "),
         if outlier_count > MAX_LISTED_NOTES { ", ..." } else { "" },
     )
-}
-
-fn fold_outliers(
-    notes: &[NoteEvent],
-    octave_shift: i32,
-    playable: &impl Fn(u8) -> bool,
-) -> Result<FittedMelody> {
-    let mut fitted_notes = Vec::with_capacity(notes.len());
-    let mut folded_notes = Vec::new();
-    for (index, note) in notes.iter().enumerate() {
-        let Some(shifted) = shift_midi(note.midi, octave_shift * 12) else {
-            bail!(
-                "MIDI {} cannot be shifted by {octave_shift:+} octave",
-                note.midi
-            );
-        };
-        let played = if playable(shifted) {
-            shifted
-        } else {
-            match nearest_playable_octave(shifted, playable) {
-                Some(folded) => folded,
-                None => bail!("MIDI {shifted} has no charted fingering in any octave"),
-            }
-        };
-        if played != shifted {
-            folded_notes.push(FoldedNote {
-                index,
-                start: note.start,
-                shifted_midi: shifted,
-                played_midi: played,
-            });
-        }
-        fitted_notes.push(NoteEvent {
-            midi: played,
-            ..*note
-        });
-    }
-    Ok(FittedMelody {
-        notes: fitted_notes,
-        policy: RangePolicy::Fold,
-        octave_shift,
-        folded_notes,
-    })
-}
-
-fn nearest_playable_octave(midi: u8, playable: &impl Fn(u8) -> bool) -> Option<u8> {
-    (1..=10)
-        .flat_map(|octaves| [-octaves, octaves])
-        .filter_map(|octaves| shift_midi(midi, octaves * 12))
-        .find(|candidate| playable(*candidate))
 }
 
 #[cfg(test)]
@@ -231,7 +173,6 @@ mod tests {
             fit_melody_to_table(&melody(&[39, 63, 65, 70]), &full, RangePolicy::Strict).unwrap();
         assert_eq!(fitted.octave_shift, 1);
         assert_eq!(played(&fitted), vec![51, 75, 77, 82]);
-        assert!(!fitted.shape_changed());
         let inside =
             fit_melody_to_table(&melody(&[47, 60, 85]), &full, RangePolicy::Strict).unwrap();
         assert!(inside.is_unchanged());
@@ -248,7 +189,6 @@ mod tests {
         // Male voice around C3-A3: +1 octave fits every note.
         let fitted = fit(&[48, 50, 52, 55, 57], RangePolicy::Strict).unwrap();
         assert_eq!(fitted.octave_shift, 1);
-        assert!(!fitted.shape_changed());
         assert_eq!(played(&fitted), vec![60, 62, 64, 67, 69]);
     }
 
@@ -284,27 +224,13 @@ mod tests {
     }
 
     #[test]
-    fn fold_is_explicit_and_reports_shape_change() {
-        let fitted = fit(&[64, 67, 72, 76], RangePolicy::Fold).unwrap();
-        assert_eq!(fitted.policy, RangePolicy::Fold);
-        assert!(fitted.shape_changed());
-        assert_eq!(
-            fitted.folded_notes,
-            vec![FoldedNote {
-                index: 3,
-                start: 3.0,
-                shifted_midi: 76,
-                played_midi: 64
-            }]
-        );
-        assert_eq!(played(&fitted), vec![64, 67, 72, 64]);
-    }
-
-    #[test]
-    fn fold_makes_every_pitch_fingerable() {
-        let table = table();
-        let wide: Vec<u8> = (36..=96).collect();
-        let fitted = fit_melody_to_table(&melody(&wide), &table, RangePolicy::Fold).unwrap();
-        assert!(fitted.notes.iter().all(|n| table.lookup(n.midi).is_ok()));
+    fn engine_rejects_individual_folding_even_without_the_cli() {
+        // A frontend calling the library directly must not be able to fold.
+        let error = fit(&[64, 67, 72, 76], RangePolicy::Fold)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("folding is disabled"), "{error}");
+        // Even when the melody would fit unchanged, Fold is refused.
+        assert!(fit(&[60, 62], RangePolicy::Fold).is_err());
     }
 }

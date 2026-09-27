@@ -9,10 +9,10 @@ validation of CLI combinations, and command dispatch, importing the library.
 | --- | --- |
 | `src/instruments/` | Instrument registry, fingering profiles, transitions and instrument diagrams |
 | `src/pipeline/` | Source-to-practice orchestration, practice assembly and safe output publication |
-| `src/analysis/` | Python ML worker contract, song-region selection and note cleanup |
+| `src/analysis/` | Python ML worker contract, song-region selection, pitch-track evidence (`evidence.rs`) and note cleanup |
 | `src/music/` | Notes, range fitting, musical timeline and timecode parsing |
 | `src/media/` | Source audio conversion, guide/click synthesis and ffprobe validation |
-| `src/render/` | Video composition, staff drawing, rasterization and ffmpeg streaming |
+| `src/render/` | Video composition, NOW-panel cue text (`cues.rs`), staff drawing, rasterization and ffmpeg streaming |
 | `src/commands/` | Standalone `demo` and `doctor` commands |
 
 `src/paths.rs` locates runtime data, the Python environment and external tools.
@@ -48,6 +48,11 @@ rendering code.
 `cli` → `pipeline::output` → `pipeline::prep` → analysis and note cleanup →
 `pipeline::practice` → range fitting/fingerings/timeline → `render` → media
 validation → output publication.
+
+The worker also returns a pYIN pitch track (`pitch_track` in analysis.json:
+f0, voicing probability and level per 23 ms frame on the lead stem). Rust
+turns it into per-note evidence and applies the cleanup decisions; Python
+only measures. Older analysis files without it fall back to duration rules.
 
 `demo` constructs a known melody and uses the same instrument and rendering
 modules without ML. `doctor` checks the environment independently.

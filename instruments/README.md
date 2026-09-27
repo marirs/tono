@@ -75,7 +75,27 @@ read or change settings on a connected instrument.
 - The generator also builds `guitar.json` from tuning and fret arithmetic.
 - Run `cargo test`; never change key mappings by guesswork or force `verified`.
 - Strict range fitting remains the default. A whole-octave shift also shifts
-  the backing, and individual folding is disabled.
+  the backing, and individual folding is disabled in both the CLI and the
+  library (a frontend cannot fold notes either).
+
+## Practice cues per instrument
+
+The NOW panel names the next change using each profile's own data, so cue
+text is only as good as the profile's control labels:
+
+| Profiles | Next-change cue | Repeated note |
+| --- | --- | --- |
+| Winds with `layout_keys` (AE-05/10/20, YDS, Brisa, recorders, flutes) | `LIFT <labels> · PRESS <labels>` from `layout_keys[].label`; more than 4 keys are counted | `SAME KEYS - RE-TONGUE` |
+| AE-01 (dedicated drawing) | Printed key numbers: 1-3, 4-7, `#`, `b`, `OCT UP/DOWN` | `SAME KEYS - RE-TONGUE` |
+| Guitar, bass, ukulele | `STRING n - FRET m` / `STRING n OPEN` from `s<n>_f<m>` | `SAME NOTE - PLAY AGAIN` |
+| Violin | `STRING n - FINGER f` / `STRING n OPEN` from `s<n>_p<p>_n<f>` | `SAME NOTE - PLAY AGAIN` |
+| Piano and keyboards | `KEY <note>` | `SAME KEY - RELEASE AND PLAY AGAIN` |
+
+Wind-key rings on NOW confirm the change just made for the first 0.35 s
+of a note (at most half the time to the next note), then show the next change.
+Fretted and violin diagrams keep the current placement and arrival cues; the
+NEXT text above NOW describes the upcoming position.
+Renaming a `layout_keys` label changes the cue text; IDs stay the contract.
 
 Examples:
 
@@ -289,3 +309,17 @@ fourth fingers; it is not a phrase-optimized fingering arrangement.
 charted finger assignment for primaries and alternatives. Range fitting preserves
 intervals through a whole-melody octave shift or fails; individual folding stays
 disabled. `verified` remains false pending physical checks.
+
+## Video title
+
+```sh
+tono song.mp3 --instrument ae20 --title "Careless Whisper"
+tono "Poove Sempoove.mp3" --instrument ae01
+```
+
+`--title` sets the video heading, for example **Practice: Careless Whisper**.
+Without it, the input filename without its final extension becomes the title
+(**Poove Sempoove** in the second example). The full title is saved in
+`project.json`; long video headings are shortened to fit. This also works with
+`tono prep`. Titles do not change output filenames. No online recognition or API
+key is needed.

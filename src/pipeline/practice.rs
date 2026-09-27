@@ -10,7 +10,8 @@ use crate::analysis::worker::Analysis;
 use crate::instruments::diagram::UpperHand;
 use crate::instruments::fingering::{map_notes_to_fingerings, FingeringTable};
 use crate::media::audio::{
-    count_in_samples, synthesize_metronome_samples, write_mono_wav, GUIDE_SAMPLE_RATE,
+    count_in_samples, measure_filter_offset_seconds, synthesize_metronome_samples, write_mono_wav,
+    GUIDE_SAMPLE_RATE,
 };
 use crate::media::validation::ValidatedMedia;
 use crate::music::notes::{validate_monophonic_sequence, NoteEvent};
@@ -23,6 +24,7 @@ use crate::render::{render_practice_video, AudioBed, MediaTools, MetronomeMode, 
 pub const TEMPO_SCALE_RANGE: std::ops::RangeInclusive<f64> = 0.5..=2.0;
 
 pub struct PracticeRequest<'a> {
+    pub title: &'a str,
     pub instrument: crate::instruments::Instrument,
     pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub cleaned_notes: &'a [NoteEvent],
@@ -52,6 +54,8 @@ pub struct PracticeOutcome {
     pub beat_count: usize,
     pub practice_duration_seconds: f64,
     pub count_in: Option<CountIn>,
+    /// Measured time-stretch offset compensated in the backing (s, + = was early).
+    pub bed_offset_seconds: Option<f64>,
     pub warnings: Vec<String>,
 }
 
@@ -98,7 +102,12 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
         count_in_seconds,
     )?;
 
-    let bed = practice_audio_bed(request, count_in_seconds, fitted.octave_shift)?;
+    let (bed, bed_offset_seconds) = practice_audio_bed(
+        request,
+        count_in_seconds,
+        fitted.octave_shift,
+        &mut warnings,
+    )?;
     let click_track = if metronome.plays_click() || timeline.count_in.is_some() {
         let (mut cues, warning) = count_in_samples(&timeline, request.ffmpeg, request.work_dir);
         if let Some(warning) = warning {
@@ -130,6 +139,7 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     };
 
     let settings = RenderSettings {
+        title: Some(request.title.to_owned()),
         instrument: request.instrument,
         layout_keys: table.layout_keys.clone(),
         required_settings: table.required_settings.clone(),
@@ -171,6 +181,7 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
         beat_count,
         practice_duration_seconds: timeline.total_duration_seconds,
         count_in: timeline.count_in,
+        bed_offset_seconds,
         warnings,
     })
 }
@@ -208,14 +219,13 @@ fn practice_audio_bed(
     request: &PracticeRequest,
     count_in_seconds: f64,
     octave_shift: i32,
-) -> Result<PathBuf> {
+    warnings: &mut Vec<String>,
+) -> Result<(PathBuf, Option<f64>)> {
     let backing = request.out_dir.join("backing.wav");
     if request.tempo_scale == 1.0 && count_in_seconds == 0.0 && octave_shift == 0 {
-        return Ok(backing);
+        return Ok((backing, None));
     }
     let scaled = request.work_dir.join("practice_bed.wav");
-    let delay_samples = (count_in_seconds * GUIDE_SAMPLE_RATE as f64).round() as u64;
-    let delay = format!("adelay={delay_samples}S:all=1");
     let mut filters = Vec::new();
     if octave_shift != 0 {
         // Resample pitch, then restore duration with bounded atempo stages.
@@ -240,10 +250,41 @@ fn practice_audio_bed(
     } else if request.tempo_scale != 1.0 {
         filters.push(format!("atempo={}", request.tempo_scale));
     }
-    let samples = (request.region_duration_seconds / request.tempo_scale * GUIDE_SAMPLE_RATE as f64)
-        .round() as u64;
+    // Stretch/pitch stages shift events slightly; measure and undo that so
+    // the slowed backing stays on the picture (see media::audio).
+    let offset_seconds = if filters.is_empty() {
+        None
+    } else {
+        let stretch = filters.join(",");
+        match measure_filter_offset_seconds(
+            request.ffmpeg,
+            &stretch,
+            request.tempo_scale,
+            request.work_dir,
+        ) {
+            Ok(offset) => Some(offset),
+            Err(error) => {
+                warnings.push(format!(
+                    "backing time-stretch not calibrated ({error:#}); it may be a few ms off"
+                ));
+                None
+            }
+        }
+    };
+    let rate = GUIDE_SAMPLE_RATE as f64;
+    let early = offset_seconds.unwrap_or(0.0);
+    if early < 0.0 {
+        // Output late: drop the extra lead-in so events land on time.
+        filters.push(format!(
+            "atrim=start_sample={},asetpts=PTS-STARTPTS",
+            (-early * rate).round() as u64
+        ));
+    }
+    let samples = (request.region_duration_seconds / request.tempo_scale * rate).round() as u64;
     filters.push(format!("apad,atrim=end_sample={samples}"));
-    filters.push(delay);
+    // Early output is delayed by the same amount, on top of the count-in.
+    let delay_samples = ((count_in_seconds + early.max(0.0)) * rate).round() as u64;
+    filters.push(format!("adelay={delay_samples}S:all=1"));
     let filter = filters.join(",");
     let output = Command::new(request.ffmpeg)
         .args(["-hide_banner", "-nostdin", "-y", "-v", "error", "-i"])
@@ -258,7 +299,7 @@ fn practice_audio_bed(
             String::from_utf8_lossy(&output.stderr).trim()
         );
     }
-    Ok(scaled)
+    Ok((scaled, offset_seconds))
 }
 
 fn subtitle(practice_bpm: Option<f64>, tempo_scale: f64) -> String {
@@ -275,12 +316,6 @@ fn subtitle(practice_bpm: Option<f64>, tempo_scale: f64) -> String {
 /// Conditions the player must see on screen, not just in the terminal.
 fn video_warnings(fitted: &FittedMelody, low_confidence: bool) -> Vec<String> {
     let mut lines = Vec::new();
-    if fitted.shape_changed() {
-        lines.push(format!(
-            "{} NOTE(S) OCTAVE-FOLDED: MELODY SHAPE DIFFERS FROM THE SONG",
-            fitted.folded_notes.len()
-        ));
-    }
     if fitted.octave_shift != 0 {
         lines.push(format!(
             "MELODY AND BACKING TRANSPOSED {:+} SEMITONES",
@@ -313,7 +348,7 @@ fn write_fingering_json(
         "count_in_seconds": count_in_seconds,
         "upper_hand": request.upper_hand,
         "range_fit": fitted,
-        "backing_transpose_semitones": fitted.octave_shift * 12,
+        "backing_transpose_semitones": fitted.transpose_semitones(),
         "fingering_alternatives": table.alternatives,
         "timeline": entries,
     });
@@ -345,33 +380,20 @@ mod tests {
         assert_eq!(subtitle(None, 1.0), "AE-01");
     }
 
-    fn fitted_with_folds(folds: usize) -> FittedMelody {
-        use crate::music::range::FoldedNote;
+    fn fitted_with_shift(octave_shift: i32) -> FittedMelody {
         FittedMelody {
             notes: vec![],
-            policy: if folds > 0 {
-                RangePolicy::Fold
-            } else {
-                RangePolicy::Strict
-            },
-            octave_shift: 0,
-            folded_notes: (0..folds)
-                .map(|index| FoldedNote {
-                    index,
-                    start: 0.0,
-                    shifted_midi: 76,
-                    played_midi: 64,
-                })
-                .collect(),
+            policy: RangePolicy::Strict,
+            octave_shift,
         }
     }
 
     #[test]
-    fn folding_and_low_confidence_are_shown_in_the_video() {
-        let lines = video_warnings(&fitted_with_folds(2), true);
-        assert!(lines[0].contains("2 NOTE(S) OCTAVE-FOLDED"));
+    fn transposition_and_low_confidence_are_shown_in_the_video() {
+        let lines = video_warnings(&fitted_with_shift(1), true);
+        assert!(lines[0].contains("TRANSPOSED +12 SEMITONES"));
         assert!(lines[1].contains("LOW-CONFIDENCE"));
-        assert!(video_warnings(&fitted_with_folds(0), false).is_empty());
+        assert!(video_warnings(&fitted_with_shift(0), false).is_empty());
     }
 
     #[test]

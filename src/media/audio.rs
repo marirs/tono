@@ -89,7 +89,11 @@ pub fn count_in_samples(
 }
 
 fn spoken_number(number: u8, ffmpeg: &Path, work: &Path) -> Result<Vec<f64>> {
-    let word = ["one", "two", "three", "four"][(number - 1) as usize];
+    // The CLI limits --count-in to 4; library callers may ask for more, and
+    // those beats fall back to clicks instead of panicking on the lookup.
+    let word = ["one", "two", "three", "four"]
+        .get((number as usize).wrapping_sub(1))
+        .with_context(|| format!("no spoken word for count {number}"))?;
     let speech = work.join(format!("count-{number}.aiff"));
     let status = std::process::Command::new("/usr/bin/say")
         .args(["-v", "Samantha", "-r", "220", "-o"])
@@ -176,6 +180,110 @@ fn add_click(samples: &mut [f64], rate: f64, at_seconds: f64, frequency_hz: f64)
     }
 }
 
+// ---- Time-stretch calibration -------------------------------------------
+//
+// ffmpeg's atempo (and asetrate+atempo octave shifts) does not keep events
+// exactly in place: measured on ffmpeg 9, clicks come out ~11-17 ms early
+// at 0.75x and ~35 ms early at 0.5x. That would put a slowed backing ahead
+// of the picture, so the same filter chain is run on a click train of
+// known timing and the measured offset is compensated.
+
+const CALIBRATION_FIRST_CLICK: f64 = 1.0;
+const CALIBRATION_SPACING: f64 = 0.5;
+const CALIBRATION_CLICKS: usize = 20;
+/// Short tone burst: sharp enough to locate within a sample or two.
+const CALIBRATION_BURST_SAMPLES: usize = 200;
+const CALIBRATION_BURST_HZ: f64 = 2_000.0;
+/// Search window around each expected click, and the share that must be found.
+const CALIBRATION_SEARCH_SECONDS: f64 = 0.1;
+const CALIBRATION_MIN_FOUND_SHARE: f64 = 0.8;
+
+fn calibration_click_train(rate: f64) -> (Vec<f64>, Vec<f64>) {
+    let total = CALIBRATION_FIRST_CLICK + CALIBRATION_SPACING * (CALIBRATION_CLICKS as f64 + 2.0);
+    let mut samples = vec![0.0; (total * rate) as usize];
+    let mut peaks = Vec::with_capacity(CALIBRATION_CLICKS);
+    for index in 0..CALIBRATION_CLICKS {
+        let start =
+            ((CALIBRATION_FIRST_CLICK + index as f64 * CALIBRATION_SPACING) * rate) as usize;
+        for offset in 0..CALIBRATION_BURST_SAMPLES {
+            let window = (std::f64::consts::PI * offset as f64 / CALIBRATION_BURST_SAMPLES as f64)
+                .sin()
+                .powi(2);
+            samples[start + offset] =
+                0.8 * window * (TAU * CALIBRATION_BURST_HZ * offset as f64 / rate).sin();
+        }
+        peaks.push((start + CALIBRATION_BURST_SAMPLES / 2) as f64 / rate);
+    }
+    (samples, peaks)
+}
+
+/// Median of (expected - found) click peak times: positive means the
+/// processed audio runs EARLY by that many seconds. `None` when too few
+/// clicks survive to trust the measurement.
+pub fn click_train_offset(processed: &[f32], rate: f64, expected_peaks: &[f64]) -> Option<f64> {
+    let window = (CALIBRATION_SEARCH_SECONDS * rate) as isize;
+    let mut offsets: Vec<f64> = expected_peaks
+        .iter()
+        .filter_map(|&expected| {
+            let centre = (expected * rate) as isize;
+            let range = (centre - window).max(0) as usize
+                ..((centre + window).max(0) as usize).min(processed.len());
+            let (index, peak) = range
+                .map(|i| (i, processed[i].abs()))
+                .max_by(|a, b| a.1.total_cmp(&b.1))?;
+            (peak > 0.05).then(|| expected - index as f64 / rate)
+        })
+        .collect();
+    if (offsets.len() as f64) < expected_peaks.len() as f64 * CALIBRATION_MIN_FOUND_SHARE {
+        return None;
+    }
+    offsets.sort_by(f64::total_cmp);
+    Some(offsets[offsets.len() / 2])
+}
+
+/// Runs `filter` (the bed's time-stretch/pitch chain, `tempo_scale` being
+/// its overall time ratio) on a click train and returns how early (+) or
+/// late (-) its output is, in seconds.
+pub fn measure_filter_offset_seconds(
+    ffmpeg: &Path,
+    filter: &str,
+    tempo_scale: f64,
+    work: &Path,
+) -> Result<f64> {
+    let rate = GUIDE_SAMPLE_RATE as f64;
+    let (clicks, peaks) = calibration_click_train(rate);
+    let input = work.join("stretch-calibration.wav");
+    write_mono_wav(&input, &clicks, GUIDE_SAMPLE_RATE)?;
+    let output = std::process::Command::new(ffmpeg)
+        .args(["-hide_banner", "-nostdin", "-v", "error", "-i"])
+        .arg(&input)
+        .args([
+            "-af",
+            filter,
+            "-ac",
+            "1",
+            "-ar",
+            &GUIDE_SAMPLE_RATE.to_string(),
+            "-f",
+            "f32le",
+            "-",
+        ])
+        .output()
+        .context("running ffmpeg for stretch calibration")?;
+    anyhow::ensure!(
+        output.status.success(),
+        "ffmpeg stretch calibration failed: {}",
+        String::from_utf8_lossy(&output.stderr).trim()
+    );
+    let processed: Vec<f32> = output
+        .stdout
+        .chunks_exact(4)
+        .map(|bytes| f32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
+        .collect();
+    let expected: Vec<f64> = peaks.iter().map(|peak| peak / tempo_scale).collect();
+    click_train_offset(&processed, rate, &expected).context("stretch calibration clicks not found")
+}
+
 /// Writes 16-bit PCM mono WAV. Hand-rolled to avoid a dependency for a
 /// 44-byte header.
 pub fn write_mono_wav(path: &Path, samples: &[f64], sample_rate: u32) -> Result<()> {
@@ -202,6 +310,41 @@ pub fn write_mono_wav(path: &Path, samples: &[f64], sample_rate: u32) -> Result<
     }
     writer.flush()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod calibration_tests {
+    use super::*;
+
+    #[test]
+    fn offset_measures_early_and_late_output() {
+        let rate = 8_000.0;
+        let (clicks, peaks) = calibration_click_train(rate);
+        let shifted = |shift_samples: isize| -> Vec<f32> {
+            (0..clicks.len() as isize)
+                .map(|i| {
+                    clicks
+                        .get((i + shift_samples).max(0) as usize)
+                        .copied()
+                        .unwrap_or(0.0) as f32
+                })
+                .collect()
+        };
+        // Output 40 samples (5 ms) early: positive offset.
+        let early = click_train_offset(&shifted(40), rate, &peaks).unwrap();
+        assert!((early - 0.005).abs() < 0.0005, "{early}");
+        let late = click_train_offset(&shifted(-80), rate, &peaks).unwrap();
+        assert!((late + 0.010).abs() < 0.0005, "{late}");
+        // Peak picking on a windowed sine is within half a tone period (<0.3 ms).
+        let aligned = click_train_offset(&shifted(0), rate, &peaks).unwrap();
+        assert!(aligned.abs() < 0.0003, "{aligned}");
+    }
+
+    #[test]
+    fn too_few_clicks_is_not_a_measurement() {
+        let silence = vec![0.0f32; 80_000];
+        assert!(click_train_offset(&silence, 8_000.0, &[1.0, 1.5, 2.0]).is_none());
+    }
 }
 
 #[cfg(test)]

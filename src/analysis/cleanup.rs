@@ -2,11 +2,12 @@
 //!
 //! Basic Pitch is polyphonic and reacts to vibrato, slides and harmonics.
 //! The AE-01 plays one note at a time, so raw events are reduced to a clean
-//! monophonic line here. Pitches are never invented: every output note's
-//! MIDI value comes from a raw event.
+//! monophonic line here. Pitches come from raw events or a sufficiently steady
+//! measured f0; evidence-based corrections are recorded for review.
 
 use serde::{Deserialize, Serialize};
 
+use crate::analysis::evidence::{NoteEvidence, PitchTrack};
 use crate::music::notes::NoteEvent;
 
 /// Transcriber output before cleanup. `attack` is the onset activation at
@@ -44,6 +45,64 @@ pub struct CleanupSettings {
     /// Rule 4: a +/-1 semitone excursion shorter than this, between two
     /// notes of the same pitch, is vibrato and absorbed.
     pub vibrato_max_excursion_seconds: f64,
+    /// Evidence rules (only with a pitch track). Thresholds come from
+    /// PooveSempoove (real song): bleed notes sat ~70 dB below loud singing,
+    /// sung notes within ~8 dB of it.
+    pub evidence: EvidenceSettings,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EvidenceSettings {
+    /// Lead stem this far below loud singing is separation bleed: drop.
+    pub bleed_below_loud_db: f64,
+    /// Short, audible but unvoiced notes (consonants, breath) are unpitched.
+    pub unpitched_max_seconds: f64,
+    pub unpitched_max_voiced_fraction: f64,
+    /// Pitch evidence is trusted only this voiced and this steady.
+    pub trusted_voiced_fraction: f64,
+    pub trusted_max_spread: f64,
+    /// Transcribed pitch this far from the sung f0 is wrong: re-pitch.
+    pub repitch_min_deviation: f64,
+    /// Neighbours whose sung f0 centres are this close are one sung tone...
+    pub same_tone_max_center_difference: f64,
+    /// ...if the pitch across both stays within this band (vibrato width).
+    pub same_tone_max_joint_spread: f64,
+    /// A note this short whose f0 sweeps at least `slide_min_spread` between
+    /// its neighbours, without its own attack, is a slide into the next note.
+    pub slide_max_seconds: f64,
+    pub slide_min_spread: f64,
+}
+
+impl Default for EvidenceSettings {
+    fn default() -> Self {
+        EvidenceSettings {
+            bleed_below_loud_db: -35.0,
+            unpitched_max_seconds: 0.12,
+            unpitched_max_voiced_fraction: 0.2,
+            trusted_voiced_fraction: 0.6,
+            trusted_max_spread: 1.0,
+            repitch_min_deviation: 0.8,
+            same_tone_max_center_difference: 0.6,
+            same_tone_max_joint_spread: 1.2,
+            slide_max_seconds: 0.15,
+            slide_min_spread: 0.8,
+        }
+    }
+}
+
+/// What evidence-based cleanup did to one note (written to work/ for review).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CleanupDecision {
+    pub start: f64,
+    pub end: f64,
+    pub midi: u8,
+    pub action: &'static str,
+    pub detail: String,
+}
+
+pub struct CleanupOutcome {
+    pub notes: Vec<NoteEvent>,
+    pub decisions: Vec<CleanupDecision>,
 }
 
 impl Default for CleanupSettings {
@@ -54,17 +113,54 @@ impl Default for CleanupSettings {
             merge_gap_seconds: 0.080,
             repeat_attack_threshold: 0.75,
             vibrato_max_excursion_seconds: 0.150,
+            evidence: EvidenceSettings::default(),
         }
     }
 }
 
+/// Duration-only cleanup (no audio evidence available).
 pub fn clean_notes(raw_notes: &[RawNoteEvent], settings: &CleanupSettings) -> Vec<NoteEvent> {
+    clean_notes_with_evidence(raw_notes, settings, None).notes
+}
+
+/// Full cleanup. With a pitch track, audio evidence first removes bleed and
+/// unpitched noise, fixes clearly wrong pitches, joins split sung tones and
+/// absorbs slides; the duration rules then run as before. Short notes that
+/// the evidence shows are real (steady pitch or their own attack) stay:
+/// ornaments and deliberate repeats are not deleted for being short.
+pub fn clean_notes_with_evidence(
+    raw_notes: &[RawNoteEvent],
+    settings: &CleanupSettings,
+    track: Option<&PitchTrack>,
+) -> CleanupOutcome {
     let confident: Vec<RawNoteEvent> = raw_notes
         .iter()
         .copied()
         .filter(|note| note.confidence >= settings.min_confidence && note.end > note.start)
         .collect();
-    let monophonic = reduce_to_monophonic(confident);
+    let mut decisions = Vec::new();
+    let usable_track = track.filter(|track| track.is_consistent());
+    let evidence = usable_track.map(|track| Evidence {
+        track,
+        loud_reference_db: track.loud_reference_db(),
+        settings: &settings.evidence,
+    });
+
+    let candidates = match &evidence {
+        Some(evidence) => evidence.drop_unsung(confident, &mut decisions),
+        None => confident,
+    };
+    let mut line = reduce_to_monophonic(candidates);
+    if let Some(evidence) = &evidence {
+        line = evidence.repitch_mismatches(line, &mut decisions);
+        line = evidence.merge_same_sung_tone(line, settings, &mut decisions);
+        line = evidence.absorb_slides(line, settings, &mut decisions);
+    }
+    let notes = duration_rules(line, settings);
+    CleanupOutcome { notes, decisions }
+}
+
+fn duration_rules(monophonic: Vec<RawNoteEvent>, settings: &CleanupSettings) -> Vec<NoteEvent> {
     let merged = merge_identical_neighbours(monophonic, settings);
     let without_vibrato = absorb_vibrato(merged, settings);
     let merged_again = merge_identical_neighbours(without_vibrato, settings);
@@ -78,6 +174,243 @@ pub fn clean_notes(raw_notes: &[RawNoteEvent], settings: &CleanupSettings) -> Ve
             confidence: note.confidence,
         })
         .collect()
+}
+
+struct Evidence<'a> {
+    track: &'a PitchTrack,
+    loud_reference_db: f64,
+    settings: &'a EvidenceSettings,
+}
+
+impl Evidence<'_> {
+    fn of(&self, note: &RawNoteEvent) -> Option<NoteEvidence> {
+        self.track
+            .evidence(note.start, note.end, self.loud_reference_db)
+    }
+
+    /// Evidence good enough to state the sung pitch of this span.
+    fn trusted_center(&self, evidence: &NoteEvidence) -> Option<f64> {
+        let steady = evidence
+            .f0_spread
+            .is_some_and(|spread| spread <= self.settings.trusted_max_spread);
+        (evidence.voiced_fraction >= self.settings.trusted_voiced_fraction && steady)
+            .then_some(evidence.f0_center)
+            .flatten()
+    }
+
+    /// Bleed (lead stem near-silent) and short unvoiced noise are not melody.
+    fn drop_unsung(
+        &self,
+        notes: Vec<RawNoteEvent>,
+        decisions: &mut Vec<CleanupDecision>,
+    ) -> Vec<RawNoteEvent> {
+        notes
+            .into_iter()
+            .filter(|note| {
+                let Some(evidence) = self.of(note) else {
+                    return true;
+                };
+                let reason = if evidence.level_below_loud_db < self.settings.bleed_below_loud_db {
+                    Some((
+                        "dropped-bleed",
+                        format!(
+                            "lead stem {:.0} dB below loud singing",
+                            evidence.level_below_loud_db
+                        ),
+                    ))
+                } else if note.end - note.start <= self.settings.unpitched_max_seconds
+                    && evidence.voiced_fraction < self.settings.unpitched_max_voiced_fraction
+                {
+                    Some((
+                        "dropped-unpitched",
+                        format!("{:.0}% voiced frames", evidence.voiced_fraction * 100.0),
+                    ))
+                } else {
+                    None
+                };
+                match reason {
+                    Some((action, detail)) => {
+                        decisions.push(decision(note, action, detail));
+                        false
+                    }
+                    None => true,
+                }
+            })
+            .collect()
+    }
+
+    /// Transcribed pitch clearly disagreeing with a steady sung f0. Octave
+    /// disagreements keep the transcription: pYIN itself often errs by an
+    /// octave, and neither source is clearly better there.
+    fn repitch_mismatches(
+        &self,
+        notes: Vec<RawNoteEvent>,
+        decisions: &mut Vec<CleanupDecision>,
+    ) -> Vec<RawNoteEvent> {
+        notes
+            .into_iter()
+            .map(|note| {
+                let Some(center) = self.of(&note).and_then(|e| self.trusted_center(&e)) else {
+                    return note;
+                };
+                let deviation = center - note.midi as f64;
+                let octave_error = (deviation.abs() - 12.0).abs() <= 0.6;
+                if deviation.abs() < self.settings.repitch_min_deviation || octave_error {
+                    return note;
+                }
+                let sung = center.round().clamp(0.0, 127.0) as u8;
+                decisions.push(decision(
+                    &note,
+                    "repitched",
+                    format!("sung f0 {center:.2} -> MIDI {sung}"),
+                ));
+                RawNoteEvent { midi: sung, ..note }
+            })
+            .collect()
+    }
+
+    /// One wavering sung tone split into neighbouring pitches (e.g. a singer
+    /// between D and D#): joined when both halves sit on the same f0 centre
+    /// and the second has no attack of its own. The joined pitch is whichever
+    /// transcribed pitch is nearest the sung centre.
+    fn merge_same_sung_tone(
+        &self,
+        notes: Vec<RawNoteEvent>,
+        settings: &CleanupSettings,
+        decisions: &mut Vec<CleanupDecision>,
+    ) -> Vec<RawNoteEvent> {
+        let mut merged: Vec<RawNoteEvent> = Vec::with_capacity(notes.len());
+        for note in notes {
+            if let Some(previous) = merged.last_mut() {
+                if let Some(center) = self.same_tone_center(previous, &note, settings) {
+                    let midi = [previous.midi, note.midi]
+                        .into_iter()
+                        .min_by(|a, b| {
+                            (*a as f64 - center)
+                                .abs()
+                                .total_cmp(&(*b as f64 - center).abs())
+                        })
+                        .expect("two candidates");
+                    decisions.push(decision(
+                        &note,
+                        "merged-same-tone",
+                        format!(
+                            "sung centre {center:.2}; joined with MIDI {} at {:.2}s",
+                            previous.midi, previous.start
+                        ),
+                    ));
+                    *previous = RawNoteEvent {
+                        midi,
+                        ..combine(previous, &note)
+                    };
+                    continue;
+                }
+            }
+            merged.push(note);
+        }
+        merged
+    }
+
+    fn same_tone_center(
+        &self,
+        previous: &RawNoteEvent,
+        note: &RawNoteEvent,
+        settings: &CleanupSettings,
+    ) -> Option<f64> {
+        let different_pitch = previous.midi != note.midi;
+        let adjacent = note.start - previous.end <= settings.merge_gap_seconds;
+        if !different_pitch || !adjacent || note.has_real_attack(settings.repeat_attack_threshold) {
+            return None;
+        }
+        let first = self.of(previous)?;
+        let second = self.of(note)?;
+        let voiced = |e: &NoteEvidence| e.voiced_fraction >= self.settings.trusted_voiced_fraction;
+        if !voiced(&first) || !voiced(&second) {
+            return None;
+        }
+        let close = (first.f0_center? - second.f0_center?).abs()
+            <= self.settings.same_tone_max_center_difference;
+        let joint = self
+            .track
+            .evidence(previous.start, note.end, self.loud_reference_db)?;
+        let narrow = joint.f0_spread? <= self.settings.same_tone_max_joint_spread;
+        (close && narrow).then_some(joint.f0_center).flatten()
+    }
+
+    /// Short pitch sweep between two notes without its own attack: a slide
+    /// into the next note, which starts where the slide started. A short
+    /// note with steady pitch or a real attack is an ornament and stays.
+    fn absorb_slides(
+        &self,
+        notes: Vec<RawNoteEvent>,
+        settings: &CleanupSettings,
+        decisions: &mut Vec<CleanupDecision>,
+    ) -> Vec<RawNoteEvent> {
+        let mut result: Vec<RawNoteEvent> = Vec::with_capacity(notes.len());
+        let mut index = 0;
+        while index < notes.len() {
+            let note = notes[index];
+            let next = notes.get(index + 1);
+            let is_slide = next.is_some_and(|next| {
+                next.start - note.end <= settings.merge_gap_seconds
+                    && self.is_slide(result.last(), &note, next, settings)
+            });
+            if let (true, Some(next)) = (is_slide, next) {
+                decisions.push(decision(
+                    &note,
+                    "absorbed-slide",
+                    format!("pitch sweep into MIDI {} at {:.2}s", next.midi, next.start),
+                ));
+                result.push(RawNoteEvent {
+                    start: note.start,
+                    ..*next
+                });
+                index += 2;
+                continue;
+            }
+            result.push(note);
+            index += 1;
+        }
+        result
+    }
+
+    fn is_slide(
+        &self,
+        previous: Option<&RawNoteEvent>,
+        note: &RawNoteEvent,
+        next: &RawNoteEvent,
+        settings: &CleanupSettings,
+    ) -> bool {
+        let short = note.end - note.start <= self.settings.slide_max_seconds;
+        if !short || note.has_real_attack(settings.repeat_attack_threshold) {
+            return false;
+        }
+        let Some(evidence) = self.of(note) else {
+            return false;
+        };
+        let sweeping = evidence
+            .f0_spread
+            .is_some_and(|spread| spread >= self.settings.slide_min_spread);
+        let Some(center) = evidence.f0_center else {
+            return false;
+        };
+        // The sweep must head towards the next note: its centre lies between
+        // where it came from and where it lands.
+        let from = previous.map_or(note.midi as f64, |p| p.midi as f64);
+        let to = next.midi as f64;
+        let between = center >= from.min(to) - 0.5 && center <= from.max(to) + 0.5;
+        sweeping && between && from != to
+    }
+}
+
+fn decision(note: &RawNoteEvent, action: &'static str, detail: String) -> CleanupDecision {
+    CleanupDecision {
+        start: note.start,
+        end: note.end,
+        midi: note.midi,
+        action,
+        detail,
+    }
 }
 
 /// Resolves overlaps so at most one note sounds at a time: in every
@@ -376,6 +709,173 @@ mod tests {
             let cleaned = clean_notes(&raw, &CleanupSettings::default());
             if let Err(error) = validate_monophonic_sequence(&cleaned) {
                 panic!("case {case}: {error}\nraw: {raw:?}\ncleaned: {cleaned:?}");
+            }
+        }
+    }
+
+    // ---- evidence rules (pitch track built at 10 ms per frame) ----
+    use crate::analysis::evidence::test_support::track;
+
+    fn clean_with(raw: &[RawNoteEvent], track: &PitchTrack) -> CleanupOutcome {
+        let outcome = clean_notes_with_evidence(raw, &CleanupSettings::default(), Some(track));
+        validate_monophonic_sequence(&outcome.notes).unwrap();
+        outcome
+    }
+
+    fn actions(outcome: &CleanupOutcome) -> Vec<&'static str> {
+        outcome.decisions.iter().map(|d| d.action).collect()
+    }
+
+    const LOUD: f64 = -12.0;
+
+    #[test]
+    fn drops_bleed_where_the_lead_stem_is_silent() {
+        // Real song: intro "notes" transcribed from a stem ~70 dB down.
+        let track = track(&[(2.0, None, -82.0), (2.0, Some(60.0), LOUD)]);
+        let outcome = clean_with(&[note(0.5, 1.0, 39, 0.6), note(2.2, 2.8, 60, 0.8)], &track);
+        assert_eq!(pitches(&outcome.notes), vec![60]);
+        assert_eq!(actions(&outcome), vec!["dropped-bleed"]);
+    }
+
+    #[test]
+    fn drops_short_unvoiced_noise_but_keeps_short_sung_notes() {
+        // 80 ms consonant noise (audible, unvoiced) vs an 80 ms sung grace note.
+        let track = track(&[
+            (1.0, Some(62.0), LOUD),
+            (0.1, None, LOUD),
+            (0.9, Some(62.0), LOUD),
+            (0.08, Some(64.0), LOUD),
+            (0.92, Some(62.0), LOUD),
+        ]);
+        let outcome = clean_with(
+            &[
+                note(0.0, 0.95, 62, 0.8),
+                note(1.01, 1.09, 67, 0.6), // unvoiced noise
+                note(1.1, 1.98, 62, 0.8),
+                attacked(2.0, 2.08, 64, 0.9), // sung grace note
+                note(2.08, 3.0, 62, 0.8),
+            ],
+            &track,
+        );
+        assert_eq!(pitches(&outcome.notes), vec![62, 62, 64, 62]);
+        assert_eq!(actions(&outcome), vec!["dropped-unpitched"]);
+    }
+
+    #[test]
+    fn joins_one_wavering_tone_split_across_two_pitches() {
+        // Singer sits at 62.6: Basic Pitch says 63 then 62; one note, pitch 63.
+        let track = track(&[(1.2, Some(62.6), LOUD)]);
+        let outcome = clean_with(&[note(0.0, 0.5, 63, 0.7), note(0.5, 1.2, 62, 0.7)], &track);
+        assert_eq!(pitches(&outcome.notes), vec![63]);
+        assert_eq!((outcome.notes[0].start, outcome.notes[0].end), (0.0, 1.2));
+        assert_eq!(actions(&outcome), vec!["merged-same-tone"]);
+    }
+
+    #[test]
+    fn real_attack_or_real_step_is_not_joined() {
+        let same_tone = track(&[(1.2, Some(62.6), LOUD)]);
+        // Re-articulated syllable: its own attack keeps it separate.
+        let outcome = clean_with(
+            &[note(0.0, 0.5, 63, 0.7), attacked(0.5, 1.2, 62, 0.9)],
+            &same_tone,
+        );
+        assert_eq!(outcome.notes.len(), 2);
+        // A sung semitone step (62 -> 63) has two distinct centres.
+        let step = track(&[(0.5, Some(62.0), LOUD), (0.7, Some(63.0), LOUD)]);
+        let outcome = clean_with(&[note(0.0, 0.5, 62, 0.7), note(0.5, 1.2, 63, 0.7)], &step);
+        assert_eq!(pitches(&outcome.notes), vec![62, 63]);
+        assert!(outcome.decisions.is_empty());
+    }
+
+    #[test]
+    fn absorbs_slide_into_the_next_note_but_keeps_steady_ornament() {
+        // 100 ms sweep 60 -> 64 between steady notes: a slide into 64.
+        let mut segments = vec![(0.5, Some(60.0), LOUD)];
+        for step in 0..10 {
+            segments.push((0.01, Some(60.0 + step as f64 * 0.4), LOUD));
+        }
+        segments.push((0.5, Some(64.0), LOUD));
+        let sweep = track(&segments);
+        let outcome = clean_with(
+            &[
+                note(0.0, 0.5, 60, 0.8),
+                note(0.5, 0.6, 62, 0.5),
+                note(0.6, 1.1, 64, 0.8),
+            ],
+            &sweep,
+        );
+        assert_eq!(pitches(&outcome.notes), vec![60, 64]);
+        assert_eq!(
+            outcome.notes[1].start, 0.5,
+            "the target note starts where the slide began"
+        );
+        assert_eq!(actions(&outcome), vec!["absorbed-slide"]);
+        // Same timing but a steady sung 62: an ornament, kept.
+        let steady = track(&[
+            (0.5, Some(60.0), LOUD),
+            (0.1, Some(62.0), LOUD),
+            (0.5, Some(64.0), LOUD),
+        ]);
+        let outcome = clean_with(
+            &[
+                note(0.0, 0.5, 60, 0.8),
+                note(0.5, 0.6, 62, 0.5),
+                note(0.6, 1.1, 64, 0.8),
+            ],
+            &steady,
+        );
+        assert_eq!(pitches(&outcome.notes), vec![60, 62, 64]);
+    }
+
+    #[test]
+    fn repitches_clear_mismatch_but_not_octave_disagreement() {
+        let sung_61 = track(&[(1.0, Some(61.0), LOUD)]);
+        let outcome = clean_with(&[note(0.0, 1.0, 63, 0.7)], &sung_61);
+        assert_eq!(pitches(&outcome.notes), vec![61]);
+        assert_eq!(actions(&outcome), vec!["repitched"]);
+        // pYIN one octave off: keep the transcription.
+        let outcome = clean_with(&[note(0.0, 1.0, 73, 0.7)], &sung_61);
+        assert_eq!(pitches(&outcome.notes), vec![73]);
+    }
+
+    #[test]
+    fn inconsistent_track_falls_back_to_duration_rules() {
+        let mut broken = track(&[(1.0, Some(60.0), LOUD)]);
+        broken.level_db.pop();
+        let outcome = clean_with(&[note(0.0, 1.0, 60, 0.7)], &broken);
+        assert_eq!(pitches(&outcome.notes), vec![60]);
+        assert!(outcome.decisions.is_empty());
+    }
+
+    #[test]
+    fn fuzz_with_random_evidence_still_yields_valid_monophonic_line() {
+        let mut rng = Lcg(7);
+        for case in 0..1_500 {
+            let segments: Vec<(f64, Option<f64>, f64)> = (0..40)
+                .map(|_| {
+                    let voiced = rng.next_unit() > 0.3;
+                    let f0 = voiced.then(|| 56.0 + rng.next_unit() * 12.0);
+                    let level = if rng.next_unit() > 0.2 { -10.0 } else { -80.0 };
+                    (0.05 + rng.next_unit() * 0.3, f0, level)
+                })
+                .collect();
+            let track = track(&segments);
+            let raw: Vec<RawNoteEvent> = (0..1 + (rng.next_unit() * 40.0) as usize)
+                .map(|_| {
+                    let start = (rng.next_unit() * 8.0 * 100.0).round() / 100.0;
+                    RawNoteEvent {
+                        start,
+                        end: start + 0.02 + (rng.next_unit() * 0.8 * 100.0).round() / 100.0,
+                        midi: 56 + (rng.next_unit() * 12.0) as u8,
+                        confidence: 0.3 + rng.next_unit() * 0.7,
+                        attack: (rng.next_unit() > 0.5).then(|| rng.next_unit()),
+                    }
+                })
+                .collect();
+            let outcome =
+                clean_notes_with_evidence(&raw, &CleanupSettings::default(), Some(&track));
+            if let Err(error) = validate_monophonic_sequence(&outcome.notes) {
+                panic!("case {case}: {error}\nraw: {raw:?}");
             }
         }
     }

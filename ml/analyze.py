@@ -75,6 +75,7 @@ def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path,
     from tono_ml.separation import separate
     from tono_ml.tempo import estimate_beats
     from tono_ml.transcription import BASIC_PITCH_PARAMETERS, transcribe
+    from tono_ml.pitch_track import measure_pitch_track
     from tono_ml import models
 
     samples, sample_rate = read_wav(input_path)
@@ -85,6 +86,8 @@ def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path,
     backing_samples, _ = read_wav(separation.backing_file)
     bpm, beat_times = estimate_beats(backing_samples, sample_rate)
     notes = transcribe(separation.lead_file)
+    # Evidence for Rust note cleanup (vibrato, slides, bleed).
+    pitch_track = measure_pitch_track(separation.lead_file)
 
     write_json(output_path, {
         "version": CONTRACT_VERSION,
@@ -96,6 +99,7 @@ def run_analysis(input_path: Path, part: str, output_path: Path, work_dir: Path,
         "backing_file": str(separation.backing_file),
         "stems": {name: str(path) for name, path in separation.stems.items()},
         "notes": notes,
+        "pitch_track": pitch_track,
         "separation": {
             "model": models.DEMUCS_MODEL_NAME,
             "device": models.torch_device(),

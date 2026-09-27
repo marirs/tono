@@ -13,8 +13,11 @@ tono /path/to/clip.mp4 ./tono-m4-slow.mp4 --instrument ae01 --tempo-scale 0.75 -
 
 MP3 and other supported audio/video inputs also work. Open `tono-m4.mp4` to
 practice. Supporting audio and JSON are in `tono-m4.tono/`; add `--keep-work`
-when diagnostic files are needed. Automatic octave fitting is the default;
-use `--range-policy strict` to refuse any changes to melody intervals.
+when diagnostic files are needed (`work/cleanup_decisions.json` lists every
+dropped, merged, re-pitched or slide-absorbed note with its reason). Range
+fitting never changes melody intervals: a whole-octave shift (which also
+transposes the backing) is used when needed, otherwise Tono reports the
+out-of-range notes. Individual octave folding is disabled.
 `tono doctor --ml` is an optional troubleshooting check, not a required step.
 
 | Field | Value |
@@ -38,6 +41,20 @@ Hand labels default to upper right/lower left; use `--upper-hand left` if needed
 | `lead.wav`: the melody you expect | | |
 | `notes.json` roughly matches the melody you hear | | |
 | Metronome flashes/clicks sit on the beat | | |
+| Slowed copy: backing still lines up with the NOW changes | | |
+| No notes during instrumental intro/solo sections (bleed removed) | | |
+| Short notes that remain are real (ornaments, quick syllables), not wobble | | |
+| Merged notes: a wavering sung tone shown as one note is the right pitch | | |
+
+## 2b. Following the NOW panel
+
+| Check | OK? | Notes |
+|---|---|---|
+| The NEXT CHANGE box and NOW rings give enough warning before each change | | |
+| LIFT/PRESS key names match the keys you actually move | | |
+| REPEAT cue + onset flash make repeated notes clear enough to re-tongue | | |
+| Countdown bar turning green matches when you need to move | | |
+| Count-in / GET READY gives enough time for the first note | | |
 
 ## 3. Play along: problems found
 

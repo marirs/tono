@@ -163,7 +163,7 @@ pub fn staff_svg(timeline: &PracticeTimeline, state: NowState, count: Option<u8>
             );
         }
     }
-    svg.push_str(r##"<text x="1050" y="940" font-size="19" fill="#8a93a3">Pitch guide · rhythm follows the note progress bar</text></g>"##);
+    svg.push_str(r##"<text x="1050" y="940" font-size="19" fill="#8a93a3">Pitch guide · the bar under NOW counts down to the next note</text></g>"##);
     svg
 }
 

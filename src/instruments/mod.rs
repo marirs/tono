@@ -375,7 +375,6 @@ mod tests {
             let table = FingeringTable::load_instrument(instrument).unwrap();
             let fitted = fit_melody_to_table(&notes, &table, RangePolicy::Strict).unwrap();
             assert_eq!(fitted.octave_shift, shift);
-            assert!(!fitted.shape_changed());
             crate::instruments::fingering::map_notes_to_fingerings(&fitted.notes, &table).unwrap();
         }
     }

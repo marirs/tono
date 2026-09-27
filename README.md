@@ -93,6 +93,27 @@ The primary view can be the physical action:
 
 Notation and note names can still be shown, but they are not required to get started.
 
+What the NOW panel does so you can follow it without looking elsewhere:
+
+- **Arrival, then preparation.** Right after a note starts, the rings on NOW
+  confirm the change you just made (green = pressed, red = lifted). For the
+  rest of the note (and any rest before the next one) wind-key rings switch to
+  the *next* change, and the **NEXT CHANGE** box names it: `LIFT Eb · PRESS C`
+  on winds (AE-01 uses its printed 1-7, #, b), `STRING 2 - FRET 3` on
+  fretted instruments, `STRING 3 - FINGER 1` on violin, `KEY D#4` on keyboards.
+  Fretted and violin diagrams retain the current placement; their NEXT text
+  provides the advance cue.
+- **Countdown to the change.** The bar under NOW fills from one note onset to
+  the next, rests included, and turns green in the last 0.3 s: move now.
+- **Repeated notes.** Same fingering twice gets a `REPEAT - SAME KEYS -
+  RE-TONGUE` cue (keyboards: release and play again), and every onset flashes
+  a frame around NOW so back-to-back repeats are visible events.
+- **Preparation time.** A count-in (default 4 beats, `--count-in 0..4`) shows
+  the first fingering before the song; long intros show `GET READY` with the
+  first fingering and a countdown to the first sung note. Use
+  `--tempo-scale 0.5..2.0` for more time per change; the slowed backing is
+  re-aligned (see below).
+
 The idea is to let muscle memory and musical familiarity provide the motivation first. Theory can come later.
 
 ---
@@ -179,6 +200,33 @@ The same BGM is muxed into the generated practice video so that `practice.mp4` c
 
 ---
 
+## Melody cleanup
+
+Transcription is polyphonic and level-blind: it turns faint separation bleed,
+vibrato, slides and consonants into notes. Tono measures a monophonic pitch
+track (pYIN) on the separated lead and uses it as evidence, deterministically
+in Rust:
+
+- **Bleed** — notes where the lead stem is more than 35 dB below its loud
+  sung passages are dropped (on a real test song the whole instrumental intro
+  produced 60+ such "notes" around -70 dB, including a bogus low E♭2 that
+  forced an octave transposition).
+- **Unpitched noise** — notes up to 120 ms with under 20 % voiced frames.
+- **One wavering tone split in two** — neighbours with the same sung pitch
+  centre and no new attack are joined, at the transcribed pitch nearest that
+  centre.
+- **Slides** — a short pitch sweep without its own attack is absorbed into the
+  note it slides into.
+- **Clear wrong pitch** — a steady, well-voiced note sung ≥0.8 semitones away
+  is re-pitched to the sung semitone (octave disagreements are left alone).
+
+Short notes are **not** deleted for being short: a short note with steady
+pitch or its own attack is kept as an ornament, and repeated notes with a real
+attack stay separate. `--keep-work` writes every decision with its reason to
+`work/cleanup_decisions.json`; `project.json` records the counts.
+
+---
+
 ## Song-region detection
 
 Reels, shorts, and downloaded clips may contain:
@@ -211,6 +259,16 @@ The intended behavior is:
 6. otherwise report unsupported pitches.
 
 The aim is to keep generated practice material musically honest.
+
+Individual octave folding is not implemented anywhere: the CLI and the library
+both reject `--range-policy fold`. A whole-melody octave shift transposes the
+practice backing by the same amount (ffmpeg `asetrate` + `atempo`), and the
+video says so.
+
+Slowed or transposed backing is **re-aligned automatically**: ffmpeg's
+time-stretch moves audio slightly early (measured about 15 ms at 0.75x and
+35 ms at 0.5x), so Tono runs the same filter chain on a click train, measures
+the offset and compensates it (`backing_stretch_offset_ms` in `project.json`).
 
 ---
 
@@ -458,8 +516,7 @@ Tono is experimental and under active development.
 
 Current priorities include:
 
-- better melody transcription;
-- reducing vibrato / ornamentation noise;
+- better melody transcription (real-song tuning of the cleanup thresholds);
 - better BGM separation;
 - physical verification of instrument profiles;
 - easier fingering transitions;
@@ -514,3 +571,17 @@ tono song.mp3 --instrument ae-brisa --fingering-mode flute
 Omitting `--fingering-mode` fails before processing. The horizontal diagram
 shows the mode-specific rear keys and, for Flute mode, breath-hole instructions.
 See [instrument profiles](instruments/README.md) for coverage, setup and sources.
+
+## Video title
+
+```sh
+tono song.mp3 --instrument ae20 --title "Careless Whisper"
+tono "Poove Sempoove.mp3" --instrument ae01
+```
+
+`--title` sets the video heading, for example **Practice: Careless Whisper**.
+Without it, the input filename without its final extension becomes the title
+(**Poove Sempoove** in the second example). The full title is saved in
+`project.json`; long video headings are shortened to fit. This also works with
+`tono prep`. Titles do not change output filenames. No online recognition or API
+key is needed.

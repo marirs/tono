@@ -8,6 +8,7 @@
 //! frame timing exact (frame i == time i/fps) without rendering 30 vector
 //! frames per second.
 
+pub mod cues;
 pub mod staff;
 
 use std::fmt::Write as _;
@@ -24,7 +25,7 @@ use crate::instruments::ae01::DIAGRAM_WIDTH;
 use crate::instruments::diagram::{DiagramState, PressedStyle, UpperHand, FONT_FAMILY};
 use crate::instruments::fingering::KeyTransition;
 use crate::media::validation::{validate_practice_video, ValidatedMedia};
-use crate::music::timeline::{frame_time_seconds, NowState, PracticeTimeline};
+use crate::music::timeline::{frame_time_seconds, CuePhase, NowState, PracticeTimeline};
 
 /// Spec `--metronome off|visual|audio|both`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -46,6 +47,8 @@ impl MetronomeMode {
 }
 
 pub struct RenderSettings {
+    /// Source song title; demos without one retain the TONO heading.
+    pub title: Option<String>,
     pub instrument: crate::instruments::Instrument,
     pub layout_keys: Vec<crate::instruments::LayoutKey>,
     pub required_settings: String,
@@ -66,6 +69,7 @@ pub struct RenderSettings {
 impl Default for RenderSettings {
     fn default() -> Self {
         RenderSettings {
+            title: None,
             instrument: crate::instruments::Instrument::Ae01,
             layout_keys: Vec::new(),
             required_settings: String::new(),
@@ -134,25 +138,27 @@ pub fn render_practice_video(
     let mut frame = Pixmap::new(settings.width, settings.height).context("allocating frame")?;
     // Only one static layer is cached: states advance monotonically, so a
     // state never reappears once left.
-    let mut cached_static_layer: Option<(NowState, Option<u8>, Pixmap)> = None;
+    let mut cached_static_layer: Option<(NowState, Option<u8>, CuePhase, Pixmap)> = None;
 
     let total_frames = timeline.frame_count(settings.frames_per_second);
     for frame_index in 0..total_frames {
         let time_seconds = frame_time_seconds(frame_index, settings.frames_per_second);
         let now_state = timeline.now_state_at(time_seconds);
         let count = timeline.count_in_number_at(time_seconds);
+        let phase = timeline.cue_phase_at(time_seconds, now_state);
 
-        let needs_new_layer = cached_static_layer
-            .as_ref()
-            .map_or(true, |(state, cached_count, _)| {
-                *state != now_state || *cached_count != count
-            });
+        let needs_new_layer =
+            cached_static_layer
+                .as_ref()
+                .map_or(true, |(state, cached_count, cached_phase, _)| {
+                    *state != now_state || *cached_count != count || *cached_phase != phase
+                });
         if needs_new_layer {
-            let svg = static_layer_svg(timeline, settings, now_state, count);
+            let svg = static_layer_svg(timeline, settings, now_state, count, phase);
             let layer = rasterize_svg(&svg, &svg_options, settings)?;
-            cached_static_layer = Some((now_state, count, layer));
+            cached_static_layer = Some((now_state, count, phase, layer));
         }
-        let (_, _, static_layer) = cached_static_layer.as_ref().expect("layer cached above");
+        let (_, _, _, static_layer) = cached_static_layer.as_ref().expect("layer cached above");
 
         frame.data_mut().copy_from_slice(static_layer.data());
         paint_dynamic_overlays(&mut frame, timeline, settings, time_seconds);
@@ -278,6 +284,7 @@ fn static_layer_svg(
     settings: &RenderSettings,
     now_state: NowState,
     count: Option<u8>,
+    phase: CuePhase,
 ) -> String {
     let (width, height) = (settings.width, settings.height);
     let mut svg = format!(
@@ -286,10 +293,10 @@ fn static_layer_svg(
 
     push_header(&mut svg, settings);
     if settings.instrument.is_horizontal() {
-        push_horizontal_sections(&mut svg, timeline, now_state, settings, count);
+        push_horizontal_sections(&mut svg, timeline, now_state, settings, count, phase);
     } else {
         push_next_section(&mut svg, timeline, now_state, settings);
-        push_now_section(&mut svg, timeline, now_state, settings, count);
+        push_now_section(&mut svg, timeline, now_state, settings, count, phase);
     }
     svg.push_str(&crate::render::staff::staff_svg(timeline, now_state, count));
     push_bar_tracks(&mut svg, timeline, settings.metronome.shows_beat_dots());
@@ -298,11 +305,44 @@ fn static_layer_svg(
     svg
 }
 
+fn practice_heading(title: &str) -> (String, f32) {
+    // Conservative glyph widths, including wide Unicode scripts. Truncation
+    // happens on character boundaries before XML escaping.
+    let mut heading = String::new();
+    let mut units = 0.0_f32;
+    for c in format!("Practice: {title}").chars() {
+        let width = if c.is_ascii() { 0.85 } else { 1.2 };
+        if units + width > 34.0 {
+            heading.push('…');
+            units += 1.2;
+            break;
+        }
+        heading.push(c);
+        units += width;
+    }
+    (heading, (880.0 / units.max(1.0)).clamp(24.0, 36.0))
+}
+
 fn push_header(svg: &mut String, settings: &RenderSettings) {
+    if let Some(title) = &settings.title {
+        // A bounded single-line title stays clear of the verification banner.
+        // The full, unabridged title is retained in project.json.
+        let (heading, font_size) = practice_heading(title);
+        let _ = write!(
+            svg,
+            r##"<text x="60" y="35" font-family="{FONT_FAMILY}" font-size="18" font-weight="800" fill="#8a93a3" letter-spacing="3">TONO</text><text x="60" y="76" font-family="{FONT_FAMILY}" font-size="{font_size}" font-weight="700" fill="#ffffff">{}</text>"##,
+            xml_escape(&heading)
+        );
+    } else {
+        let _ = write!(
+            svg,
+            r##"<text x="60" y="72" font-family="{FONT_FAMILY}" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="6">TONO</text>"##
+        );
+    }
     let _ = write!(
         svg,
-        r##"<text x="60" y="72" font-family="{FONT_FAMILY}" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="6">TONO</text><text x="60" y="108" font-family="{FONT_FAMILY}" font-size="24" fill="#8a93a3">{subtitle}</text>"##,
-        subtitle = xml_escape(&settings.subtitle),
+        r##"<text x="60" y="108" font-family="{FONT_FAMILY}" font-size="24" fill="#8a93a3">{}</text>"##,
+        xml_escape(&settings.subtitle)
     );
     let _ = write!(
         svg,
@@ -330,6 +370,7 @@ fn push_horizontal_sections(
     now: NowState,
     settings: &RenderSettings,
     count: Option<u8>,
+    phase: CuePhase,
 ) {
     let label = if count.is_some() {
         "COUNT IN"
@@ -344,9 +385,28 @@ fn push_horizontal_sections(
         svg,
         r##"<text x="460" y="205" font-family="{FONT_FAMILY}" font-size="40" font-weight="800" fill="#ffb000" text-anchor="middle">{label}</text>"##
     );
+    push_change_cue(
+        svg,
+        timeline,
+        now,
+        settings,
+        CueAnchor::UnderNowLabel,
+        phase,
+    );
     if let Some(index) = now.current_index() {
         let keys = timeline.entries[index].fingering.pressed_key_ids();
-        let transition = incoming_transition(timeline, index);
+        // Positional renderers describe the selected/current position in
+        // their own captions. Feeding them an outgoing transition would pair
+        // the next action with the current pitch (e.g. lift and replace the
+        // finger when the next note is actually open). Their NEXT text above
+        // supplies the look-ahead; wind-key rings can preview outgoing changes.
+        let transition = if settings.instrument.is_fretted()
+            || settings.instrument == crate::instruments::Instrument::Violin
+        {
+            Some(incoming_transition(timeline, index))
+        } else {
+            now_ring_transition(timeline, now, phase)
+        };
         let state = DiagramState {
             upper_hand: settings.upper_hand,
             pressed_keys: &keys,
@@ -355,14 +415,14 @@ fn push_horizontal_sections(
             } else {
                 PressedStyle::Ready
             },
-            transition_hint: Some(&transition),
+            transition_hint: transition.as_ref(),
         };
         svg.push_str(&crate::instruments::horizontal_svg(
             settings.instrument,
             &settings.layout_keys,
             &state,
             85.0,
-            260.0,
+            280.0,
             1.0,
             "now-",
         ));
@@ -433,12 +493,6 @@ fn push_next_section(
                 &transform,
                 "next-",
             ));
-            if transition.is_some_and(|t| t.changed_key_count() == 0) {
-                let _ = write!(
-                    svg,
-                    r##"<text x="760" y="780" font-family="{FONT_FAMILY}" font-size="26" font-weight="700" fill="#ffb000" text-anchor="middle">SAME AGAIN</text>"##
-                );
-            }
         }
         _ => {
             let _ = write!(
@@ -458,6 +512,7 @@ fn push_now_section(
     now_state: NowState,
     settings: &RenderSettings,
     count: Option<u8>,
+    phase: CuePhase,
 ) {
     let (label, label_color, style) = match now_state {
         _ if count.is_some() => ("COUNT IN", "#ffb000", PressedStyle::Ready),
@@ -476,9 +531,7 @@ fn push_now_section(
     let now_diagram_x = 366.0 - DIAGRAM_WIDTH * NOW_DIAGRAM_SCALE / 2.0;
     let transform =
         format!("translate({now_diagram_x} {NOW_DIAGRAM_Y}) scale({NOW_DIAGRAM_SCALE})");
-    let transition = now_state
-        .current_index()
-        .map(|index| incoming_transition(timeline, index));
+    let transition = now_ring_transition(timeline, now_state, phase);
     let state = DiagramState {
         upper_hand: settings.upper_hand,
         pressed_keys: &pressed_keys,
@@ -492,15 +545,104 @@ fn push_now_section(
         &transform,
         "now-",
     ));
-    if transition
-        .as_ref()
-        .is_some_and(|t| t.changed_key_count() == 0)
-    {
-        let _ = write!(
-            svg,
-            r##"<text x="350" y="938" font-family="{FONT_FAMILY}" font-size="25" font-weight="700" fill="#ffb000" text-anchor="middle">SAME AGAIN</text>"##
-        );
+    push_change_cue(
+        svg,
+        timeline,
+        now_state,
+        settings,
+        CueAnchor::BelowNextDiagram,
+        phase,
+    );
+}
+
+/// Where the "next change" words sit in each layout.
+#[derive(Clone, Copy)]
+enum CueAnchor {
+    /// Vertical winds: free space under the small NEXT diagram.
+    BelowNextDiagram,
+    /// Horizontal instruments: one line under the NOW label.
+    UnderNowLabel,
+}
+
+fn push_change_cue(
+    svg: &mut String,
+    timeline: &PracticeTimeline,
+    now: NowState,
+    settings: &RenderSettings,
+    anchor: CueAnchor,
+    phase: CuePhase,
+) {
+    let Some((held, upcoming)) = timeline.upcoming_change(now) else {
+        return;
+    };
+    // The box lights up once the NOW rings switch to this change.
+    let border = if phase == CuePhase::Prepare {
+        "#3ddc84"
+    } else {
+        "#3a4150"
+    };
+    let cue = crate::render::cues::change_cue(
+        settings.instrument,
+        &settings.layout_keys,
+        held.map(|index| &timeline.entries[index]),
+        &timeline.entries[upcoming],
+    );
+    let colour = if cue.is_repeat { "#7fd4ff" } else { "#ffffff" };
+    match anchor {
+        CueAnchor::BelowNextDiagram => {
+            let _ = write!(
+                svg,
+                r##"<rect x="630" y="760" width="370" height="{h}" rx="12" fill="#1b2029" stroke="{border}" stroke-width="3"/><text x="815" y="795" font-family="{FONT_FAMILY}" font-size="22" font-weight="700" fill="#8a93a3" text-anchor="middle" letter-spacing="3">{title}</text>"##,
+                h = 50 + 38 * cue.lines.len().max(1),
+                title = cue.title,
+            );
+            for (line_index, line) in cue.lines.iter().enumerate() {
+                let _ = write!(
+                    svg,
+                    r##"<text x="815" y="{y}" font-family="{FONT_FAMILY}" font-size="{size}" font-weight="800" fill="{colour}" text-anchor="middle">{text}</text>"##,
+                    y = 836 + 38 * line_index,
+                    // ~17 bold caps fit the 370 px box at 30 px.
+                    size = if line.chars().count() <= 17 { 30 } else { 22 },
+                    text = xml_escape(line),
+                );
+            }
+        }
+        CueAnchor::UnderNowLabel => {
+            let _ = write!(
+                svg,
+                r##"<text x="460" y="245" font-family="{FONT_FAMILY}" font-size="28" font-weight="800" fill="{colour}" text-anchor="middle">{title}: {text}</text>"##,
+                title = cue.title,
+                text = xml_escape(&cue.lines.join("  ·  ")),
+            );
+        }
     }
+}
+
+/// NOW rings: the change just made during the arrival phase, the change to
+/// make next during the preparation phase.
+fn now_ring_transition(
+    timeline: &PracticeTimeline,
+    now: NowState,
+    phase: CuePhase,
+) -> Option<KeyTransition> {
+    match (phase, now) {
+        (CuePhase::Arrival, NowState::Sounding(index)) => {
+            Some(incoming_transition(timeline, index))
+        }
+        _ => upcoming_transition(timeline, now),
+    }
+}
+
+/// The change to prepare next (see `PracticeTimeline::upcoming_change`).
+fn upcoming_transition(timeline: &PracticeTimeline, now: NowState) -> Option<KeyTransition> {
+    let (held, upcoming) = timeline.upcoming_change(now)?;
+    Some(match held {
+        Some(held) => KeyTransition::between(
+            &timeline.entries[held].fingering,
+            &timeline.entries[upcoming].fingering,
+        ),
+        None => incoming_transition(timeline, upcoming),
+    })
 }
 
 fn incoming_transition(timeline: &PracticeTimeline, index: usize) -> KeyTransition {
@@ -578,12 +720,8 @@ fn paint_dynamic_overlays(
         ..Paint::default()
     };
 
-    let note_progress = timeline.note_progress_at(time_seconds) as f32;
-    if note_progress > 0.0 {
-        let (x, y, width, height) = NOTE_PROGRESS_BAR;
-        paint.set_color_rgba8(ACCENT_RGB.0, ACCENT_RGB.1, ACCENT_RGB.2, 255);
-        fill_rect(frame, &paint, x, y, width * note_progress, height);
-    }
+    paint_change_countdown(frame, &mut paint, timeline, time_seconds);
+    paint_onset_flash(frame, &mut paint, timeline, settings, time_seconds);
 
     if settings.metronome.shows_beat_dots() {
         paint_beat_dot(frame, &mut paint, timeline, time_seconds);
@@ -603,6 +741,61 @@ fn paint_dynamic_overlays(
         4.0,
         height + 16.0,
     );
+}
+
+/// In the last moments before a change the countdown turns green: "now".
+const CHANGE_NOW_SECONDS: f64 = 0.3;
+const CHANGE_NOW_RGB: (u8, u8, u8) = (0x3d, 0xdc, 0x84);
+/// A note onset frames the NOW area briefly so back-to-back repeated notes
+/// are visible events even though the diagram does not change.
+const ONSET_FLASH_SECONDS: f64 = 0.15;
+
+/// Bar filling from the latest onset to the next one: how long until the
+/// fingers must move, including across rests.
+fn paint_change_countdown(
+    frame: &mut Pixmap,
+    paint: &mut Paint,
+    timeline: &PracticeTimeline,
+    time_seconds: f64,
+) {
+    let Some((fraction, seconds_left)) = timeline.change_countdown_at(time_seconds) else {
+        return;
+    };
+    let rgb = if seconds_left <= CHANGE_NOW_SECONDS {
+        CHANGE_NOW_RGB
+    } else {
+        ACCENT_RGB
+    };
+    let (x, y, width, height) = NOTE_PROGRESS_BAR;
+    paint.set_color_rgba8(rgb.0, rgb.1, rgb.2, 255);
+    fill_rect(frame, paint, x, y, width * fraction as f32, height);
+}
+
+fn paint_onset_flash(
+    frame: &mut Pixmap,
+    paint: &mut Paint,
+    timeline: &PracticeTimeline,
+    settings: &RenderSettings,
+    time_seconds: f64,
+) {
+    let Some(age) = timeline.seconds_since_onset(time_seconds) else {
+        return;
+    };
+    if age >= ONSET_FLASH_SECONDS {
+        return;
+    }
+    let alpha = (220.0 * (1.0 - age / ONSET_FLASH_SECONDS)).round() as u8;
+    paint.set_color_rgba8(ACCENT_RGB.0, ACCENT_RGB.1, ACCENT_RGB.2, alpha);
+    let (x, y, width, height) = if settings.instrument.is_horizontal() {
+        (50.0, 160.0, 940.0, 540.0)
+    } else {
+        (50.0, 150.0, 590.0, 780.0)
+    };
+    let thickness = 8.0;
+    fill_rect(frame, paint, x, y, width, thickness);
+    fill_rect(frame, paint, x, y + height - thickness, width, thickness);
+    fill_rect(frame, paint, x, y, thickness, height);
+    fill_rect(frame, paint, x + width - thickness, y, thickness, height);
 }
 
 /// Beat dot flashes on each beat and fades until the next one. Only a
@@ -685,15 +878,25 @@ mod current_cue_tests {
         assert_eq!(change.lift, ["left_1".to_string()].into_iter().collect());
         assert_eq!(incoming_transition(&timeline, 2).changed_key_count(), 0);
         let mut svg = String::new();
+        // Arrival phase: the NOW rings still confirm previous -> current.
+        let arrival =
+            now_ring_transition(&timeline, NowState::Sounding(1), CuePhase::Arrival).unwrap();
+        assert_eq!(arrival, change);
         push_now_section(
             &mut svg,
             &timeline,
             NowState::Sounding(1),
             &RenderSettings::default(),
             None,
+            CuePhase::Arrival,
         );
         assert!(svg.contains(">PRESS</text>"));
         assert!(svg.contains(">LIFT</text>"));
+        // Preparation phase: rings switch to the upcoming change (1 -> 2 is a
+        // repeat), and the cue box says so.
+        let prepare =
+            now_ring_transition(&timeline, NowState::Sounding(1), CuePhase::Prepare).unwrap();
+        assert_eq!(prepare.changed_key_count(), 0);
         svg.clear();
         push_now_section(
             &mut svg,
@@ -701,7 +904,80 @@ mod current_cue_tests {
             NowState::Ready(2),
             &RenderSettings::default(),
             None,
+            CuePhase::Prepare,
         );
-        assert!(svg.contains("SAME AGAIN"));
+        assert!(svg.contains("SAME KEYS - RE-TONGUE"));
+    }
+}
+
+#[cfg(test)]
+mod title_tests {
+    use super::*;
+    #[test]
+    fn violin_lookahead_does_not_replace_current_placement_instructions() {
+        use crate::instruments::{
+            fingering::{map_notes_to_fingerings, FingeringTable},
+            Instrument,
+        };
+        use crate::music::notes::NoteEvent;
+        let table = FingeringTable::load_instrument(Instrument::Violin).unwrap();
+        let notes = [
+            NoteEvent {
+                start: 0.0,
+                end: 0.8,
+                midi: 64,
+                confidence: 1.0,
+            },
+            NoteEvent {
+                start: 0.8,
+                end: 1.8,
+                midi: 62,
+                confidence: 1.0,
+            },
+        ];
+        let timeline =
+            PracticeTimeline::new(map_notes_to_fingerings(&notes, &table).unwrap(), 100.0, 0.0);
+        let settings = RenderSettings {
+            instrument: Instrument::Violin,
+            ..RenderSettings::default()
+        };
+        let svg = static_layer_svg(
+            &timeline,
+            &settings,
+            NowState::Sounding(0),
+            None,
+            CuePhase::Prepare,
+        );
+        assert!(svg.contains("NEXT: STRING 3 OPEN"));
+        assert!(
+            !svg.contains("LIFT 1 · PLACE 1"),
+            "next open string must not become a current-finger re-placement"
+        );
+    }
+
+    #[test]
+    fn titles_are_safe_svg_and_long_headings_stay_bounded() {
+        let options = svg_options_with_system_fonts();
+        for title in [
+            "Love & <Music>",
+            "காதல் இசை",
+            &"A very long song title ".repeat(20),
+        ] {
+            let settings = RenderSettings {
+                title: Some(title.into()),
+                ..RenderSettings::default()
+            };
+            let mut svg = String::from(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080">"#,
+            );
+            push_header(&mut svg, &settings);
+            svg.push_str("</svg>");
+            let tree = usvg::Tree::from_str(&svg, &options).unwrap();
+            assert!(tree.size().width() > 0.0);
+            assert!(svg.contains("Practice:"));
+            assert!(!svg.contains("<Music>"));
+        }
+        let (heading, _) = practice_heading(&"長い曲名".repeat(50));
+        assert!(heading.ends_with('…'));
     }
 }

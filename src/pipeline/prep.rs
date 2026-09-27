@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use serde_json::json;
 
-use crate::analysis::cleanup::{clean_notes, CleanupSettings};
+use crate::analysis::cleanup::{clean_notes_with_evidence, CleanupDecision, CleanupSettings};
 use crate::analysis::region::{
     manual_region, select_song_region, FrameLabel, LabeledSpan, RegionMethod, RegionSettings,
     SelectedRegion,
@@ -40,6 +40,8 @@ impl Part {
 
 #[derive(Clone)]
 pub struct PrepOptions {
+    /// Display title override; absent means the source filename stem.
+    pub title: Option<String>,
     pub instrument: crate::instruments::Instrument,
     pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub input: PathBuf,
@@ -58,6 +60,22 @@ pub struct PrepOptions {
     pub upper_hand: UpperHand,
     pub metronome: MetronomeMode,
     pub range_policy: RangePolicy,
+}
+
+/// Resolve the heading independently of the destination or selected instrument.
+pub fn practice_title(input: &Path, title: Option<&str>) -> String {
+    let fallback = input.file_stem().unwrap_or_default().to_string_lossy();
+    let clean = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let title = title
+        .map(clean)
+        .filter(|text| !text.is_empty())
+        .unwrap_or_else(|| clean(&fallback));
+    let title: String = title.chars().filter(|c| !c.is_control()).collect();
+    if title.is_empty() {
+        "Untitled".into()
+    } else {
+        title
+    }
 }
 
 /// Region choice plus the labeled timeline it was based on (auto only).
@@ -148,7 +166,12 @@ fn prepare_project(
         min_confidence: options.min_note_confidence,
         ..CleanupSettings::default()
     };
-    let cleaned = clean_notes(&analysis.notes, &cleanup_settings);
+    let cleanup = clean_notes_with_evidence(
+        &analysis.notes,
+        &cleanup_settings,
+        analysis.pitch_track.as_ref(),
+    );
+    let cleaned = cleanup.notes;
     validate_monophonic_sequence(&cleaned).context("cleanup produced an invalid sequence")?;
     println!(
         "✓ melody transcribed ({} raw note events)",
@@ -157,14 +180,27 @@ fn prepare_project(
     if cleaned.is_empty() {
         bail!("no melody notes survived cleanup; the lead may be missing or the region wrong (try --from/--to)");
     }
-    println!("✓ melody cleaned ({} notes)", cleaned.len());
+    let cleanup_summary = summarize_decisions(&cleanup.decisions);
+    println!(
+        "✓ melody cleaned ({} notes; {})",
+        cleaned.len(),
+        describe_cleanup(&cleanup_summary, analysis.pitch_track.is_some())
+    );
+    if options.keep_work {
+        write_json(
+            &work.join("cleanup_decisions.json"),
+            &serde_json::json!({ "version": 1, "timebase": "selected_region", "decisions": cleanup.decisions }),
+        )?;
+    }
     // notes.json keeps the transcribed pitches; fingering.json holds what is played.
     write_json(
         &out.join("notes.json"),
         &notes_document(&cleaned, range, "cleaned"),
     )?;
 
+    let title = practice_title(&options.input, options.title.as_deref());
     let practice = build_practice_video(&PracticeRequest {
+        title: &title,
         instrument: options.instrument,
         fingering_mode: options.fingering_mode,
         cleaned_notes: &cleaned,
@@ -192,11 +228,40 @@ fn prepare_project(
         analysis: &analysis,
         separation_quality: &separation_quality,
         cleanup_settings: &cleanup_settings,
+        cleanup_summary: &cleanup_summary,
         clean_note_count: cleaned.len(),
         practice: &practice,
     };
     write_json(&out.join("project.json"), &project_document(&summary))?;
     Ok(())
+}
+
+/// Count of evidence decisions per action, e.g. {"dropped-bleed": 66}.
+fn summarize_decisions(
+    decisions: &[CleanupDecision],
+) -> std::collections::BTreeMap<&'static str, usize> {
+    let mut counts = std::collections::BTreeMap::new();
+    for decision in decisions {
+        *counts.entry(decision.action).or_insert(0) += 1;
+    }
+    counts
+}
+
+fn describe_cleanup(
+    counts: &std::collections::BTreeMap<&'static str, usize>,
+    has_evidence: bool,
+) -> String {
+    if !has_evidence {
+        return "no pitch evidence: duration rules only".to_owned();
+    }
+    if counts.is_empty() {
+        return "audio evidence agreed with every note".to_owned();
+    }
+    counts
+        .iter()
+        .map(|(action, count)| format!("{count} {action}"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn report_practice(practice: &PracticeOutcome) {
@@ -206,12 +271,6 @@ fn report_practice(practice: &PracticeOutcome) {
         adjustments.push(format!(
             "melody and backing shifted {:+} octave(s) into range",
             fitted.octave_shift
-        ));
-    }
-    if fitted.shape_changed() {
-        adjustments.push(format!(
-            "{} note(s) octave-folded",
-            fitted.folded_notes.len()
         ));
     }
     let detail = if fitted.is_unchanged() {
@@ -224,12 +283,6 @@ fn report_practice(practice: &PracticeOutcome) {
         practice.instrument.name(),
         fitted.notes.len()
     );
-    if fitted.shape_changed() {
-        println!(
-            "! --range-policy fold moved {} note(s) by octaves: the melody's shape differs from the song (warning shown in the video)",
-            fitted.folded_notes.len()
-        );
-    }
     if !practice.table_verified {
         println!(
             "! fingering table not yet checked on a physical {} (video shows a caution banner)",
@@ -238,6 +291,13 @@ fn report_practice(practice: &PracticeOutcome) {
     }
     for warning in &practice.warnings {
         println!("! {warning}");
+    }
+    if let Some(offset) = practice.bed_offset_seconds {
+        println!(
+            "· tempo/pitch-scaled backing re-aligned: stretch output was {:+.1} ms {}",
+            offset.abs() * 1000.0,
+            if offset >= 0.0 { "early" } else { "late" }
+        );
     }
     let media = &practice.validated;
     println!(
@@ -460,6 +520,7 @@ struct ProjectSummary<'a> {
     analysis: &'a Analysis,
     separation_quality: &'a SeparationQuality,
     cleanup_settings: &'a CleanupSettings,
+    cleanup_summary: &'a std::collections::BTreeMap<&'static str, usize>,
     clean_note_count: usize,
     practice: &'a PracticeOutcome,
 }
@@ -473,6 +534,7 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
         analysis,
         separation_quality,
         cleanup_settings,
+        cleanup_summary,
         clean_note_count,
         practice,
     } = summary;
@@ -481,6 +543,7 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
     json!({
         "version": 1,
         "tono": env!("CARGO_PKG_VERSION"),
+        "title": practice_title(&options.input, options.title.as_deref()),
         "instrument": options.instrument,
         "fingering_mode": options.fingering_mode,
         "part": options.part.worker_name(),
@@ -527,6 +590,8 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
             "raw_note_count": analysis.notes.len(),
             "clean_note_count": clean_note_count,
             "cleanup": cleanup_settings,
+            "pitch_evidence": analysis.pitch_track.as_ref().map(|track| track.method.clone()),
+            "evidence_decisions": cleanup_summary,
             // Spec rule 11: model completion is not correctness.
             "verified_by_listening": false,
         },
@@ -537,8 +602,8 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
             "range_policy": practice.fitted.policy,
             "octave_shift": practice.fitted.octave_shift,
             "backing_transpose_semitones": practice.fitted.octave_shift * 12,
-            "melody_shape_changed": practice.fitted.shape_changed(),
-            "folded_note_count": practice.fitted.folded_notes.len(),
+            // Individual folding does not exist; intervals are always preserved.
+            "melody_shape_changed": false,
         },
         "practice": {
             "file": options.output_video.as_ref().map(|path| path.canonicalize().unwrap_or_else(|_| path.clone())).unwrap_or_else(|| PathBuf::from("practice.mp4")),
@@ -556,6 +621,7 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
             // Bar position is not detected, so no downbeat accents are drawn or clicked.
             "downbeat_accents": false,
             "audio_bed": "backing.wav, transposed by backing_transpose_semitones, tempo-scaled if requested, delayed by count-in_seconds",
+            "backing_stretch_offset_ms": practice.bed_offset_seconds.map(|offset| (offset * 1000.0 * 10.0).round() / 10.0),
             "validation": {
                 "tool": "ffprobe",
                 "video_codec": practice.validated.video_codec,
@@ -618,6 +684,20 @@ fn print_next_steps(out: &Path, output_video: Option<&Path>, keep_work: bool) {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn title_defaults_to_source_stem_and_preserves_unicode() {
+        use super::practice_title;
+        use std::path::Path;
+        assert_eq!(
+            practice_title(Path::new("/music/Poove Sempoove.live.mp3"), None),
+            "Poove Sempoove.live"
+        );
+        assert_eq!(
+            practice_title(Path::new("song.mp4"), Some("காதல் & இசை")),
+            "காதல் & இசை"
+        );
+        assert_eq!(practice_title(Path::new("song.mp3"), Some(" \n ")), "song");
+    }
     use super::*;
     use crate::analysis::worker::analysis_for_tests;
 

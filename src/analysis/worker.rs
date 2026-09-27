@@ -56,6 +56,9 @@ pub struct Analysis {
     pub backing_file: PathBuf,
     pub stems: BTreeMap<String, PathBuf>,
     pub notes: Vec<RawNoteEvent>,
+    /// Monophonic pitch evidence on the lead stem (absent in older contracts).
+    #[serde(default)]
+    pub pitch_track: Option<crate::analysis::evidence::PitchTrack>,
     pub separation: SeparationInfo,
     pub transcription: TranscriptionInfo,
     #[serde(default)]
@@ -199,6 +202,7 @@ pub fn analysis_for_tests(duration: f64, notes: Vec<RawNoteEvent>) -> Analysis {
         duration,
         bpm: Some(100.0),
         beat_times: vec![],
+        pitch_track: None,
         lead_file: existing_file.clone(),
         backing_file: existing_file,
         stems: BTreeMap::new(),

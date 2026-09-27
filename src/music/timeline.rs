@@ -128,6 +128,20 @@ impl CountIn {
     }
 }
 
+/// Arrival cues show for this long after an onset...
+const ARRIVAL_CUE_SECONDS: f64 = 0.35;
+/// ...but never for more than this share of the time to the next onset,
+/// so even fast passages get a preparation phase.
+const ARRIVAL_CUE_MAX_SHARE: f64 = 0.5;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CuePhase {
+    /// Just after an onset: rings confirm the change into this note.
+    Arrival,
+    /// Until the next onset: rings show the change to make next.
+    Prepare,
+}
+
 pub struct PracticeTimeline {
     pub count_in: Option<CountIn>,
     pub entries: Vec<FingeringTimelineEntry>,
@@ -196,6 +210,70 @@ impl PracticeTimeline {
     pub fn next_index_after(&self, now: NowState) -> Option<usize> {
         let next = now.current_index()? + 1;
         (next < self.entries.len()).then_some(next)
+    }
+
+    /// The fingering change the player must make next, as (held note,
+    /// upcoming note): while note i sounds, the change into i + 1; during a
+    /// gap or count-in before note i, the change into i. `None` after the
+    /// last note starts, because nothing is left to prepare.
+    pub fn upcoming_change(&self, now: NowState) -> Option<(Option<usize>, usize)> {
+        match now {
+            NowState::Ready(index) => Some((index.checked_sub(1), index)),
+            NowState::Sounding(index) => {
+                let next = index + 1;
+                (next < self.entries.len()).then_some((Some(index), next))
+            }
+            NowState::Finished => None,
+        }
+    }
+
+    /// Which change the NOW rings describe at `time_seconds`: right after a
+    /// note starts they confirm the change just made (arrival); for the rest
+    /// of the wait they show the change to prepare next.
+    pub fn cue_phase_at(&self, time_seconds: f64, now: NowState) -> CuePhase {
+        let NowState::Sounding(index) = now else {
+            return CuePhase::Prepare;
+        };
+        if index + 1 >= self.entries.len() {
+            return CuePhase::Arrival;
+        }
+        let onset = self.entries[index].start;
+        let wait = self.entries[index + 1].start - onset;
+        let arrival_window = ARRIVAL_CUE_SECONDS.min(wait * ARRIVAL_CUE_MAX_SHARE);
+        if time_seconds - onset < arrival_window {
+            CuePhase::Arrival
+        } else {
+            CuePhase::Prepare
+        }
+    }
+
+    /// Countdown to the next note onset: (fraction of the wait elapsed,
+    /// seconds left). The wait runs from the latest onset (or video start)
+    /// to the next onset, gaps included, so it keeps counting even between
+    /// detached notes where the old per-note bar sat empty.
+    pub fn change_countdown_at(&self, time_seconds: f64) -> Option<(f64, f64)> {
+        let started = self
+            .entries
+            .partition_point(|entry| entry.start <= time_seconds);
+        let next_start = self.entries.get(started)?.start;
+        let anchor = started
+            .checked_sub(1)
+            .map_or(0.0, |index| self.entries[index].start);
+        let wait = next_start - anchor;
+        if wait <= 0.0 {
+            return None;
+        }
+        let fraction = ((time_seconds - anchor) / wait).clamp(0.0, 1.0);
+        Some((fraction, next_start - time_seconds))
+    }
+
+    /// Seconds since the most recent note onset (for the onset flash).
+    pub fn seconds_since_onset(&self, time_seconds: f64) -> Option<f64> {
+        let started = self
+            .entries
+            .partition_point(|entry| entry.start <= time_seconds);
+        let latest = self.entries.get(started.checked_sub(1)?)?;
+        Some(time_seconds - latest.start)
     }
 
     /// Fraction [0, 1] of the sounding note elapsed; 0 while not sounding.
@@ -396,6 +474,73 @@ mod tests {
             .zip(expected)
             .all(|(a, b)| (a - b).abs() < 1e-9));
         assert!((beats.median_bpm().unwrap() - 75.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn upcoming_change_looks_ahead_while_a_note_sounds() {
+        let timeline = two_note_timeline(); // notes 1.0-2.0 and 2.5-3.0
+        assert_eq!(
+            timeline.upcoming_change(NowState::Ready(0)),
+            Some((None, 0))
+        );
+        // While note 0 sounds, prepare the change INTO note 1 (not out of nothing).
+        assert_eq!(
+            timeline.upcoming_change(NowState::Sounding(0)),
+            Some((Some(0), 1))
+        );
+        assert_eq!(
+            timeline.upcoming_change(NowState::Ready(1)),
+            Some((Some(0), 1))
+        );
+        assert_eq!(timeline.upcoming_change(NowState::Sounding(1)), None);
+        assert_eq!(timeline.upcoming_change(NowState::Finished), None);
+    }
+
+    #[test]
+    fn cue_phase_confirms_arrival_then_prepares_next() {
+        let timeline = two_note_timeline(); // onsets 1.0 and 2.5
+        assert_eq!(
+            timeline.cue_phase_at(0.5, NowState::Ready(0)),
+            CuePhase::Prepare
+        );
+        assert_eq!(
+            timeline.cue_phase_at(1.1, NowState::Sounding(0)),
+            CuePhase::Arrival
+        );
+        assert_eq!(
+            timeline.cue_phase_at(1.4, NowState::Sounding(0)),
+            CuePhase::Prepare
+        );
+        // Last note: nothing to prepare.
+        assert_eq!(
+            timeline.cue_phase_at(2.9, NowState::Sounding(1)),
+            CuePhase::Arrival
+        );
+        // Fast passage (0.2 s between onsets): arrival capped at half.
+        let fast = PracticeTimeline::new(vec![entry(0.0, 0.2), entry(0.2, 0.4)], 120.0, 0.0);
+        assert_eq!(
+            fast.cue_phase_at(0.09, NowState::Sounding(0)),
+            CuePhase::Arrival
+        );
+        assert_eq!(
+            fast.cue_phase_at(0.11, NowState::Sounding(0)),
+            CuePhase::Prepare
+        );
+    }
+
+    #[test]
+    fn countdown_runs_from_onset_to_onset_including_gaps() {
+        let timeline = two_note_timeline();
+        // Before the first note: counts from video start.
+        let (fraction, left) = timeline.change_countdown_at(0.5).unwrap();
+        assert!((fraction - 0.5).abs() < 1e-9 && (left - 0.5).abs() < 1e-9);
+        // In the gap 2.0-2.5 the countdown keeps running toward 2.5.
+        let (fraction, left) = timeline.change_countdown_at(2.25).unwrap();
+        assert!((fraction - 0.8333).abs() < 1e-3 && (left - 0.25).abs() < 1e-9);
+        // After the last onset there is nothing to count down to.
+        assert!(timeline.change_countdown_at(2.6).is_none());
+        assert_eq!(timeline.seconds_since_onset(0.5), None);
+        assert!((timeline.seconds_since_onset(2.6).unwrap() - 0.1).abs() < 1e-9);
     }
 
     #[test]
