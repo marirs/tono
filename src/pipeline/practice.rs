@@ -384,12 +384,18 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore = "requires ffmpeg/ffprobe; renders two integration videos"]
+    #[ignore = "requires ffmpeg/ffprobe; renders easy-mode and fallback integration videos"]
     fn easy_render_and_unsupported_fallback() {
         let ffmpeg = crate::paths::ffmpeg_executable().unwrap();
         let ffprobe = crate::paths::ffprobe_executable().unwrap();
         for instrument in [
             crate::instruments::Instrument::Ae01,
+            crate::instruments::Instrument::Ae05,
+            crate::instruments::Instrument::Ae10,
+            crate::instruments::Instrument::Ae20,
+            crate::instruments::Instrument::Yds120,
+            crate::instruments::Instrument::Yds150,
+            crate::instruments::Instrument::AeBrisa,
             crate::instruments::Instrument::Guitar,
         ] {
             let dir = tempfile::tempdir().unwrap();
@@ -414,7 +420,8 @@ mod tests {
             let request = PracticeRequest {
                 title: "Easy test",
                 instrument,
-                fingering_mode: None,
+                fingering_mode: (instrument == crate::instruments::Instrument::AeBrisa)
+                    .then_some(crate::instruments::brisa::FingeringMode::Brisa),
                 cleaned_notes: &notes,
                 analysis: &analysis,
                 region_duration_seconds: 2.0,
@@ -432,7 +439,7 @@ mod tests {
                 ffprobe: &ffprobe,
             };
             let result = build_practice_video(&request).unwrap();
-            if instrument == crate::instruments::Instrument::Ae01 {
+            if instrument != crate::instruments::Instrument::Guitar {
                 assert_eq!(result.fitted.transpose_semitones(), 1);
                 let audio = Command::new(&ffmpeg)
                     .args(["-v", "error", "-i"])

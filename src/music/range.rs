@@ -269,6 +269,55 @@ mod tests {
     }
 
     #[test]
+    fn digital_wind_easy_profiles_keep_only_documented_main_keys() {
+        use crate::instruments::{brisa::FingeringMode, Instrument};
+        for instrument in [
+            Instrument::Ae05,
+            Instrument::Ae10,
+            Instrument::Ae20,
+            Instrument::Yds120,
+            Instrument::Yds150,
+            Instrument::AeBrisa,
+        ] {
+            let mode = (instrument == Instrument::AeBrisa).then_some(FingeringMode::Brisa);
+            let mut t = FingeringTable::load_for_mode(instrument, mode).unwrap();
+            let notes = melody(&[62, 64, 65, 66, 67, 69, 71, 72, 73]);
+            let fitted = fit_easy_melody(&notes, &mut t, RangePolicy::Strict).unwrap();
+            assert!(fitted.is_unchanged(), "{instrument:?}");
+            assert_eq!(
+                t.fingerings
+                    .keys()
+                    .map(|m| m.parse::<u8>().unwrap())
+                    .collect::<Vec<_>>(),
+                if matches!(instrument, Instrument::Yds120 | Instrument::Yds150) {
+                    vec![62, 64, 65, 66, 67, 69, 70, 71, 72, 73]
+                } else {
+                    vec![62, 64, 65, 66, 67, 69, 71, 72, 73]
+                }
+            );
+            for f in t
+                .fingerings
+                .values()
+                .chain(t.alternatives.values().flatten())
+            {
+                assert!(f
+                    .pressed_key_ids()
+                    .iter()
+                    .all(|k| ["1", "2", "3", "4", "5", "6"].contains(&k.as_str())));
+            }
+            let impossible = melody(&(60..=71).collect::<Vec<_>>());
+            assert!(fit_easy_melody(&impossible, &mut t, RangePolicy::Strict).is_err());
+        }
+        let flute =
+            FingeringTable::load_for_mode(Instrument::AeBrisa, Some(FingeringMode::Flute)).unwrap();
+        assert!(flute.easy_fingering.is_none());
+        assert!(FingeringTable::load_instrument(Instrument::Yvs120)
+            .unwrap()
+            .easy_fingering
+            .is_none());
+    }
+
+    #[test]
     fn easy_mode_preserves_notes_and_uses_only_six_controls() {
         let mut table = table();
         let original = melody(&[61, 63, 64, 66, 68, 70, 71, 72]);

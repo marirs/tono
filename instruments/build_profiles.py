@@ -33,6 +33,12 @@ SAX_KEYS = [
 ]
 
 def write(name, data):
+ # Easy mode restricts existing chart entries; it never generates fingerings.
+ rule = dict(allowed_keys=["1", "2", "3", "4", "5", "6"])
+ if name in ("ae05", "ae10", "ae20", "yds120", "yds150"):
+  data["easy_fingering"] = rule
+ elif name == "ae-brisa":
+  data["modes"]["brisa"]["easy_fingering"] = rule
  (ROOT / (name + ".json")).write_text(json.dumps(data, indent=2) + "\n")
 
 def make_sax(name, manual, chart_page, panel_page, octaves):

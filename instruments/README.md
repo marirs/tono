@@ -376,7 +376,26 @@ slowing; add the region’s source start to use them with `--from` / `--to`.
 Spans are suggestions, not automatically selected phrases. Fast passages can
 still be hard: use `--tempo-scale` to slow them down.
 
-Other instruments currently print a warning and continue with normal fingerings.
+Easy Fingering is also supported for `ae05`, `ae10`, `ae20`, `yds120`,
+`yds150`, and `ae-brisa --fingering-mode brisa`. These profiles allow only main
+keys 1–6, with no octave, side, palm or pinky controls. Their charted available
+notes are D4, E4, F4, F♯4, G4, A4, B4, C5 and C♯5 (including open fingering).
+The Yamaha YDS profiles additionally allow B♭4 through their charted main-key
+alternatives (1+4 or 1+5). F♯ is allowed because its charted fingering uses the main keys; this is a
+control restriction, not a ban on accidentals. Keep each profile’s documented
+instrument/voice transposition settings so the sounding pitches match.
+
+```bash
+tono song.mp3 --instrument ae20 --easy-fingering
+tono song.mp3 --instrument yds120 --easy-fingering --tempo-scale 0.60
+tono song.mp3 --instrument ae-brisa --fingering-mode brisa --easy-fingering
+```
+
+Brisa’s `flute` mode is not supported in Easy Fingering: its chart uses rear
+performance keys and breath-register cues, requiring a separate beginner policy.
+YVS-120 Alto Venova is acoustic and is also not yet supported in Easy Fingering.
+These and other unsupported profiles print a warning and continue normally;
+Tono never silently changes the selected instrument or fingering mode.
 `project.json` and `fingering.json` record `easy_fingering` as `applied`,
 `unsupported_fallback` or `not_requested`, plus the total
 `backing_transpose_semitones`. `octave_shift` and `semitone_offset` describe its
