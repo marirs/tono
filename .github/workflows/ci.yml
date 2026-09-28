@@ -2,7 +2,57 @@ name: Check
 on:
   push:
     branches: [main, master]
+    # Only code, runtime data, tests, dependencies and build/CI inputs.
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'benches/**'
+      - 'examples/**'
+      - 'assets/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - '.cargo/**'
+      - 'rust-toolchain'
+      - 'rust-toolchain.toml'
+      - 'rustfmt.toml'
+      - '.rustfmt.toml'
+      - 'clippy.toml'
+      - '.clippy.toml'
+      - 'ml/**'
+      - 'instruments/*.json'
+      - 'instruments/*.py'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '!**/*.md'
+      - '!**/*.MD'
   pull_request:
+    # Only code, runtime data, tests, dependencies and build/CI inputs.
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'benches/**'
+      - 'examples/**'
+      - 'assets/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'build.rs'
+      - '.cargo/**'
+      - 'rust-toolchain'
+      - 'rust-toolchain.toml'
+      - 'rustfmt.toml'
+      - '.rustfmt.toml'
+      - 'clippy.toml'
+      - '.clippy.toml'
+      - 'ml/**'
+      - 'instruments/*.json'
+      - 'instruments/*.py'
+      - 'scripts/**'
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '!**/*.md'
+      - '!**/*.MD'
   workflow_dispatch:
 permissions:
   contents: read
