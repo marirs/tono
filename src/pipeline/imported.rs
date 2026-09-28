@@ -59,9 +59,10 @@ pub fn validate_options(o: &PrepOptions) -> Result<()> {
     }
     let song = import::load(&o.input, i.melody_track)?;
     let (notes, _) = clip(&song.notes, song.duration, o)?;
-    let mut table = crate::instruments::fingering::FingeringTable::load_for_mode(
+    let mut table = crate::instruments::fingering::FingeringTable::load_for_setup(
         o.instrument,
         o.fingering_mode,
+        o.pan_style,
     )?;
     if o.easy_fingering && table.easy_fingering.is_some() {
         crate::music::range::fit_easy_melody(&notes, &mut table, o.range_policy)?;
@@ -260,6 +261,7 @@ pub fn prepare(o: &PrepOptions, ffmpeg: &Path, ffprobe: &Path, work: &Path) -> R
     let practice = build_practice_video(&PracticeRequest {
         title: &title,
         instrument: o.instrument,
+        pan_style: o.pan_style,
         fingering_mode: o.fingering_mode,
         cleaned_notes: &notes,
         beat_times: &beats,
@@ -280,7 +282,7 @@ pub fn prepare(o: &PrepOptions, ffmpeg: &Path, ffprobe: &Path, work: &Path) -> R
     report_practice(&practice);
     warnings.extend(practice.warnings.clone());
     let p = json!({
-        "version":1,"tono":env!("CARGO_PKG_VERSION"),"title":title,"instrument":o.instrument,"fingering_mode":o.fingering_mode,
+        "version":1,"tono":env!("CARGO_PKG_VERSION"),"title":title,"instrument":o.instrument,"pan_style":o.pan_style,"fingering_mode":o.fingering_mode,
         "source":{"path":o.input.canonicalize()?,"format":song.format,"duration":song.duration},
         "selected_region":{"start":range.start_seconds(),"end":range.end_seconds(),"method":"imported_timeline"},
         "transcription":{"source":"import","model":null,"cleanup_applied":false,"note_count":notes.len(),"verified_by_listening":false,"melody_track":o.import.melody_track},

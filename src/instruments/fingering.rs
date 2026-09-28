@@ -97,7 +97,26 @@ impl FingeringTable {
         instrument: crate::instruments::Instrument,
         mode: Option<super::brisa::FingeringMode>,
     ) -> Result<Self> {
+        Self::load_for_setup(instrument, mode, None)
+    }
+
+    pub fn load_for_setup(
+        instrument: super::Instrument,
+        mode: Option<super::brisa::FingeringMode>,
+        pan_style: Option<super::pan::PanStyle>,
+    ) -> Result<Self> {
+        super::pan::validate_style(instrument, pan_style)?;
         super::brisa::validate_mode(instrument, mode)?;
+        if let Some(style) = pan_style {
+            let document: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(instrument.profile_path())?)?;
+            let table: Self = serde_json::from_value(document["styles"][style.id()].clone())?;
+            table.validate()?;
+            if table.instrument != instrument.table_id() {
+                bail!("profile identity does not match moodpan");
+            }
+            return Ok(table);
+        }
         let table = if let Some(mode) = mode {
             let document: serde_json::Value =
                 serde_json::from_slice(&std::fs::read(instrument.profile_path())?)?;
@@ -140,6 +159,9 @@ impl FingeringTable {
             "guitar",
             "guitar-bass",
             "guitar-bass-5string",
+            "handpan-d-kurd",
+            "moodpan",
+            "accordion-piano-41",
             "piano",
             "keyboard-76",
             "keyboard-61",
@@ -175,6 +197,15 @@ impl FingeringTable {
                 bail!("invalid or duplicate layout key {}", key.id);
             }
         }
+        if ["moodpan", "handpan-d-kurd"].contains(&self.instrument.as_str())
+            && (self.tuning_midi.len() != 9
+                || self.fingerings.len() != 9
+                || self.layout_keys.len() != 9
+                || self.tuning_midi.windows(2).any(|p| p[0] >= p[1])
+                || !(1..=9).all(|p| self.layout_keys.iter().any(|k| k.id == format!("pad_{p}"))))
+        {
+            bail!("pitched pan requires nine distinct ascending pitches and nine numbered pads");
+        }
         let expected_tuning: Option<&[u8]> = match self.instrument.as_str() {
             "guitar" => Some(&[64, 59, 55, 50, 45, 40]),
             "guitar-bass" => Some(&[43, 38, 33, 28]),
@@ -200,6 +231,7 @@ impl FingeringTable {
             bail!("violin requires standard E5 A4 D4 G3 tuning and no frets");
         }
         let keyboard_range = match self.instrument.as_str() {
+            "accordion-piano-41" => Some((53, 93)),
             "piano" => Some((21, 108)),
             "keyboard-76" => Some((28, 103)),
             "keyboard-61" => Some((36, 96)),
@@ -233,10 +265,28 @@ impl FingeringTable {
     }
 
     fn validate_fingering(&self, midi: u8, fingering: &Fingering) -> Result<()> {
-        if ["piano", "keyboard-76", "keyboard-61"].contains(&self.instrument.as_str()) {
+        if ["piano", "keyboard-76", "keyboard-61", "accordion-piano-41"]
+            .contains(&self.instrument.as_str())
+        {
             if fingering.octave != OctaveShift::Normal || fingering.keys != [format!("key_{midi}")]
             {
                 bail!("MIDI {midi}: keyboard key must match sounding pitch");
+            }
+        } else if ["moodpan", "handpan-d-kurd"].contains(&self.instrument.as_str()) {
+            let pad = fingering
+                .keys
+                .first()
+                .and_then(|k| k.strip_prefix("pad_"))
+                .and_then(|k| k.parse::<usize>().ok());
+            if fingering.octave != OctaveShift::Normal
+                || fingering.keys.len() != 1
+                || !pad.is_some_and(|p| {
+                    p > 0
+                        && self.tuning_midi.get(p - 1) == Some(&midi)
+                        && self.layout_keys.iter().any(|k| k.id == format!("pad_{p}"))
+                })
+            {
+                bail!("MIDI {midi}: pan pad must match its documented tuning");
             }
         } else if self.instrument == "violin" {
             if fingering.octave != OctaveShift::Normal || fingering.keys.len() != 1 {
@@ -434,6 +484,21 @@ mod tests {
             "72": {"octave": "up", "keys": ["left_1", "left_2", "left_3"]}
         }
     }"#;
+
+    #[test]
+    fn pan_profiles_reject_wrong_pad_pitch_octave_and_missing_pads() {
+        let original =
+            FingeringTable::load_instrument(crate::instruments::Instrument::Handpan).unwrap();
+        let mut table = original.clone();
+        table.fingerings.get_mut("50").unwrap().keys = vec!["pad_2".into()];
+        assert!(table.validate().is_err());
+        table = original.clone();
+        table.fingerings.get_mut("50").unwrap().octave = OctaveShift::Up;
+        assert!(table.validate().is_err());
+        table = original;
+        table.layout_keys.pop();
+        assert!(table.validate().is_err());
+    }
 
     #[test]
     fn keyboard_and_bass_profiles_reject_wrong_physical_positions() {

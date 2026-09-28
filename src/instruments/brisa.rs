@@ -25,6 +25,7 @@ impl FingeringMode {
 
 /// Shared by the CLI and library, before audio extraction or ML work.
 pub fn validate_mode(instrument: Instrument, mode: Option<FingeringMode>) -> Result<()> {
+    instrument.validate_melody_support()?;
     match (instrument,mode) {
         (Instrument::AeBrisa,None) => bail!("--instrument ae-brisa requires --fingering-mode brisa|flute; select the same Fingering Mode on the instrument"),
         (Instrument::AeBrisa,Some(_)) | (_,None) => Ok(()),

@@ -25,6 +25,7 @@ pub const TEMPO_SCALE_RANGE: std::ops::RangeInclusive<f64> = 0.5..=2.0;
 pub struct PracticeRequest<'a> {
     pub title: &'a str,
     pub instrument: crate::instruments::Instrument,
+    pub pan_style: Option<crate::instruments::pan::PanStyle>,
     pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub cleaned_notes: &'a [NoteEvent],
     pub beat_times: &'a [f64],
@@ -65,7 +66,11 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
     }
     let mut warnings = Vec::new();
 
-    let mut table = FingeringTable::load_for_mode(request.instrument, request.fingering_mode)?;
+    let mut table = FingeringTable::load_for_setup(
+        request.instrument,
+        request.fingering_mode,
+        request.pan_style,
+    )?;
     println!(
         "· {} setup: {}",
         request.instrument.name(),
@@ -365,7 +370,7 @@ fn write_fingering_json(
     let document = json!({
         "version": 1,
         "instrument": table.instrument,
-            "fingering_mode": request.fingering_mode,
+            "pan_style": request.pan_style, "fingering_mode": request.fingering_mode,
         "verified": table.verified,
         "required_settings": table.required_settings,
         "sources": table.sources,
@@ -425,6 +430,7 @@ mod tests {
             let request = PracticeRequest {
                 title: "Easy test",
                 instrument,
+                pan_style: None,
                 fingering_mode: (instrument == crate::instruments::Instrument::AeBrisa)
                     .then_some(crate::instruments::brisa::FingeringMode::Brisa),
                 cleaned_notes: &notes,

@@ -132,13 +132,16 @@ pub fn change_cue(
 
 /// Wind controls are held keys, so the change is a set of lifts/presses.
 fn uses_press_lift(instrument: Instrument) -> bool {
-    !(instrument.is_fretted()
+    !(instrument.is_pan()
+        || instrument.is_fretted()
         || instrument.keyboard_range().is_some()
         || instrument == Instrument::Violin)
 }
 
 fn repeat_instruction(instrument: Instrument) -> &'static str {
-    if instrument.keyboard_range().is_some() {
+    if instrument.is_pan() {
+        "SAME PAD - STRIKE AGAIN"
+    } else if instrument.keyboard_range().is_some() {
         "SAME KEY - RELEASE AND PLAY AGAIN"
     } else if instrument.is_fretted() || instrument == Instrument::Violin {
         "SAME NOTE - PLAY AGAIN"
@@ -195,6 +198,9 @@ fn describe_position(instrument: Instrument, upcoming: &FingeringTimelineEntry) 
     let Some(id) = upcoming.fingering.keys.first() else {
         return note_name(upcoming.midi);
     };
+    if instrument.is_pan() {
+        return format!("STRIKE PAD {}", id.strip_prefix("pad_").unwrap_or(id));
+    }
     if instrument.keyboard_range().is_some() {
         return format!("KEY {}", note_name(upcoming.midi));
     }

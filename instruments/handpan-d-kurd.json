@@ -1,0 +1,145 @@
+{
+  "instrument": "handpan-d-kurd",
+  "version": 1,
+  "verified": false,
+  "required_settings": "D Kurd 9: D3 / A3 Bb3 C4 D4 E4 F4 G4 A4. Match numbered player-view layout; other layouts unsupported.",
+  "sources": [
+    {
+      "url": "https://www.sarazhandpans.com/handpan-scales/d-minor/",
+      "detail": "9-note Kurd pitch set. Schematic layout is an explicit Tono setup requirement, not a claim that every maker uses it; center D3, A3 near-right, Bb3 near-left, alternating ascending around rim."
+    }
+  ],
+  "tuning_midi": [
+    50,
+    57,
+    58,
+    60,
+    62,
+    64,
+    65,
+    67,
+    69
+  ],
+  "layout_keys": [
+    {
+      "id": "pad_1",
+      "label": "1",
+      "x": 390,
+      "y": 190,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_2",
+      "label": "2",
+      "x": 450,
+      "y": 335,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_3",
+      "label": "3",
+      "x": 330,
+      "y": 335,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_4",
+      "label": "4",
+      "x": 540,
+      "y": 255,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_5",
+      "label": "5",
+      "x": 240,
+      "y": 255,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_6",
+      "label": "6",
+      "x": 540,
+      "y": 130,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_7",
+      "label": "7",
+      "x": 240,
+      "y": 130,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_8",
+      "label": "8",
+      "x": 450,
+      "y": 50,
+      "shape": "circle"
+    },
+    {
+      "id": "pad_9",
+      "label": "9",
+      "x": 330,
+      "y": 50,
+      "shape": "circle"
+    }
+  ],
+  "fingerings": {
+    "50": {
+      "octave": "normal",
+      "keys": [
+        "pad_1"
+      ]
+    },
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "pad_2"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "pad_3"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "pad_4"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "pad_5"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "pad_6"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "pad_7"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "pad_8"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "pad_9"
+      ]
+    }
+  },
+  "alternatives": {}
+}

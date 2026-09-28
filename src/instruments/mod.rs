@@ -1,4 +1,5 @@
 //! Instrument identifiers and data-driven profiles (instruments/*.json).
+pub mod accordion;
 pub mod ae01;
 pub mod ae05;
 pub mod ae10;
@@ -8,6 +9,7 @@ pub mod diagram;
 pub mod fingering;
 pub mod flute;
 pub mod guitar;
+pub mod pan;
 pub mod piano;
 pub mod recorder;
 mod sax;
@@ -85,6 +87,20 @@ pub enum Instrument {
     #[serde(rename = "flute-bfoot")]
     FluteBFoot,
     Violin,
+    #[value(name = "handpan-d-kurd", alias = "handpan")]
+    #[serde(rename = "handpan-d-kurd")]
+    Handpan,
+    #[value(name = "moodpan", alias = "mn-10")]
+    Moodpan,
+    #[value(name = "accordion-piano-41", alias = "accordion")]
+    #[serde(rename = "accordion-piano-41")]
+    Accordion,
+    #[value(name = "taiko-1", alias = "taiko")]
+    #[serde(rename = "taiko-1")]
+    Taiko,
+    #[value(name = "spd-20-pro", alias = "octapad")]
+    #[serde(rename = "spd-20-pro")]
+    Octapad,
 }
 
 impl Instrument {
@@ -112,6 +128,11 @@ impl Instrument {
             Self::Flute => "flute",
             Self::FluteBFoot => "flute-bfoot",
             Self::Violin => "violin",
+            Self::Handpan => "handpan-d-kurd",
+            Self::Moodpan => "moodpan",
+            Self::Accordion => "accordion-piano-41",
+            Self::Taiko => "taiko-1",
+            Self::Octapad => "spd-20-pro",
         }
     }
     pub fn name(self) -> &'static str {
@@ -138,10 +159,26 @@ impl Instrument {
             Self::Flute => "Concert flute (C foot)",
             Self::FluteBFoot => "Concert flute (B foot)",
             Self::Violin => "Violin (first position)",
+            Self::Handpan => "Handpan (D Kurd, 9 notes)",
+            Self::Moodpan => "Roland Mood Pan MN-10",
+            Self::Accordion => "Piano accordion (41 keys, melody only)",
+            Self::Taiko => "Roland TAIKO-1",
+            Self::Octapad => "Roland OCTAPAD SPD-20 PRO",
         }
     }
+    pub fn is_pan(self) -> bool {
+        matches!(self, Self::Handpan | Self::Moodpan)
+    }
+    pub fn validate_melody_support(self) -> anyhow::Result<()> {
+        if matches!(self, Self::Taiko | Self::Octapad) {
+            anyhow::bail!("{} does not support lead-melody generation in Tono. Percussion practice is not implemented yet; choose a supported melodic instrument. No part or notes were substituted.", self.name());
+        }
+        Ok(())
+    }
     pub fn table_id(self) -> String {
-        if self.is_fretted()
+        if self.is_pan()
+            || self == Self::Accordion
+            || self.is_fretted()
             || self.keyboard_range().is_some()
             || self.is_recorder()
             || self.is_flute()
@@ -177,7 +214,9 @@ impl Instrument {
         matches!(self, Self::Flute | Self::FluteBFoot)
     }
     pub fn is_horizontal(self) -> bool {
-        self.is_fretted()
+        self.is_pan()
+            || matches!(self, Self::Taiko | Self::Octapad)
+            || self.is_fretted()
             || self.keyboard_range().is_some()
             || self.is_flute()
             || self == Self::Violin
@@ -193,6 +232,7 @@ impl Instrument {
     /// Sounding MIDI range, with middle C = 60 (C4).
     pub fn keyboard_range(self) -> Option<(u8, u8)> {
         match self {
+            Self::Accordion => Some((53, 93)),
             Self::Piano => Some((21, 108)),
             Self::Keyboard76 => Some((28, 103)),
             Self::Keyboard61 => Some((36, 96)),
@@ -463,7 +503,11 @@ pub fn horizontal_svg(
     scale: f32,
     prefix: &str,
 ) -> String {
-    if instrument == Instrument::AeBrisa {
+    if instrument.is_pan() {
+        pan::render(keys, state, x, y, scale, prefix)
+    } else if instrument == Instrument::Accordion {
+        accordion::render(state, x, y, scale, prefix)
+    } else if instrument == Instrument::AeBrisa {
         brisa::render(keys, state, x, y, scale, prefix)
     } else if instrument == Instrument::Violin {
         violin::render(state, x, y, scale, prefix)

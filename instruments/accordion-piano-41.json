@@ -1,0 +1,265 @@
+{
+  "instrument": "accordion-piano-41",
+  "version": 1,
+  "verified": false,
+  "required_settings": "41 piano keys F3\u2013A6; 8-foot register, no octave transpose. Right-hand melody only.",
+  "sources": [
+    {
+      "url": "https://hohner.de/fileadmin/user_upload/Hohner_Katalog_Akkordeon_EN_2021-web.pdf",
+      "detail": "Bravo III 120: 41 piano keys, F\u2013A. Profile uses concert 8-foot register F3\u2013A6; excludes bass/buttons and bellows direction."
+    },
+    {
+      "url": "https://hohner.de/fileadmin/documents/instruments/accordions/chromatic/bravo/bravo-iii-120/hohner-accordions-bravo-iii-120-fingering-chart.pdf",
+      "detail": "Page 1: 41-key range and right-hand orientation, low towards chin and high towards knee."
+    }
+  ],
+  "fingerings": {
+    "53": {
+      "octave": "normal",
+      "keys": [
+        "key_53"
+      ]
+    },
+    "54": {
+      "octave": "normal",
+      "keys": [
+        "key_54"
+      ]
+    },
+    "55": {
+      "octave": "normal",
+      "keys": [
+        "key_55"
+      ]
+    },
+    "56": {
+      "octave": "normal",
+      "keys": [
+        "key_56"
+      ]
+    },
+    "57": {
+      "octave": "normal",
+      "keys": [
+        "key_57"
+      ]
+    },
+    "58": {
+      "octave": "normal",
+      "keys": [
+        "key_58"
+      ]
+    },
+    "59": {
+      "octave": "normal",
+      "keys": [
+        "key_59"
+      ]
+    },
+    "60": {
+      "octave": "normal",
+      "keys": [
+        "key_60"
+      ]
+    },
+    "61": {
+      "octave": "normal",
+      "keys": [
+        "key_61"
+      ]
+    },
+    "62": {
+      "octave": "normal",
+      "keys": [
+        "key_62"
+      ]
+    },
+    "63": {
+      "octave": "normal",
+      "keys": [
+        "key_63"
+      ]
+    },
+    "64": {
+      "octave": "normal",
+      "keys": [
+        "key_64"
+      ]
+    },
+    "65": {
+      "octave": "normal",
+      "keys": [
+        "key_65"
+      ]
+    },
+    "66": {
+      "octave": "normal",
+      "keys": [
+        "key_66"
+      ]
+    },
+    "67": {
+      "octave": "normal",
+      "keys": [
+        "key_67"
+      ]
+    },
+    "68": {
+      "octave": "normal",
+      "keys": [
+        "key_68"
+      ]
+    },
+    "69": {
+      "octave": "normal",
+      "keys": [
+        "key_69"
+      ]
+    },
+    "70": {
+      "octave": "normal",
+      "keys": [
+        "key_70"
+      ]
+    },
+    "71": {
+      "octave": "normal",
+      "keys": [
+        "key_71"
+      ]
+    },
+    "72": {
+      "octave": "normal",
+      "keys": [
+        "key_72"
+      ]
+    },
+    "73": {
+      "octave": "normal",
+      "keys": [
+        "key_73"
+      ]
+    },
+    "74": {
+      "octave": "normal",
+      "keys": [
+        "key_74"
+      ]
+    },
+    "75": {
+      "octave": "normal",
+      "keys": [
+        "key_75"
+      ]
+    },
+    "76": {
+      "octave": "normal",
+      "keys": [
+        "key_76"
+      ]
+    },
+    "77": {
+      "octave": "normal",
+      "keys": [
+        "key_77"
+      ]
+    },
+    "78": {
+      "octave": "normal",
+      "keys": [
+        "key_78"
+      ]
+    },
+    "79": {
+      "octave": "normal",
+      "keys": [
+        "key_79"
+      ]
+    },
+    "80": {
+      "octave": "normal",
+      "keys": [
+        "key_80"
+      ]
+    },
+    "81": {
+      "octave": "normal",
+      "keys": [
+        "key_81"
+      ]
+    },
+    "82": {
+      "octave": "normal",
+      "keys": [
+        "key_82"
+      ]
+    },
+    "83": {
+      "octave": "normal",
+      "keys": [
+        "key_83"
+      ]
+    },
+    "84": {
+      "octave": "normal",
+      "keys": [
+        "key_84"
+      ]
+    },
+    "85": {
+      "octave": "normal",
+      "keys": [
+        "key_85"
+      ]
+    },
+    "86": {
+      "octave": "normal",
+      "keys": [
+        "key_86"
+      ]
+    },
+    "87": {
+      "octave": "normal",
+      "keys": [
+        "key_87"
+      ]
+    },
+    "88": {
+      "octave": "normal",
+      "keys": [
+        "key_88"
+      ]
+    },
+    "89": {
+      "octave": "normal",
+      "keys": [
+        "key_89"
+      ]
+    },
+    "90": {
+      "octave": "normal",
+      "keys": [
+        "key_90"
+      ]
+    },
+    "91": {
+      "octave": "normal",
+      "keys": [
+        "key_91"
+      ]
+    },
+    "92": {
+      "octave": "normal",
+      "keys": [
+        "key_92"
+      ]
+    },
+    "93": {
+      "octave": "normal",
+      "keys": [
+        "key_93"
+      ]
+    }
+  },
+  "alternatives": {}
+}

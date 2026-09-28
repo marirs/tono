@@ -4,7 +4,8 @@
 //! guessed). The melody is shifted as a WHOLE by the smallest whole-octave
 //! amount that puts every note in range, so every interval is preserved and
 //! the practice backing is transposed by the same amount. If no shift fits,
-//! fitting fails and lists the offending notes.
+//! fitting fails and lists the offending notes. Pitched pans instead try all
+//! whole-semitone shifts against their sparse tuning, preserving every interval.
 //!
 //! Individual octave folding (moving single notes by octaves) is not
 //! implemented: it changes the melody's shape (a rising step can become a
@@ -70,6 +71,29 @@ pub fn fit_melody_to_table(
 ) -> Result<FittedMelody> {
     if policy == RangePolicy::Fold {
         bail!(FOLDING_DISABLED_MESSAGE);
+    }
+    if ["moodpan", "handpan-d-kurd"].contains(&table.instrument.as_str()) {
+        for shift in std::iter::once(0).chain((1..=127).flat_map(|n| [n, -n])) {
+            if notes
+                .iter()
+                .all(|n| shift_midi(n.midi, shift).is_some_and(|m| table.lookup(m).is_ok()))
+            {
+                return Ok(FittedMelody {
+                    notes: notes
+                        .iter()
+                        .map(|n| NoteEvent {
+                            midi: shift_midi(n.midi, shift).unwrap(),
+                            ..*n
+                        })
+                        .collect(),
+                    policy,
+                    octave_shift: shift / 12,
+                    semitone_offset: shift % 12,
+                    easy_fingering: "not_requested",
+                });
+            }
+        }
+        bail!("This melody cannot be played faithfully on the selected {} tuning. No single transposition fits every required pitch. Choose another tuning, instrument, or a shorter section with --from/--to. No notes were folded, replaced or dropped.", table.instrument);
     }
     let playable = |midi: u8| table.lookup(midi).is_ok();
     let fits =

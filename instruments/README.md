@@ -428,3 +428,47 @@ Tono never silently changes the selected instrument or fingering mode.
 `backing_transpose_semitones`. `octave_shift` and `semitone_offset` describe its
 whole-octave and remaining-semitone components. Successful easy-mode videos are
 labelled on screen. Profiles remain unverified until checked on the instrument.
+
+## Pitched pans and piano accordion
+
+These profiles are available in the source build after v0.1.1. The new profiles
+remain `verified: false` until checked on the corresponding physical setup.
+
+| CLI profile | Supported setup |
+| --- | --- |
+| `handpan-d-kurd` / `handpan` | Nine notes: D3 / A3 Bb3 C4 D4 E4 F4 G4 A4. Central D3; A3 near-right, Bb3 near-left; ascending notes alternate around the rim toward the far edge. Other arrangements are not covered. |
+| `moodpan` / `mn-10` | MN-10, Handpan tone, factory pitch (A440), pitch effects off. `--pan-style` is mandatory. |
+| `accordion-piano-41` / `accordion` | 41-key F3–A6 piano accordion, 8-foot register. Right-hand melody only; low keys toward chin, high keys toward knee. |
+| `taiko-1` / `taiko` | Recognized but rejected: percussion generation is not implemented. |
+| `spd-20-pro` / `octapad` | Recognized but rejected: percussion generation and melodic kit mappings are not implemented. |
+
+Mood Pan styles: `major`, `minor`, `celtic`, `arabic`, `relax`, `indian`,
+`meditation`, `japanese`, `equinox`, `romantic`, `dreamy`, `aegean`.
+The JSON stores exact pitches per pad per style, not a guessed generic scale.
+Source: [Roland MN-10 manual](https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf),
+pages 3/9 (layout) and 15 (pad pitches). Special pad, side slaps, user tones,
+custom app tuning and pitch-changing effects are outside this profile.
+
+Acoustic handpan pitch source: [Saraz D minor scales](https://www.sarazhandpans.com/handpan-scales/d-minor/),
+nine-note Kurd. The drawing is an explicit supported layout, not a universal
+manufacturer layout; compare it with your instrument before practising.
+Accordion source: [HOHNER keyboard chart, page 1](https://hohner.de/fileadmin/documents/instruments/accordions/chromatic/bravo/bravo-iii-120/hohner-accordions-bravo-iii-120-fingering-chart.pdf).
+Bass, chords, bellows direction and button accordions are not represented.
+
+```bash
+tono song.mp3 --instrument moodpan --pan-style minor --tempo-scale 0.5
+tono melody.musicxml --instrument handpan-d-kurd --backing backing.mp3
+tono melody.mid --instrument accordion-piano-41
+```
+
+Both pan profiles test every pitch against the actual tuning. They may transpose
+the entire melody and backing by one consistent number of semitones (smallest
+change first, upward on ties); they fail if no such shift fits. No individual
+notes are folded or approximated. Setup and selected style are recorded with
+the output; automatic Mood Pan folder names also include the style.
+
+Pan diagrams mean **strike once, then let ring**, not hold a pad throughout the
+note. Repeated notes mean strike again. The duration shown is musical timing;
+this first version does not prescribe damping or hand/stroke technique.
+`--easy-fingering` is not defined for these new profiles and uses the existing
+explicit warning followed by normal creation.

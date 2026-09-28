@@ -98,7 +98,7 @@ body{{margin:0;background:#12151c;color:#eef1f7;font:17px/1.6 system-ui,sans-ser
         let prefix = format!("sheet-{index}-");
         let (view, drawing) = if settings.instrument.is_horizontal() {
             (
-                "0 -50 850 470",
+                "0 -50 850 520",
                 instruments::horizontal_svg(
                     settings.instrument,
                     &settings.layout_keys,
@@ -134,6 +134,11 @@ body{{margin:0;background:#12151c;color:#eef1f7;font:17px/1.6 system-ui,sans-ser
         ));
     }
     html.push_str(&format!("</div><section id=\"player\"><h2>Play when you’re ready</h2><p>Playback starts only when you press Play. Pause or return to the sheet whenever you need. The video includes your selected count-in.</p><video controls preload=\"none\" playsinline src=\"{}\">Open the MP4 in your video player.</video><p><a href=\"{}\">Open the MP4 directly</a></p></section></main></html>", escape(video), escape(video)));
+    if settings.instrument.is_pan() {
+        html = html.replace("Filled keys are held down; unfilled keys stay released.", "Strike the highlighted pad once at each note start, then let it ring. Repeated notes require another strike; note length is musical timing, not a request to hold the pad.")
+            .replace("Times and hold lengths", "Times and note lengths")
+            .replace(" · hold ", " · note length ");
+    }
     std::fs::write(directory.join("practice.html"), html)?;
     Ok(())
 }

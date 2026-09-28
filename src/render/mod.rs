@@ -383,6 +383,7 @@ fn push_horizontal_sections(
     } else {
         match now {
             NowState::Ready(_) => "GET READY",
+            NowState::Sounding(_) if settings.instrument.is_pan() => "STRIKE / LET RING",
             NowState::Sounding(_) => "PLAY",
             NowState::Finished => "DONE",
         }

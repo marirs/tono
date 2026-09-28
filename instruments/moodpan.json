@@ -1,0 +1,1744 @@
+{
+  "styles": {
+    "major": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: MAJOR style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        50,
+        55,
+        57,
+        59,
+        61,
+        62,
+        64,
+        66,
+        69
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "50": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "55": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "57": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "59": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "69": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "minor": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: MINOR style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        50,
+        57,
+        58,
+        60,
+        62,
+        64,
+        65,
+        67,
+        69
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "50": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "57": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "58": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "69": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "celtic": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: CELTIC style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        50,
+        57,
+        60,
+        62,
+        64,
+        65,
+        67,
+        69,
+        72
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "50": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "57": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "69": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "72": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "arabic": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: ARABIC style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        49,
+        56,
+        57,
+        59,
+        61,
+        62,
+        65,
+        66,
+        68
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "49": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "56": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "57": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "59": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "relax": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: RELAX style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        49,
+        56,
+        60,
+        61,
+        63,
+        65,
+        66,
+        68,
+        73
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "49": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "56": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "63": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "73": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "indian": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: INDIAN style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        49,
+        56,
+        59,
+        61,
+        65,
+        66,
+        68,
+        71,
+        73
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "49": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "56": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "59": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "71": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "73": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "meditation": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: MEDITATION style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        50,
+        55,
+        57,
+        58,
+        62,
+        65,
+        67,
+        69,
+        70
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "50": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "55": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "57": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "58": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "69": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "70": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "japanese": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: JAPANESE style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        55,
+        60,
+        62,
+        63,
+        67,
+        68,
+        72,
+        74,
+        75
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "55": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "63": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "72": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "74": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "75": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "equinox": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: EQUINOX style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        52,
+        55,
+        59,
+        60,
+        62,
+        64,
+        66,
+        67,
+        71
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "52": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "55": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "59": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "71": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "romantic": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: ROMANTIC style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        52,
+        55,
+        59,
+        61,
+        62,
+        64,
+        66,
+        67,
+        71
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "52": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "55": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "59": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "61": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "62": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "71": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "dreamy": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: DREAMY style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        53,
+        56,
+        60,
+        63,
+        65,
+        67,
+        68,
+        72,
+        75
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "53": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "56": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "63": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "65": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "68": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "72": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "75": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    },
+    "aegean": {
+      "instrument": "moodpan",
+      "version": 1,
+      "verified": false,
+      "required_settings": "MN-10: AEGEAN style; Handpan tone; factory pitch (A440); pitch effects off.",
+      "sources": [
+        {
+          "url": "https://static.roland.com/assets/media/pdf/MN-10_eng02_W.pdf",
+          "detail": "Pages 3 and 9: player-view pad numbering; page 15: exact pad 1\u20139 pitches. Handpan tone only, factory pitch, no special pad or side strikes."
+        }
+      ],
+      "tuning_midi": [
+        48,
+        52,
+        55,
+        59,
+        60,
+        64,
+        66,
+        67,
+        71
+      ],
+      "layout_keys": [
+        {
+          "id": "pad_1",
+          "label": "1",
+          "x": 390,
+          "y": 190,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_2",
+          "label": "2",
+          "x": 450,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_3",
+          "label": "3",
+          "x": 330,
+          "y": 335,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_4",
+          "label": "4",
+          "x": 540,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_5",
+          "label": "5",
+          "x": 240,
+          "y": 255,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_6",
+          "label": "6",
+          "x": 540,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_7",
+          "label": "7",
+          "x": 240,
+          "y": 130,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_8",
+          "label": "8",
+          "x": 450,
+          "y": 50,
+          "shape": "circle"
+        },
+        {
+          "id": "pad_9",
+          "label": "9",
+          "x": 330,
+          "y": 50,
+          "shape": "circle"
+        }
+      ],
+      "fingerings": {
+        "48": {
+          "octave": "normal",
+          "keys": [
+            "pad_1"
+          ]
+        },
+        "52": {
+          "octave": "normal",
+          "keys": [
+            "pad_2"
+          ]
+        },
+        "55": {
+          "octave": "normal",
+          "keys": [
+            "pad_3"
+          ]
+        },
+        "59": {
+          "octave": "normal",
+          "keys": [
+            "pad_4"
+          ]
+        },
+        "60": {
+          "octave": "normal",
+          "keys": [
+            "pad_5"
+          ]
+        },
+        "64": {
+          "octave": "normal",
+          "keys": [
+            "pad_6"
+          ]
+        },
+        "66": {
+          "octave": "normal",
+          "keys": [
+            "pad_7"
+          ]
+        },
+        "67": {
+          "octave": "normal",
+          "keys": [
+            "pad_8"
+          ]
+        },
+        "71": {
+          "octave": "normal",
+          "keys": [
+            "pad_9"
+          ]
+        }
+      },
+      "alternatives": {}
+    }
+  }
+}

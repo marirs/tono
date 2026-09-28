@@ -21,7 +21,7 @@ use tono::render::MetronomeMode;
     about = "Turn a song into an instrument practice video",
     args_conflicts_with_subcommands = true,
     subcommand_negates_reqs = true,
-    after_help = "Example: tono song.mp3 --instrument ae01\nPiano: --piano or --instrument piano (alias piano-88). Guitar: guitar-6string; bass: guitar-bass or guitar-bass-5string.\nThe default preserves melodic intervals using a whole-melody octave shift, or reports that it cannot fit.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>/practice.mp4; reruns replace matching outputs."
+    after_help = "Example: tono song.mp3 --instrument ae01\nPiano: --piano or --instrument piano (alias piano-88). Guitar: guitar-6string; bass: guitar-bass or guitar-bass-5string.\nStrict fitting preserves melodic intervals: whole-octave shifts for most instruments, whole-semitone shifts for pitched pans; otherwise generation stops.\nMood Pan requires --pan-style; its output folder also includes the style.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>/practice.mp4; reruns replace matching outputs."
 )]
 struct Cli {
     /// Local audio/video or melody file (.mid, .midi, .musicxml, .xml, .json).
@@ -74,6 +74,9 @@ struct PreparationArgs {
     /// Required for AE-BRISA; must match the instrument's Fingering Mode.
     #[arg(long, value_enum, required_if_eq("instrument", "ae-brisa"))]
     fingering_mode: Option<FingeringMode>,
+    /// Required for Mood Pan; match its Style knob, with Handpan tone and factory tuning.
+    #[arg(long, value_enum)]
+    pan_style: Option<tono::instruments::pan::PanStyle>,
     /// Full-size 88-key piano (shorthand for --instrument piano).
     #[arg(long, conflicts_with = "instrument")]
     piano: bool,
@@ -97,7 +100,7 @@ struct PreparationArgs {
     tempo_scale: f64,
     #[arg(long, value_enum, default_value_t = MetronomeMode::Visual)]
     metronome: MetronomeMode,
-    /// Octave fitting: strict preserves intervals (default); legacy fold is rejected.
+    /// Strict preserves intervals: octave fitting, or whole-semitone fitting for pans; fold is rejected.
     #[arg(long, value_enum)]
     range_policy: Option<RangePolicy>,
     /// Use beginner controls; transpose melody and backing together if needed.
@@ -141,6 +144,7 @@ impl PreparationArgs {
         }
         let instrument = self.selected_instrument()?;
         validate_mode(instrument, self.fingering_mode)?;
+        tono::instruments::pan::validate_style(instrument, self.pan_style)?;
         if !(0.0..=1.0).contains(&self.min_note_confidence) {
             bail!("--min-note-confidence must be between 0 and 1");
         }
@@ -156,6 +160,7 @@ impl PreparationArgs {
             separation_model: self.separation_model,
             input,
             instrument,
+            pan_style: self.pan_style,
             fingering_mode: self.fingering_mode,
             from_timecode: self.from_time,
             to_timecode: self.to_time,
@@ -194,6 +199,9 @@ enum Commands {
         /// Required for AE-BRISA: brisa or flute.
         #[arg(long, value_enum, required_if_eq("instrument", "ae-brisa"))]
         fingering_mode: Option<FingeringMode>,
+        /// Required for Mood Pan; select the same style on the instrument.
+        #[arg(long, value_enum)]
+        pan_style: Option<tono::instruments::pan::PanStyle>,
         #[arg(long, default_value = "./tono-demo")]
         out: PathBuf,
         #[arg(long, default_value_t = 100.0)]
@@ -273,6 +281,7 @@ pub fn run() -> Result<()> {
         Some(Commands::Demo {
             instrument,
             fingering_mode,
+            pan_style,
             out,
             bpm,
             backing,
@@ -283,6 +292,7 @@ pub fn run() -> Result<()> {
             demo::run_demo(&demo::DemoOptions {
                 instrument,
                 fingering_mode,
+                pan_style,
                 output_directory: out,
                 beats_per_minute: bpm,
                 backing_audio: backing,
@@ -304,7 +314,8 @@ pub fn run() -> Result<()> {
         }
         None => {
             let input = cli.input.expect("required by clap");
-            let destination = match cli.output {
+            let automatic = cli.output.is_none();
+            let mut destination = match cli.output {
                 Some(path) => path,
                 None => output::automatic_path_for_mode(
                     &input,
@@ -314,6 +325,12 @@ pub fn run() -> Result<()> {
                     &output::local_date()?,
                 )?,
             };
+            if automatic {
+                if let Some(style) = cli.options.pan_style {
+                    let stem = destination.file_stem().unwrap().to_string_lossy();
+                    destination.set_file_name(format!("{stem}_{}.mp4", style.id()));
+                }
+            }
             let options = short_form_options(input, destination, cli.options)?;
             print_header(Some(&options.input), options.output_video.as_deref())?;
             output::run(&options)
@@ -324,6 +341,53 @@ pub fn run() -> Result<()> {
 #[cfg(test)]
 mod cli_tests {
     use super::*;
+
+    #[test]
+    fn pan_setup_is_required_and_percussion_fails_before_processing() {
+        for name in ["moodpan", "mn-10", "taiko-1", "octapad", "spd-20-pro"] {
+            let cli = Cli::try_parse_from(["tono", "missing.mp3", "--instrument", name]).unwrap();
+            let error = cli
+                .options
+                .into_options(PathBuf::from("missing.mp3"), PathBuf::from("out"), None)
+                .err()
+                .unwrap()
+                .to_string();
+            assert!(
+                error.contains("--pan-style") || error.contains("does not support lead-melody"),
+                "{error}"
+            );
+        }
+        let cli = Cli::try_parse_from([
+            "tono",
+            "song.mp3",
+            "--instrument",
+            "moodpan",
+            "--pan-style",
+            "minor",
+            "--tempo-scale",
+            "0.5",
+        ])
+        .unwrap();
+        let o = cli
+            .options
+            .into_options(PathBuf::from("song.mp3"), PathBuf::from("out"), None)
+            .unwrap();
+        assert_eq!(o.pan_style, Some(tono::instruments::pan::PanStyle::Minor));
+        assert_eq!(o.tempo_scale, 0.5);
+        let cli = Cli::try_parse_from([
+            "tono",
+            "song.mp3",
+            "--instrument",
+            "ae01",
+            "--pan-style",
+            "minor",
+        ])
+        .unwrap();
+        assert!(cli
+            .options
+            .into_options(PathBuf::from("song.mp3"), PathBuf::from("out"), None)
+            .is_err());
+    }
 
     #[test]
     fn import_flags_are_explicit_and_keep_existing_controls() {

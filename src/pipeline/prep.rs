@@ -61,6 +61,7 @@ pub struct PrepOptions {
     pub import: crate::pipeline::imported::ImportOptions,
     pub separation_model: SeparationModel,
     pub instrument: crate::instruments::Instrument,
+    pub pan_style: Option<crate::instruments::pan::PanStyle>,
     pub fingering_mode: Option<crate::instruments::brisa::FingeringMode>,
     pub input: PathBuf,
     pub from_timecode: Option<String>,
@@ -117,10 +118,12 @@ pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<
         bail!("--tempo-scale must be between 0.5 and 2.0");
     }
     crate::instruments::brisa::validate_mode(options.instrument, options.fingering_mode)?;
+    crate::instruments::pan::validate_style(options.instrument, options.pan_style)?;
     if options.easy_fingering {
-        let table = crate::instruments::fingering::FingeringTable::load_for_mode(
+        let table = crate::instruments::fingering::FingeringTable::load_for_setup(
             options.instrument,
             options.fingering_mode,
+            options.pan_style,
         )?;
         if table.easy_fingering.is_none() {
             eprintln!("Warning: Easy fingering is not available for this instrument. Continuing with normal fingerings.");
@@ -128,11 +131,12 @@ pub(crate) fn run_prep_inner(options: &PrepOptions, show_paths: bool) -> Result<
     }
 
     crate::pipeline::imported::validate_options(options)?;
-    crate::runtime::ensure_ready_cli()?;
-    crate::instruments::fingering::FingeringTable::load_for_mode(
+    crate::instruments::fingering::FingeringTable::load_for_setup(
         options.instrument,
         options.fingering_mode,
+        options.pan_style,
     )?;
+    crate::runtime::ensure_ready_cli()?;
     let ffmpeg = paths::ffmpeg_executable().context("ffmpeg not found; run `tono doctor`")?;
     let ffprobe = paths::ffprobe_executable().context("ffprobe not found; run `tono doctor`")?;
 
@@ -241,6 +245,7 @@ fn prepare_project(
     let practice = build_practice_video(&PracticeRequest {
         title: &title,
         instrument: options.instrument,
+        pan_style: options.pan_style,
         fingering_mode: options.fingering_mode,
         cleaned_notes: &cleaned,
         beat_times: &analysis.beat_times,
@@ -585,7 +590,7 @@ fn project_document(summary: &ProjectSummary) -> serde_json::Value {
         "tono": env!("CARGO_PKG_VERSION"),
         "title": practice_title(&options.input, options.title.as_deref()),
         "instrument": options.instrument,
-        "fingering_mode": options.fingering_mode,
+        "pan_style": options.pan_style, "fingering_mode": options.fingering_mode,
         "part": options.part.worker_name(),
         "source": { "path": options.input.canonicalize().unwrap_or_else(|_| options.input.clone()), "duration": source_duration },
         "source_duration": source_duration,
