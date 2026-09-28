@@ -24,6 +24,10 @@ pub fn render(keys: &[LayoutKey], state: &DiagramState, transform: &str, prefix:
         svg,
         r##"<text x="120" y="240" font-size="22" text-anchor="end" fill="#8a93a3">{upper}</text><text x="120" y="270" font-size="22" text-anchor="end" fill="#8a93a3">HAND</text><text x="120" y="650" font-size="22" text-anchor="end" fill="#8a93a3">{lower}</text><text x="120" y="680" font-size="22" text-anchor="end" fill="#8a93a3">HAND</text>"##
     );
+    let _ = write!(
+        svg,
+        r##"<text x="555" y="125" font-size="17" text-anchor="middle" fill="#8a93a3">{upper} THUMB</text>"##
+    );
     for key in keys {
         let pressed = state.pressed_keys.contains(&key.id);
         let fill = if pressed {

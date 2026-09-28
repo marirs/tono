@@ -334,6 +334,40 @@ tono --help
 
 ---
 
+AE-01 and other vertical wind diagrams use **left hand above right hand** by
+default, with the left thumb on the rear octave/vent controls. Brisa and flute
+keep their horizontal layouts. See [hand-position references](instruments/README.md#hand-position-references).
+
+## Practice output folder
+
+Each run creates one folder, such as `tono-practices/song_ae01_YYYYMMDD/`:
+
+```text
+practice.html       # open this to review and play
+practice.mp4
+backing.mp3         # imported-melody workflows
+backing.wav
+notes.json
+fingering.json
+project.json
+```
+
+`--practice-dir` / `-d` chooses the parent folder. An explicit output name such as
+`tono song.mp3 custom.mp4 --instrument ae01` selects `custom/`, containing
+`practice.html` and `practice.mp4`. Reruns replace that practice folder with a
+recovery backup. Older MP4 + `.tono` outputs are left untouched.
+
+## Review fingerings before playing
+
+Every song and melody import also creates `practice.html` beside `practice.mp4` in the same practice folder. Open it in your browser: it shows the fingerings
+for every note in your piece, in playing order, including repeated notes, rests
+and hold durations. Read left to right, then continue on the next row.
+Review them at your own pace, then press Play in the embedded video. Nothing
+autoplays. Your chosen count-in still runs when playback starts.
+
+Move or share the whole practice folder; its HTML links to the MP4 locally.
+The MP4 itself is still a regular video; opening it directly skips this overview.
+
 ## Use a melody you already have
 
 MIDI, MusicXML and timed note JSON can go straight to a practice video. Tono
@@ -369,6 +403,12 @@ The model also works with ordinary audio/video input. The default remains
 `htdemucs`. Run `python ml/analyze.py --download-models` inside the ML venv to
 update an existing source checkout; release runtimes include both models.
 
+**PDF, PNG and JPG sheet music are not direct imports yet.** Convert the score
+with music-recognition software to MusicXML or MIDI, check the recognized notes,
+rhythm and tempo, then use the commands above. Renaming an image/PDF does not
+convert it. Compressed `.mxl` must be exported as uncompressed `.musicxml` first.
+These import and practice-sheet features require **Tono 0.1.1 or later**.
+
 For multiple MIDI tracks or MusicXML parts, choose `--melody-track N` (one-based;
 MIDI track numbering includes the conductor track). Import currently supports a
 single monophonic melody, MIDI tempo maps, and uncompressed partwise MusicXML
@@ -392,7 +432,7 @@ Each run starts with a colored title, the installed version and the resolved pat
 Tono - Play what you love.
 v0.1.1
 Input: /path/to/song.mp3
-Output: /path/to/tono-practices/song_ae01_YYYYMMDD.mp4
+Output: /path/to/tono-practices/song_ae01_YYYYMMDD/practice.mp4
 ```
 
 The version comes from Cargo at build time. Redirected output stays plain text;
@@ -404,7 +444,7 @@ Create an AE-01 practice video with an automatic filename:
 tono ~/Downloads/song.mp3 --instrument ae01
 ```
 
-The video goes to `./tono-practices/song_ae01_YYYYMMDD.mp4`.
+The video goes to `./tono-practices/song_ae01_YYYYMMDD/practice.mp4`.
 Use `-d` (or `--practice-dir`) to choose another folder:
 
 ```sh

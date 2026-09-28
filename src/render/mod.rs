@@ -73,7 +73,7 @@ impl Default for RenderSettings {
             instrument: crate::instruments::Instrument::Ae01,
             layout_keys: Vec::new(),
             required_settings: String::new(),
-            upper_hand: UpperHand::Right,
+            upper_hand: UpperHand::Left,
             width: 1920,
             height: 1080,
             frames_per_second: 30,

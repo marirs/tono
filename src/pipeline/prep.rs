@@ -698,6 +698,7 @@ fn print_next_steps(out: &Path, output_video: Option<&Path>, keep_work: bool) {
         "lead.wav",
         "notes.json",
         "fingering.json",
+        "practice.html",
         "project.json",
     ] {
         if out.join(name).exists() {

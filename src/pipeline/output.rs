@@ -54,7 +54,10 @@ pub fn automatic_path_for_mode(
 }
 
 pub fn validate_destination(input: &Path, video: &Path) -> Result<()> {
-    let project = video.with_extension("tono");
+    let project = video
+        .parent()
+        .context("video needs a practice directory")?
+        .to_path_buf();
     for (path, directory) in [(video, false), (project.as_path(), true)] {
         match fs::symlink_metadata(path) {
             Ok(meta)
@@ -131,16 +134,15 @@ fn remove(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Back up both outputs before replacing either; restore both on a copy failure.
+/// Back up the complete practice folder; restore it on a publication failure.
 fn publish(stage: &Path, video: &Path, backup: &Path) -> Result<()> {
-    let project = video.with_extension("tono");
-    let previous_video = video.exists();
+    let project = video
+        .parent()
+        .context("video needs a practice directory")?
+        .to_path_buf();
     let previous_project = project.exists();
-    if previous_video {
-        copy_tree(video, &backup.join("previous.mp4"))?;
-    }
     if previous_project {
-        copy_tree(&project, &backup.join("previous.tono"))?;
+        copy_tree(&project, &backup.join("previous-practice"))?;
     }
     let result = (|| -> Result<()> {
         if let Some(parent) = video.parent().filter(|p| !p.as_os_str().is_empty()) {
@@ -154,12 +156,8 @@ fn publish(stage: &Path, video: &Path, backup: &Path) -> Result<()> {
     if let Err(error) = result {
         let restore = (|| -> Result<()> {
             remove(&project)?;
-            remove(video)?;
             if previous_project {
-                copy_tree(&backup.join("previous.tono"), &project)?;
-            }
-            if previous_video {
-                copy_tree(&backup.join("previous.mp4"), video)?;
+                copy_tree(&backup.join("previous-practice"), &project)?;
             }
             Ok(())
         })();
@@ -203,10 +201,10 @@ pub fn run(options: &PrepOptions) -> Result<()> {
         }
         return Err(error);
     }
-    // Supporting-file references are relative; only the video path is absolute.
+    // Every generated file reference stays portable within the practice folder.
     let project_path = staged.output_directory.join("project.json");
     let mut project: serde_json::Value = serde_json::from_slice(&fs::read(&project_path)?)?;
-    project["practice"]["file"] = serde_json::to_value(std::path::absolute(video)?)?;
+    project["practice"]["file"] = serde_json::json!("practice.mp4");
     fs::write(project_path, serde_json::to_string_pretty(&project)? + "\n")?;
     validate_destination(&options.input, video)?;
     for source in options
@@ -228,11 +226,16 @@ pub fn run(options: &PrepOptions) -> Result<()> {
     } else {
         private_directory(&stage, "backup")?
     };
+    super::sheet::set_video_link(&staged.output_directory, Path::new("practice.mp4"))?;
     publish(&stage, video, &backup)
         .with_context(|| format!("new render retained at {}", stage.display()))?;
     fs::remove_dir_all(&stage)?;
     println!("\n✓ Ready: {}", video.display());
     println!("  Supporting files: {}", options.output_directory.display());
+    println!(
+        "  Review fingerings, then play: {}",
+        options.output_directory.join("practice.html").display()
+    );
     if replacing {
         println!("  Previous output backup: {}", backup.display());
     }
@@ -269,13 +272,14 @@ mod tests {
     fn protects_source_aliases_and_sources_inside_project() {
         let root = private_directory(&std::env::temp_dir(), "tono-output-test").unwrap();
         let input = root.join("input.mp4");
-        let video = root.join("output.mp4");
+        let video = root.join("output/practice.mp4");
+        fs::create_dir_all(video.parent().unwrap()).unwrap();
         fs::write(&input, "source").unwrap();
         fs::hard_link(&input, &video).unwrap();
         assert!(validate_destination(&input, &video).is_err());
         fs::remove_file(&video).unwrap();
-        fs::create_dir(video.with_extension("tono")).unwrap();
-        let nested = video.with_extension("tono").join("source.mp3");
+
+        let nested = video.parent().unwrap().to_path_buf().join("source.mp3");
         fs::write(&nested, "source").unwrap();
         assert!(validate_destination(&nested, &video).is_err());
         assert!(validate_destination(&input, &video).is_ok());
@@ -287,16 +291,21 @@ mod tests {
         let stage = root.join("stage");
         fs::create_dir_all(stage.join("project")).unwrap();
         fs::write(stage.join("project/notes.json"), "new notes").unwrap();
-        let video = root.join("output.mp4");
+        let video = root.join("output/practice.mp4");
+        fs::create_dir_all(video.parent().unwrap()).unwrap();
         fs::write(&video, "old video").unwrap();
-        fs::create_dir(video.with_extension("tono")).unwrap();
-        fs::write(video.with_extension("tono").join("user.txt"), "old data").unwrap();
+
+        fs::write(
+            video.parent().unwrap().to_path_buf().join("user.txt"),
+            "old data",
+        )
+        .unwrap();
         let backup = private_directory(&root, "backup").unwrap();
         // Missing staged MP4 forces failure after the project was copied.
         assert!(publish(&stage, &video, &backup).is_err());
         assert_eq!(fs::read_to_string(&video).unwrap(), "old video");
         assert_eq!(
-            fs::read_to_string(video.with_extension("tono").join("user.txt")).unwrap(),
+            fs::read_to_string(video.parent().unwrap().to_path_buf().join("user.txt")).unwrap(),
             "old data"
         );
         fs::write(stage.join("practice.mp4"), "new video").unwrap();
@@ -304,11 +313,11 @@ mod tests {
         publish(&stage, &video, &backup).unwrap();
         assert_eq!(fs::read_to_string(&video).unwrap(), "new video");
         assert_eq!(
-            fs::read_to_string(video.with_extension("tono").join("notes.json")).unwrap(),
+            fs::read_to_string(video.parent().unwrap().to_path_buf().join("notes.json")).unwrap(),
             "new notes"
         );
         assert_eq!(
-            fs::read_to_string(backup.join("previous.tono/user.txt")).unwrap(),
+            fs::read_to_string(backup.join("previous-practice/user.txt")).unwrap(),
             "old data"
         );
         fs::remove_dir_all(root).unwrap();

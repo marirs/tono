@@ -168,6 +168,16 @@ pub fn build_practice_video(request: &PracticeRequest) -> Result<PracticeOutcome
         video_warnings: video_warnings(&fitted, request.low_confidence),
         ..RenderSettings::default()
     };
+    super::sheet::write_sheet(
+        request.out_dir,
+        &timeline,
+        &settings,
+        if request.output_video.is_some() {
+            "../practice.mp4"
+        } else {
+            "practice.mp4"
+        },
+    )?;
     let ffmpeg_log = request.work_dir.join("ffmpeg-render.log");
     let default_video = request.out_dir.join("practice.mp4");
     let validated = render_practice_video(

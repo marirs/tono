@@ -21,16 +21,16 @@ use tono::render::MetronomeMode;
     about = "Turn a song into an instrument practice video",
     args_conflicts_with_subcommands = true,
     subcommand_negates_reqs = true,
-    after_help = "Example: tono song.mp3 --instrument ae01\nPiano: --piano or --instrument piano (alias piano-88). Guitar: guitar-6string; bass: guitar-bass or guitar-bass-5string.\nThe default preserves melodic intervals using a whole-melody octave shift, or reports that it cannot fit.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4; reruns replace matching outputs."
+    after_help = "Example: tono song.mp3 --instrument ae01\nPiano: --piano or --instrument piano (alias piano-88). Guitar: guitar-6string; bass: guitar-bass or guitar-bass-5string.\nThe default preserves melodic intervals using a whole-melody octave shift, or reports that it cannot fit.\nIndividual octave folding is disabled. Outputs default to ./tono-practices/<song>_<instrument>_<YYYYMMDD>/practice.mp4; reruns replace matching outputs."
 )]
 struct Cli {
     /// Local audio/video or melody file (.mid, .midi, .musicxml, .xml, .json).
     #[arg(value_name = "INPUT", required = true)]
     input: Option<PathBuf>,
-    /// Optional explicit MP4 filename (overrides automatic naming).
+    /// Optional output name: custom.mp4 creates custom/practice.mp4 and practice.html.
     #[arg(value_name = "OUTPUT.mp4")]
     output: Option<PathBuf>,
-    /// Directory for automatically named practice videos.
+    /// Parent directory for automatically named practice folders.
     #[arg(long, short = 'd', value_name = "DIRECTORY", conflicts_with = "output")]
     practice_dir: Option<PathBuf>,
     #[command(flatten)]
@@ -90,7 +90,7 @@ struct PreparationArgs {
     /// Preparation beats before playback (0 disables the count-in).
     #[arg(long, default_value_t = 4, value_parser = clap::value_parser!(u8).range(0..=4))]
     count_in: u8,
-    /// Hand used on the upper three keys; changes labels only.
+    /// Override vertical wind hand labels (default: left above right); does not remap keys.
     #[arg(long, value_enum)]
     upper_hand: Option<UpperHand>,
     #[arg(long, default_value_t = 1.0)]
@@ -216,8 +216,7 @@ enum Commands {
     },
 }
 
-/// Separate durable project data for each requested MP4, without using its
-/// parent as a work directory or overwriting the source.
+/// Each output name selects a self-contained practice folder.
 fn short_form_options(
     input: PathBuf,
     output: PathBuf,
@@ -229,9 +228,15 @@ fn short_form_options(
     {
         bail!("output must be an .mp4 filename");
     }
-    let project = output.with_extension("tono");
-    output::validate_destination(&input, &output)?;
-    options.into_options(input, project, Some(output))
+    if input == output
+        || (input.exists() && output.exists() && same_file::is_same_file(&input, &output)?)
+    {
+        bail!("output must not overwrite the input file");
+    }
+    let project = output.with_extension("");
+    let video = project.join("practice.mp4");
+    output::validate_destination(&input, &video)?;
+    options.into_options(input, project, Some(video))
 }
 
 fn print_header(input: Option<&Path>, output: Option<&Path>) -> Result<()> {
@@ -793,6 +798,19 @@ mod cli_tests {
             "elsewhere"
         ])
         .is_err());
+    }
+
+    #[test]
+    fn direct_output_keeps_html_video_and_data_together() {
+        let cli = Cli::try_parse_from(["tono", "song.mp3", "custom.mp4", "--instrument", "ae01"])
+            .unwrap();
+        let options =
+            short_form_options(cli.input.unwrap(), cli.output.unwrap(), cli.options).unwrap();
+        assert_eq!(options.output_directory, PathBuf::from("custom"));
+        assert_eq!(
+            options.output_video,
+            Some(PathBuf::from("custom/practice.mp4"))
+        );
     }
 
     #[test]

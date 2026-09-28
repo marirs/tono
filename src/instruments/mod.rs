@@ -213,11 +213,9 @@ impl Instrument {
         }
     }
     pub fn default_upper_hand(self) -> UpperHand {
-        if self == Self::Ae01 {
-            UpperHand::Right
-        } else {
-            UpperHand::Left
-        }
+        // Standard wind grip: left hand nearest the mouthpiece, right below.
+        // Horizontal renderers carry their own instrument-specific labels.
+        UpperHand::Left
     }
 }
 
@@ -475,5 +473,49 @@ pub fn horizontal_svg(
         piano::render(range, state, x, y, scale, prefix)
     } else {
         guitar::render(instrument, state, x, y, scale, prefix)
+    }
+}
+
+#[cfg(test)]
+mod hand_position_tests {
+    use super::*;
+    use clap::ValueEnum;
+
+    #[test]
+    fn every_profile_defaults_to_standard_left_upper_grip() {
+        for instrument in Instrument::value_variants() {
+            assert!(
+                matches!(instrument.default_upper_hand(), UpperHand::Left),
+                "{}",
+                instrument.id()
+            );
+        }
+        assert!(matches!(
+            crate::render::RenderSettings::default().upper_hand,
+            UpperHand::Left
+        ));
+    }
+
+    #[test]
+    fn vertical_wind_labels_put_left_above_right() {
+        let pressed = std::collections::BTreeSet::new();
+        for instrument in Instrument::value_variants()
+            .iter()
+            .filter(|i| !i.is_horizontal())
+        {
+            let table = fingering::FingeringTable::load_instrument(*instrument).unwrap();
+            let state = diagram::DiagramState {
+                upper_hand: instrument.default_upper_hand(),
+                pressed_keys: &pressed,
+                pressed_style: diagram::PressedStyle::Sounding,
+                transition_hint: None,
+            };
+            let svg = wind_svg(*instrument, &table.layout_keys, &state, "", "test-");
+            assert!(
+                svg.find(">LEFT").unwrap() < svg.find(">RIGHT").unwrap(),
+                "{}",
+                instrument.id()
+            );
+        }
     }
 }

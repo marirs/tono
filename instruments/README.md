@@ -28,9 +28,36 @@ validate a profile; invalid or missing data fails before processing the source.
 | flute-bfoot | Horizontal keys and register cues | 59–96 | Concert C flute, Boehm system, B footjoint |
 | violin | Horizontal fretless fingerboard | 55–83 | G3 D4 A4 E5, first position |
 
-AE-01 keeps the user's right-hand-upper label preference. Other winds default
-to the manuals' left-hand-upper grip. `--upper-hand right|left` changes labels
+Vertical wind diagrams default to the manuals' left-hand-upper, right-hand-lower
+grip, including AE-01. `--upper-hand right|left` changes labels
 only; it never mirrors controls or alters fingerings. It does not affect guitar.
+
+## Hand-position references
+
+The labels describe the player's hands, not the viewer's left/right. All vertical
+wind profiles use left hand nearest the mouthpiece and right hand below it.
+The rear octave/vent controls belong to the left thumb; the right thumb supports
+the instrument. Explicit `--upper-hand right` is a label override, not a verified
+alternate grip or a mirrored fingering profile.
+
+- AE-01: [manual pp. 9–11](https://static.roland.com/assets/media/pdf/AE-01_eng03_W.pdf).
+- AE-05: [manual p. 6](https://static.roland.com/assets/media/pdf/AE-05_eng05_W.pdf).
+- AE-10: [manual p. 4](https://static.roland.com/assets/media/pdf/AE-10_eng03_W.pdf).
+- AE-20: [manual p. 6](https://static.roland.com/assets/media/pdf/AE-20_eng01_W.pdf).
+- Yamaha YDS-120 / YDS-150: controls and rear thumb-hook diagrams in their
+  linked profile manuals; right thumb supports the lower hook, octave controls
+  are at the upper hand.
+- Yamaha YVS-120: [Let's Play Venova, printed p. 17](https://data.yamaha.com/files/download/other_assets/0/1259560/venova_yvs-120_en_started_e0.pdf).
+- Brisa and concert flute stay horizontal: left hand nearest the blowing end,
+  right hand farther along the body. Brisa retains its mode-specific controls;
+  [Roland's performance-key diagram](https://static.roland.com/manuals/ae-brisa_reference/en-US/334327947338651915.html)
+  is the reference, not an Aerophone sax drawing.
+- Recorder uses left upper/right lower. Guitar, bass, ukulele and violin retain
+  their string/fingerboard orientation; piano shows low to high keys without
+  assigning a hand to each note.
+
+AE-30 is not currently a supported profile; no AE-20 alias is assumed. These
+checks concern diagram orientation, not physical verification of every fingering.
 
 ## Data and source checks
 
@@ -281,7 +308,7 @@ Use factory key/breath mappings, transpose 0 and tone octave 0. Custom tone
 assignments can change sounding pitch. `verified` remains false until tested on
 a physical Brisa. Videos show the mode/setup, and project/fingering JSON records
 `fingering_mode`. Automatic output names include the mode, e.g.
-`song_ae-brisa_flute_YYYYMMDD.mp4`, to keep the two arrangements separate.
+`song_ae-brisa_flute_YYYYMMDD/practice.mp4`, to keep the two arrangements separate.
 
 ## Violin
 
