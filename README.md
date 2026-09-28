@@ -2,6 +2,10 @@
 
 **Play what you love.**
 
+[![Check](https://github.com/marirs/tono/actions/workflows/ci.yml/badge.svg)](https://github.com/marirs/tono/actions/workflows/ci.yml)
+[![Release packages](https://github.com/marirs/tono/actions/workflows/release.yml/badge.svg)](https://github.com/marirs/tono/actions/workflows/release.yml)
+
+
 Tono is a local-first music practice engine that turns music you already have into instrument-specific fingering guides, backing tracks, and guided practice videos.
 
 Bring a song. Pick the part you want to play. Choose an instrument. Tono helps you play it.
@@ -170,6 +174,10 @@ Current profiles (select with `--instrument`):
 | Concert flute (`flute` / `flute-cfoot`) | Horizontal keys | MIDI 60–96 | Standard Boehm system, C footjoint |
 | Concert flute (`flute-bfoot`) | Horizontal keys | MIDI 59–96 | Standard Boehm system, B footjoint |
 | Violin (`violin`) | Fretless fingerboard | MIDI 55–83 | G3 D4 A4 E5, first position |
+| Handpan (`handpan-d-kurd`, alias `handpan`) | Top-down numbered tone fields | D3 / A3 Bb3 C4 D4 E4 F4 G4 A4 | Exact 9-note tuning and depicted layout only |
+| Roland Mood Pan (`moodpan`, alias `mn-10`) | Top-down nine pads | Depends on selected style | Required `--pan-style`; Handpan tone, factory pitch |
+| Piano accordion (`accordion-piano-41`, alias `accordion`) | Upright right-hand keyboard | F3–A6 (MIDI 53–93) | 41 keys, 8-foot register; melody only |
+
 
 These are **profile coverage ranges**, not claims about the absolute limits of the physical instruments.
 
@@ -774,3 +782,31 @@ Tono never silently changes the selected instrument or fingering mode.
 `backing_transpose_semitones`. `octave_shift` and `semitone_offset` describe its
 whole-octave and remaining-semitone components. Successful easy-mode videos are
 labelled on screen. Profiles remain unverified until checked on the instrument.
+
+### Handpan, Mood Pan and accordion
+
+```bash
+tono song.mp3 --instrument moodpan --pan-style minor --tempo-scale 0.5
+tono song.mp3 --instrument handpan-d-kurd --part lead
+tono melody.mid --instrument accordion --backing backing.mp3
+```
+
+Mood Pan requires a style matching its knob: `major`, `minor`, `celtic`, `arabic`,
+`relax`, `indian`, `meditation`, `japanese`, `equinox`, `romantic`, `dreamy`, or
+`aegean`. Use **Handpan tone, factory pitch and no pitch-shifting effects**.
+Other tones, app-customized tunings and special-pad effects are not covered.
+
+Acoustic handpan support is specifically the nine-note D Kurd tuning above,
+with the player-view layout shown in the sheet. It does not cover every handpan.
+Pan fitting tries a single transposition for the entire melody and backing. If
+no transposition fits every available tone field, generation stops; no notes
+are folded, replaced or dropped. The sheet and video show strike cues.
+
+Accordion support covers the **right-hand melody only** on a 41-key piano
+accordion. Button/diatonic accordions, bass/chord parts and bellows direction
+are not supported.
+
+`--instrument taiko-1` and `--instrument spd-20-pro` are recognized but stop
+with an explicit error before processing. Percussion practice and OCTAPAD
+melodic kit mappings are not implemented. There is no silent fallback to another
+part. All new profiles remain unverified on physical instruments.
