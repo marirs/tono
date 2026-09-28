@@ -193,6 +193,72 @@ See [the instrument guide](instruments/README.md) for aliases, sources and verif
 
 The long-term goal is simple: adding an instrument should mostly mean adding a reliable profile and a suitable renderer, not rewriting the transcription engine.
 
+
+### Aerophone Brisa
+
+AE-BRISA requires an explicit mode matching the physical instrument:
+
+```sh
+tono song.mp3 --instrument ae-brisa --fingering-mode brisa
+tono song.mp3 --instrument ae-brisa --fingering-mode flute
+```
+
+Omitting `--fingering-mode` fails before processing. The horizontal diagram
+shows the mode-specific rear keys and, for Flute mode, breath-hole instructions.
+See [instrument profiles](instruments/README.md) for coverage, setup and sources.
+
+### Yamaha YVS-120 Alto Venova
+
+```bash
+tono song.mp3 --instrument yvs120 --tempo-scale 0.75
+tono demo --instrument yvs120 --out /tmp/tono-venova-demo
+```
+
+Aliases: `yvs-120`, `alto-venova`. This acoustic instrument is distinct from the
+YDS digital saxophones. Its profile uses Yamaha’s **concert-pitch** chart, F3–F5
+(MIDI 53–77), so the melody and backing stay in the same pitch system. The staff
+shows sounding pitch, not transposed Venova-in-F notation.
+
+The vertical diagram uses Yamaha’s numbered controls, mouthpiece at the top:
+left-hand 7/6/5, right-hand 4/3/2/1, rear left-thumb 8. Paired lower keys and the
+separate hole and 4A/4B controls at 4 are shown individually. At thumb 8,
+partly covering the hole (3/4, key released) differs from sealing it and pressing
+the octave key. Charted alternatives are retained. Breath and embouchure still
+matter, especially for chromatic notes; the diagram cannot guarantee intonation.
+
+Source: [Yamaha YVS-120 Let’s Play Venova](https://data.yamaha.com/files/download/other_assets/0/1259560/venova_yvs-120_en_started_e0.pdf),
+printed pp. 102–103 (concert-pitch chart), 17 and 92–93 (controls). The JSON is a
+manual chart transcription, not generated from a recorder or sax table.
+`verified: false` remains until checked on a physical YVS-120.
+
+### Handpan, Mood Pan and accordion
+
+```bash
+tono song.mp3 --instrument moodpan --pan-style minor --tempo-scale 0.5
+tono song.mp3 --instrument handpan-d-kurd --part lead
+tono melody.mid --instrument accordion --backing backing.mp3
+```
+
+Mood Pan requires a style matching its knob: `major`, `minor`, `celtic`, `arabic`,
+`relax`, `indian`, `meditation`, `japanese`, `equinox`, `romantic`, `dreamy`, or
+`aegean`. Use **Handpan tone, factory pitch and no pitch-shifting effects**.
+Other tones, app-customized tunings and special-pad effects are not covered.
+
+Acoustic handpan support is specifically the nine-note D Kurd tuning above,
+with the player-view layout shown in the sheet. It does not cover every handpan.
+Pan fitting tries a single transposition for the entire melody and backing. If
+no transposition fits every available tone field, generation stops; no notes
+are folded, replaced or dropped. The sheet and video show strike cues.
+
+Accordion support covers the **right-hand melody only** on a 41-key piano
+accordion. Button/diatonic accordions, bass/chord parts and bellows direction
+are not supported.
+
+`--instrument taiko-1` and `--instrument spd-20-pro` are recognized but stop
+with an explicit error before processing. Percussion practice and OCTAPAD
+melodic kit mappings are not implemented. There is no silent fallback to another
+part. All new profiles remain unverified on physical instruments.
+
 ---
 
 ## Backing tracks
@@ -289,12 +355,60 @@ time-stretch moves audio slightly early (measured about 15 ms at 0.75x and
 35 ms at 0.5x), so Tono runs the same filter chain on a click train, measures
 the offset and compensates it (`backing_stretch_offset_ms` in `project.json`).
 
+
+### Easy Fingering
+
+```bash
+tono song.mp3 --instrument ae01 --easy-fingering --tempo-scale 0.60
+```
+
+AE-01 Easy Fingering allows only the six main controls, in combinations from the
+existing chart. It excludes sharp/flat, the seventh front key, and octave keys.
+It currently covers D4, E4, F4, G4, A4, B4, C5 and the open C♯5 fingering.
+All twelve keys and MIDI-valid octave placements are considered. Original pitch
+is preferred, then the smallest whole-melody pitch shift (upward wins ties).
+The backing in the video is shifted by the same number of semitones. No notes
+are individually folded, removed or replaced; rhythm is preserved. Pitch shifting
+can change the backing’s timbre. `backing.wav` remains the original separated bed.
+
+If the whole selected passage cannot fit, generation stops with compatible note
+spans when available. Those times are **relative to the selected region**, before
+slowing; add the region’s source start to use them with `--from` / `--to`.
+Spans are suggestions, not automatically selected phrases. Fast passages can
+still be hard: use `--tempo-scale` to slow them down.
+
+Easy Fingering is also supported for `ae05`, `ae10`, `ae20`, `yds120`,
+`yds150`, and `ae-brisa --fingering-mode brisa`. These profiles allow only main
+keys 1–6, with no octave, side, palm or pinky controls. Their charted available
+notes are D4, E4, F4, F♯4, G4, A4, B4, C5 and C♯5 (including open fingering).
+The Yamaha YDS profiles additionally allow B♭4 through their charted main-key
+alternatives (1+4 or 1+5). F♯ is allowed because its charted fingering uses the main keys; this is a
+control restriction, not a ban on accidentals. Keep each profile’s documented
+instrument/voice transposition settings so the sounding pitches match.
+
+```bash
+tono song.mp3 --instrument ae20 --easy-fingering
+tono song.mp3 --instrument yds120 --easy-fingering --tempo-scale 0.60
+tono song.mp3 --instrument ae-brisa --fingering-mode brisa --easy-fingering
+```
+
+Brisa’s `flute` mode is not supported in Easy Fingering: its chart uses rear
+performance keys and breath-register cues, requiring a separate beginner policy.
+YVS-120 Alto Venova is acoustic and is also not yet supported in Easy Fingering.
+These and other unsupported profiles print a warning and continue normally;
+Tono never silently changes the selected instrument or fingering mode.
+`project.json` and `fingering.json` record `easy_fingering` as `applied`,
+`unsupported_fallback` or `not_requested`, plus the total
+`backing_transpose_semitones`. `octave_shift` and `semitone_offset` describe its
+whole-octave and remaining-semitone components. Successful easy-mode videos are
+labelled on screen. Profiles remain unverified until checked on the instrument.
+
 ---
 
 ## Usage
 
 Give Tono the input file and instrument; the output filename is automatic.
-Videos go to `./tono-practices/<song>_<instrument>_<YYYYMMDD>.mp4`.
+Videos go to `./tono-practices/<song>_<instrument>_<YYYYMMDD>/practice.mp4`.
 Use `--practice-dir DIRECTORY` (or `-d DIRECTORY`) to choose another folder.
 
 AE-01:
@@ -339,6 +453,21 @@ Help:
 ```sh
 tono --help
 ```
+
+
+### Video title
+
+```sh
+tono song.mp3 --instrument ae20 --title "Careless Whisper"
+tono "Poove Sempoove.mp3" --instrument ae01
+```
+
+`--title` sets the video heading, for example **Practice: Careless Whisper**.
+Without it, the input filename without its final extension becomes the title
+(**Poove Sempoove** in the second example). The full title is saved in
+`project.json`; long video headings are shortened to fit. This also works with
+`tono prep`. Titles do not change output filenames. No online recognition or API
+key is needed.
 
 ---
 
@@ -507,12 +636,7 @@ tono song.mp3 --instrument violin --tempo-scale 0.75 --metronome both
 Shows open strings, finger numbers and low/high placements. Bow directions and
 slurs are not prescribed; see [the violin guide](instruments/README.md#violin).
 
-For Aerophone Brisa, specify the fingering mode set on your instrument:
-
-```sh
-tono song.mp3 --instrument ae-brisa --fingering-mode brisa
-tono song.mp3 --instrument ae-brisa --fingering-mode flute
-```
+For Aerophone Brisa, use the [mode-specific examples](#aerophone-brisa) above.
 
 ---
 
@@ -634,6 +758,24 @@ Current priorities include:
 
 Expect interfaces and file formats to change while the core workflow is being proven.
 
+
+### Development status
+
+The source-to-video CLI is implemented and has been exercised on real music.
+The remaining v0 acceptance work is a human play-through and physical fingering
+verification; see [the M4 checklist](docs/M4_TEST_LOG.md).
+
+Pitch evidence is checked at the ML boundary before cleanup. Malformed evidence
+fails clearly; older analysis data without a pitch track still uses duration
+rules. Practice cues distinguish physical keys from flute air/register changes,
+Brisa breath holes and recorder thumb venting.
+
+Known limits: cleanup thresholds need more songs and musician feedback;
+`--part lead` assumes Demucs's `other` stem and stays low-confidence. macOS is the
+tested platform; Windows/Linux packaging and full-pipeline validation remain
+future work. A GUI, automatic song recognition and a Rust ML rewrite are separate
+projects, not prerequisites for this CLI's v0 play-through.
+
 ---
 
 ## Contributing
@@ -659,154 +801,3 @@ MPL-2.0 uses **file-level copyleft**: if someone distributes modified MPL-covere
 See [`LICENSE.txt`](LICENSE.txt) for the complete license text.
 
 The **Tono** name, `tono.love`, logos, and other branding are not licensed for use by the MPL-2.0 software license.
-
----
-
-## Tono
-
-**Play what you love.**
-
-https://tono.love
-
-### Aerophone Brisa
-
-AE-BRISA requires an explicit mode matching the physical instrument:
-
-```sh
-tono song.mp3 --instrument ae-brisa --fingering-mode brisa
-tono song.mp3 --instrument ae-brisa --fingering-mode flute
-```
-
-Omitting `--fingering-mode` fails before processing. The horizontal diagram
-shows the mode-specific rear keys and, for Flute mode, breath-hole instructions.
-See [instrument profiles](instruments/README.md) for coverage, setup and sources.
-
-## Video title
-
-```sh
-tono song.mp3 --instrument ae20 --title "Careless Whisper"
-tono "Poove Sempoove.mp3" --instrument ae01
-```
-
-`--title` sets the video heading, for example **Practice: Careless Whisper**.
-Without it, the input filename without its final extension becomes the title
-(**Poove Sempoove** in the second example). The full title is saved in
-`project.json`; long video headings are shortened to fit. This also works with
-`tono prep`. Titles do not change output filenames. No online recognition or API
-key is needed.
-
-## Development status
-
-The source-to-video CLI is implemented and has been exercised on real music.
-The remaining v0 acceptance work is a human play-through and physical fingering
-verification; see [the M4 checklist](docs/M4_TEST_LOG.md).
-
-Pitch evidence is checked at the ML boundary before cleanup. Malformed evidence
-fails clearly; older analysis data without a pitch track still uses duration
-rules. Practice cues distinguish physical keys from flute air/register changes,
-Brisa breath holes and recorder thumb venting.
-
-Known limits: cleanup thresholds need more songs and musician feedback;
-`--part lead` assumes Demucs's `other` stem and stays low-confidence. macOS is the
-tested platform; Windows/Linux packaging and full-pipeline validation remain
-future work. A GUI, automatic song recognition and a Rust ML rewrite are separate
-projects, not prerequisites for this CLI's v0 play-through.
-
-## Yamaha YVS-120 Alto Venova
-
-```bash
-tono song.mp3 --instrument yvs120 --tempo-scale 0.75
-tono demo --instrument yvs120 --out /tmp/tono-venova-demo
-```
-
-Aliases: `yvs-120`, `alto-venova`. This acoustic instrument is distinct from the
-YDS digital saxophones. Its profile uses Yamaha’s **concert-pitch** chart, F3–F5
-(MIDI 53–77), so the melody and backing stay in the same pitch system. The staff
-shows sounding pitch, not transposed Venova-in-F notation.
-
-The vertical diagram uses Yamaha’s numbered controls, mouthpiece at the top:
-left-hand 7/6/5, right-hand 4/3/2/1, rear left-thumb 8. Paired lower keys and the
-separate hole and 4A/4B controls at 4 are shown individually. At thumb 8,
-partly covering the hole (3/4, key released) differs from sealing it and pressing
-the octave key. Charted alternatives are retained. Breath and embouchure still
-matter, especially for chromatic notes; the diagram cannot guarantee intonation.
-
-Source: [Yamaha YVS-120 Let’s Play Venova](https://data.yamaha.com/files/download/other_assets/0/1259560/venova_yvs-120_en_started_e0.pdf),
-printed pp. 102–103 (concert-pitch chart), 17 and 92–93 (controls). The JSON is a
-manual chart transcription, not generated from a recorder or sax table.
-`verified: false` remains until checked on a physical YVS-120.
-
-## Easy Fingering
-
-```bash
-tono song.mp3 --instrument ae01 --easy-fingering --tempo-scale 0.60
-```
-
-AE-01 Easy Fingering allows only the six main controls, in combinations from the
-existing chart. It excludes sharp/flat, the seventh front key, and octave keys.
-It currently covers D4, E4, F4, G4, A4, B4, C5 and the open C♯5 fingering.
-All twelve keys and MIDI-valid octave placements are considered. Original pitch
-is preferred, then the smallest whole-melody pitch shift (upward wins ties).
-The backing in the video is shifted by the same number of semitones. No notes
-are individually folded, removed or replaced; rhythm is preserved. Pitch shifting
-can change the backing’s timbre. `backing.wav` remains the original separated bed.
-
-If the whole selected passage cannot fit, generation stops with compatible note
-spans when available. Those times are **relative to the selected region**, before
-slowing; add the region’s source start to use them with `--from` / `--to`.
-Spans are suggestions, not automatically selected phrases. Fast passages can
-still be hard: use `--tempo-scale` to slow them down.
-
-Easy Fingering is also supported for `ae05`, `ae10`, `ae20`, `yds120`,
-`yds150`, and `ae-brisa --fingering-mode brisa`. These profiles allow only main
-keys 1–6, with no octave, side, palm or pinky controls. Their charted available
-notes are D4, E4, F4, F♯4, G4, A4, B4, C5 and C♯5 (including open fingering).
-The Yamaha YDS profiles additionally allow B♭4 through their charted main-key
-alternatives (1+4 or 1+5). F♯ is allowed because its charted fingering uses the main keys; this is a
-control restriction, not a ban on accidentals. Keep each profile’s documented
-instrument/voice transposition settings so the sounding pitches match.
-
-```bash
-tono song.mp3 --instrument ae20 --easy-fingering
-tono song.mp3 --instrument yds120 --easy-fingering --tempo-scale 0.60
-tono song.mp3 --instrument ae-brisa --fingering-mode brisa --easy-fingering
-```
-
-Brisa’s `flute` mode is not supported in Easy Fingering: its chart uses rear
-performance keys and breath-register cues, requiring a separate beginner policy.
-YVS-120 Alto Venova is acoustic and is also not yet supported in Easy Fingering.
-These and other unsupported profiles print a warning and continue normally;
-Tono never silently changes the selected instrument or fingering mode.
-`project.json` and `fingering.json` record `easy_fingering` as `applied`,
-`unsupported_fallback` or `not_requested`, plus the total
-`backing_transpose_semitones`. `octave_shift` and `semitone_offset` describe its
-whole-octave and remaining-semitone components. Successful easy-mode videos are
-labelled on screen. Profiles remain unverified until checked on the instrument.
-
-### Handpan, Mood Pan and accordion
-
-```bash
-tono song.mp3 --instrument moodpan --pan-style minor --tempo-scale 0.5
-tono song.mp3 --instrument handpan-d-kurd --part lead
-tono melody.mid --instrument accordion --backing backing.mp3
-```
-
-Mood Pan requires a style matching its knob: `major`, `minor`, `celtic`, `arabic`,
-`relax`, `indian`, `meditation`, `japanese`, `equinox`, `romantic`, `dreamy`, or
-`aegean`. Use **Handpan tone, factory pitch and no pitch-shifting effects**.
-Other tones, app-customized tunings and special-pad effects are not covered.
-
-Acoustic handpan support is specifically the nine-note D Kurd tuning above,
-with the player-view layout shown in the sheet. It does not cover every handpan.
-Pan fitting tries a single transposition for the entire melody and backing. If
-no transposition fits every available tone field, generation stops; no notes
-are folded, replaced or dropped. The sheet and video show strike cues.
-
-Accordion support covers the **right-hand melody only** on a 41-key piano
-accordion. Button/diatonic accordions, bass/chord parts and bellows direction
-are not supported.
-
-`--instrument taiko-1` and `--instrument spd-20-pro` are recognized but stop
-with an explicit error before processing. Percussion practice and OCTAPAD
-melodic kit mappings are not implemented. There is no silent fallback to another
-part. All new profiles remain unverified on physical instruments.
