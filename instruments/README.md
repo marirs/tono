@@ -10,6 +10,7 @@ validate a profile; invalid or missing data fails before processing the source.
 | ae05 | Vertical sax controls | 46–85 | Sax, transpose 0, tone octave shift 0 |
 | ae10 | Vertical sax controls | 34–97 | Sax, transpose 0, tone octave shift 0, Oct Key OCT2 |
 | ae20 | Vertical sax controls | 34–97 | Sax, transpose 0, tone octave shift 0, Octave Key Oct2 |
+| ae-brisa | Horizontal flute controls | Brisa mode: 60–97; flute mode: 60–96 | Required `--fingering-mode brisa` or `flute`; match the instrument setting |
 | Yamaha YVS-120 (`yvs120`) | Vertical Alto Venova | MIDI 53–77 (F3–F5) | German fingering; sounding pitch; thumb-hole and octave-key cues |
 | yds120 | Vertical sax controls | 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
 | yds150 | Vertical sax controls | 57–90 | Factory fingering, voice transposition 0 (e.g. C.01), no added pitch/octave shift |
@@ -27,6 +28,15 @@ validate a profile; invalid or missing data fails before processing the source.
 | flute | Horizontal keys and register cues | 60–96 | Concert C flute, Boehm system, C footjoint |
 | flute-bfoot | Horizontal keys and register cues | 59–96 | Concert C flute, Boehm system, B footjoint |
 | violin | Horizontal fretless fingerboard | 55–83 | G3 D4 A4 E5, first position |
+| handpan-d-kurd (alias `handpan`) | Top-down numbered tone fields | 50, 57, 58, 60, 62, 64, 65, 67, 69 | Nine-note D Kurd tuning; match the depicted player-view layout |
+| moodpan (alias `mn-10`) | Top-down nine pads | Nine pitches per selected style; not a continuous range | Required `--pan-style`; Handpan tone, factory pitch, pitch effects off |
+| accordion-piano-41 (alias `accordion`) | Upright right-hand keyboard | 53–93 (F3–A6) | 41 keys, 8-foot register; right-hand melody only |
+
+TAIKO-1 (`taiko-1`) and OCTAPAD SPD-20 PRO (`spd-20-pro`) are recognized CLI
+names, **not supported practice profiles**. They stop with an error before
+processing; percussion generation and melodic OCTAPAD kit mappings are not
+implemented. See [setup details for the new profiles](#pitched-pans-and-piano-accordion).
+
 
 Vertical wind diagrams default to the manuals' left-hand-upper, right-hand-lower
 grip, including AE-01. `--upper-hand right|left` changes labels
