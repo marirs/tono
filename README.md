@@ -304,11 +304,26 @@ in Rust:
   note it slides into.
 - **Clear wrong pitch** — a steady, well-voiced note sung ≥0.8 semitones away
   is re-pitched to the sung semitone (octave disagreements are left alone).
+- **Overlapping candidates** — where transcription candidates overlap, the one
+  the lead stem measurably carries wins over a more confident one (≥ ~70 ms,
+  steady voiced pitch within 0.25 semitone; octave-apart choices need ≥85 %
+  voiced frames). Only existing candidates can win.
+- **Register outliers** — a short (≤150 ms), unattacked note an octave or more
+  from both neighbours, unconfirmed by pitch evidence, is dropped so one stray
+  event cannot force a whole-song octave transposition.
 
-Short notes are **not** deleted for being short: a short note with steady
-pitch or its own attack is kept as an ornament, and repeated notes with a real
-attack stay separate. `--keep-work` writes every decision with its reason to
-`work/cleanup_decisions.json`; `project.json` records the counts.
+Pitch evidence is not used for events shorter than about three pitch-track hops
+(~70 ms): the tracker's ~93 ms window cannot resolve them.
+
+After noise filtering, short notes with steady matching pitch or a strong attack
+survive the duration cutoff. A short semitone change is not automatically
+vibrato: when pitch evidence is available, it must support that interpretation.
+Repeated notes stay separate when they have a strong attack or a measured silent
+gap. `--keep-work` writes evidence corrections, vibrato absorption and short-note
+removals to `work/cleanup_decisions.json`; `project.json` records the counts.
+
+See [melody quality checks](docs/MELODY_QUALITY.md) for the real-clip results and
+remaining limitations.
 
 ---
 
@@ -536,6 +551,9 @@ Audio must cover the selected passage; Tono never stretches it to hide a mismatc
 it excludes the whole **other** stem and keeps the remaining stems. This can
 remove accompaniment too, and the retained stems can still contain lead leakage.
 Listen to `backing.mp3` before practicing; no separation quality score is claimed.
+With the default 4-stem model an instrumental lead usually shares **other** with
+its guitar/piano accompaniment; if the backing is then too quiet Tono refuses the
+run and suggests `--separation-model htdemucs-6s`.
 The model also works with ordinary audio/video input. The default remains
 `htdemucs`. Run `python ml/analyze.py --download-models` inside the ML venv to
 update an existing source checkout; release runtimes include both models.

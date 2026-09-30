@@ -484,9 +484,17 @@ pub(crate) fn assess_separation(analysis: &Analysis) -> Result<SeparationQuality
         );
     }
     if separation.backing_to_mix_db < BACKING_MISSING_BELOW_MIX_DB {
+        // With the 4-stem model an instrumental lead shares `other` with
+        // guitar/piano accompaniment, so removing it removes the backing too
+        // (Ek Pyar: -19 dB with htdemucs; the 6-stem model separates them).
+        let hint = if stem == "other" && separation.model == "htdemucs" {
+            " For an instrumental lead, try --separation-model htdemucs-6s, which keeps guitar and piano in the backing"
+        } else {
+            ""
+        };
         bail!(
             "the backing track is {:.1} dB below the mix: there is no usable accompaniment \
-             (unaccompanied `{stem}` or failed separation). Choose a clip or region with accompaniment",
+             (unaccompanied `{stem}` or failed separation). Choose a clip or region with accompaniment.{hint}",
             separation.backing_to_mix_db
         );
     }
@@ -774,6 +782,18 @@ mod tests {
             .unwrap()
             .to_string();
         assert!(error.contains("no usable accompaniment"), "{error}");
+    }
+
+    #[test]
+    fn four_stem_lead_failure_suggests_the_six_stem_model() {
+        let mut analysis = analysis_with_backing(-19.2, true);
+        analysis.separation.lead_stem = "other".into();
+        analysis.separation.model = "htdemucs".into();
+        let error = assess_separation(&analysis).err().unwrap().to_string();
+        assert!(error.contains("--separation-model htdemucs-6s"), "{error}");
+        analysis.separation.model = "htdemucs_6s".into();
+        let error = assess_separation(&analysis).err().unwrap().to_string();
+        assert!(!error.contains("--separation-model"), "{error}");
     }
 
     #[test]
