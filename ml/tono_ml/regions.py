@@ -52,18 +52,32 @@ def detect_region_frames(input_path: Path) -> dict:
 
     samples, sample_rate = read_wav(input_path)
     mono = samples.mean(axis=0)
-    duration = mono.shape[0] / sample_rate
     mono_32k = librosa.resample(mono, orig_sr=sample_rate, target_sr=PANNS_SAMPLE_RATE).astype(np.float32)
 
     detector = _load_detector()
     with contextlib.redirect_stdout(sys.stderr):
         framewise = detector.inference(mono_32k[None, :])[0]  # (time_steps, 527)
+
+    return region_frames_document(
+        mono,
+        sample_rate,
+        framewise,
+        speech_index=_class_indices(SPEECH_CLASSES),
+        singing_index=_class_indices(SINGING_CLASSES),
+        music_index=_class_indices(MUSIC_CLASSES),
+    )
+
+
+def region_frames_document(mono, sample_rate, framewise, speech_index, singing_index, music_index) -> dict:
+    """The region-report JSON contract (see src/analysis/region.rs).
+
+    Pure function of the mono signal and the detector's (time_steps, classes)
+    probabilities, so the contract is testable without PANNs or audio files:
+    contiguous 0.25 s frames covering the duration, RMS level in dBFS
+    (-120 for silence) and, per group, the strongest class averaged per frame.
+    """
+    duration = mono.shape[0] / sample_rate
     seconds_per_step = duration / framewise.shape[0]
-
-    speech_index = _class_indices(SPEECH_CLASSES)
-    singing_index = _class_indices(SINGING_CLASSES)
-    music_index = _class_indices(MUSIC_CLASSES)
-
     frames = []
     frame_count = int(np.ceil(duration / FRAME_SECONDS))
     for frame_number in range(frame_count):

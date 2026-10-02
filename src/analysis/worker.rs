@@ -116,13 +116,54 @@ pub fn detect_region_frames(input_wav: &Path, work_dir: &Path) -> Result<RegionF
     )?;
 
     let report: RegionFramesReport = read_json(&output_path)?;
+    validate_region_report(&report)?;
+    Ok(report)
+}
+
+/// The region report crosses the Python boundary: check version, finite
+/// values, probability ranges and contiguous, in-range frames before region
+/// selection trusts it (contract fixture: ml/tests/fixtures/regions_contract_v1.json).
+pub(crate) fn validate_region_report(report: &RegionFramesReport) -> Result<()> {
     if report.version != SUPPORTED_CONTRACT_VERSION {
         bail!("region report version {} unsupported", report.version);
     }
     if report.frames.is_empty() {
         bail!("region detection returned no frames");
     }
-    Ok(report)
+    if !report.duration.is_finite() || report.duration <= 0.0 {
+        bail!("region report has an invalid duration");
+    }
+    // Frames must cover the whole source: region selection treats any
+    // uncovered start or end as if it did not exist.
+    let first_start = report.frames[0].start;
+    let last_end = report.frames[report.frames.len() - 1].end;
+    if first_start.abs() > DURATION_SLACK_SECONDS {
+        bail!("region frames start at {first_start:.3}s instead of 0s (missing leading frames)");
+    }
+    if !last_end.is_finite() || (report.duration - last_end).abs() > DURATION_SLACK_SECONDS {
+        bail!(
+            "region frames end at {last_end:.3}s but the source is {:.3}s (missing trailing frames)",
+            report.duration
+        );
+    }
+    let probability = |value: f64| value.is_finite() && (0.0..=1.0).contains(&value);
+    for (index, frame) in report.frames.iter().enumerate() {
+        let ordered = frame.start.is_finite()
+            && frame.end.is_finite()
+            && frame.start >= 0.0
+            && frame.end > frame.start
+            && frame.end <= report.duration + DURATION_SLACK_SECONDS;
+        let contiguous = index == 0
+            || (frame.start - report.frames[index - 1].end).abs() <= DURATION_SLACK_SECONDS;
+        let measured = frame.rms_db.is_finite()
+            && probability(frame.speech)
+            && probability(frame.music)
+            && probability(frame.singing);
+        if !(ordered && contiguous && measured) {
+            bail!("region detection produced an invalid frame #{index}: {frame:?}");
+        }
+    }
+    Ok(())
 }
 
 pub fn analyze_region(
@@ -327,6 +368,89 @@ mod tests {
             }
             assert!(validate_analysis(&bad, 1.0).is_err(), "case {case}");
         }
+    }
+
+    /// The Python worker's contract fixture (ml/tests/test_contract.py keeps
+    /// it in sync with what `analyze.py` writes). If either side changes the
+    /// JSON shape, one of the two suites fails.
+    fn contract_fixture() -> Analysis {
+        let path = crate::paths::project_root().join("ml/tests/fixtures/analysis_contract_v1.json");
+        let mut analysis: Analysis = serde_json::from_str(&std::fs::read_to_string(&path).unwrap())
+            .expect("Rust must parse the Python worker's contract fixture");
+        // The fixture stores bare file names; validation checks the files exist.
+        let existing = crate::paths::project_root().join("Cargo.toml");
+        analysis.lead_file = existing.clone();
+        analysis.backing_file = existing.clone();
+        for file in analysis.stems.values_mut() {
+            *file = existing.clone();
+        }
+        analysis
+    }
+
+    fn region_fixture() -> RegionFramesReport {
+        let path = crate::paths::project_root().join("ml/tests/fixtures/regions_contract_v1.json");
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap())
+            .expect("Rust must parse the Python worker's region contract fixture")
+    }
+
+    #[test]
+    fn python_region_contract_fixture_parses_validates_and_selects() {
+        use crate::analysis::region::{select_song_region, RegionMethod, RegionSettings};
+        let report = region_fixture();
+        validate_region_report(&report).unwrap();
+        // Fixture: 2 s of talking, then 6 s of music.
+        let (region, spans) = select_song_region(&report, &RegionSettings::default()).unwrap();
+        assert_eq!(region.method, RegionMethod::AutoSongRegion);
+        assert_eq!((region.start, region.end), (2.0, 8.0));
+        assert!(spans.iter().any(|span| span.end <= 2.0));
+    }
+
+    #[test]
+    fn region_reports_missing_leading_or_trailing_frames_are_rejected() {
+        let mut leading = region_fixture();
+        leading.frames.remove(0); // now starts at 0.25 s
+        let error = validate_region_report(&leading).unwrap_err().to_string();
+        assert!(error.contains("missing leading frames"), "{error}");
+
+        let mut trailing = region_fixture();
+        trailing.frames.pop(); // now ends 0.25 s before the duration
+        let error = validate_region_report(&trailing).unwrap_err().to_string();
+        assert!(error.contains("missing trailing frames"), "{error}");
+
+        // Within the existing timing tolerance is still accepted.
+        let mut rounded = region_fixture();
+        rounded.duration += DURATION_SLACK_SECONDS / 2.0;
+        validate_region_report(&rounded).unwrap();
+    }
+
+    #[test]
+    fn invalid_region_reports_are_rejected() {
+        let corrupt: [fn(&mut RegionFramesReport); 6] = [
+            |r| r.version = 2,
+            |r| r.frames.clear(),
+            |r| r.frames[3].music = 1.5,
+            |r| r.frames[3].speech = f64::NAN,
+            |r| r.frames[3].start += 0.1, // gap between frames
+            |r| r.duration = 1.0,         // frames beyond the reported duration
+        ];
+        for (case, mutate) in corrupt.iter().enumerate() {
+            let mut report = region_fixture();
+            mutate(&mut report);
+            assert!(validate_region_report(&report).is_err(), "case {case}");
+        }
+    }
+
+    #[test]
+    fn python_worker_contract_fixture_parses_and_validates() {
+        let analysis = contract_fixture();
+        validate_analysis(&analysis, analysis.duration).unwrap();
+        assert_eq!(analysis.version, 1);
+        assert!(analysis.pitch_track.is_some());
+        assert!(analysis.notes.iter().all(|note| note.attack.is_some()));
+        // The validator is not vacuous on this input.
+        let mut broken = contract_fixture();
+        broken.pitch_track.as_mut().unwrap().level_db.pop();
+        assert!(validate_analysis(&broken, broken.duration).is_err());
     }
 
     #[test]

@@ -75,6 +75,26 @@ impl PitchTrack {
         }
     }
 
+    /// Share of the span's frames where pYIN decoded an f0 within `tolerance`
+    /// semitones of `midi`, whatever its voicing probability. pYIN's decoded
+    /// pitch can be right while its voicing probability stays low (short,
+    /// fast or rough-voiced notes), so this is pitch evidence in its own right.
+    pub fn pitch_agreement(&self, start: f64, end: f64, midi: u8, tolerance: f64) -> Option<f64> {
+        if !start.is_finite() || !end.is_finite() || start < 0.0 || end <= start {
+            return None;
+        }
+        let frames = self.frame_range(start, end);
+        if frames.is_empty() || self.f0_midi.len() != self.voiced_probability.len() {
+            return None;
+        }
+        let total = frames.len() as f64;
+        let agreeing = self.f0_midi[frames]
+            .iter()
+            .filter(|f0| f0.is_some_and(|f0| (f0 - midi as f64).abs() <= tolerance))
+            .count();
+        Some(agreeing as f64 / total)
+    }
+
     pub fn evidence(&self, start: f64, end: f64, loud_reference_db: f64) -> Option<NoteEvidence> {
         // Cheap structural checks also protect direct library callers; full
         // value validation happens once at the worker boundary / cleanup entry.

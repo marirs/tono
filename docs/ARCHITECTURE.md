@@ -56,6 +56,14 @@ only measures. The boundary checks finite values, probability ranges, aligned
 arrays and region coverage. Present-but-malformed tracks fail; older analysis
 files without a track fall back to duration rules.
 
+The JSON contracts are pinned by `ml/tests/fixtures/analysis_contract_v1.json`
+and `regions_contract_v1.json`: `ml/tests/test_contract.py` checks that the
+worker still writes those shapes (PANNs, Demucs, Basic Pitch, pYIN and librosa
+mocked), and `src/analysis/worker.rs` parses and validates the same files; the
+region fixture also runs through song-region selection. CI's `python-contract` job runs the Python tests with only numpy,
+soundfile, pyyaml and huggingface_hub; model downloads and real inference stay
+local checks (`tono doctor --ml`, real recordings).
+
 `demo` constructs a known melody and uses the same instrument and rendering
 modules without ML. `doctor` checks the environment independently.
 

@@ -296,7 +296,10 @@ in Rust:
   sung passages are dropped (on a real test song the whole instrumental intro
   produced 60+ such "notes" around -70 dB, including a bogus low E♭2 that
   forced an octave transposition).
-- **Unpitched noise** — notes up to 120 ms with under 20 % voiced frames.
+- **Unpitched noise** — notes up to 120 ms with under 20 % voiced frames,
+  unless the pitch tracker still decodes the note's own pitch on at least half
+  its frames (fast sung or played notes often get low voicing probability with
+  the correct pitch).
 - **One wavering tone split in two** — neighbours with the same sung pitch
   centre and no new attack are joined, at the transcribed pitch nearest that
   centre.

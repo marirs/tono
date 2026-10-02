@@ -95,6 +95,116 @@ masking was added: on the only instrumental test song the chosen stem was
 already right and no overlap inside `other` conflicted, so such a change could
 not be validated here.
 
+## Validation on additional recordings (third pass)
+
+Six further recordings from the user's local collection, none used for tuning,
+60-second windows, run end to end with the committed cleanup (cb7887f), then
+replayed with the change below on identical raw notes and pitch tracks. There
+is no reference score for any of them: the checks use evidence independent of
+pYIN (constant-Q harmonic salience and peak-to-floor harmonicity of the lead
+and backing stems) plus listening clips. "Agree" means a kept note's pitch is
+the lead stem's dominant CQT pitch (or its octave, a known CQT-comb ambiguity).
+
+| Recording (window) | Material | Kept notes before -> after | Agree before -> after | Audible dominant-pitch notes dropped before -> after |
+| --- | --- | --- | --- | --- |
+| Galliyan, unplugged (0:40-1:40) | male vocal, guitar | 142 -> 143 | 97 % -> 97 % | 0 -> 0 |
+| Babam Bam (0:30-1:30) | male vocal, fast melisma | 110 -> 151 | 94 % -> 93 % | 39 -> 7 |
+| Candle in the Wind cover (0:20-1:20) | male vocal, piano | 104 -> 111 | 97 % -> 98 % | 9 -> 1 |
+| Gayatri Mantra (0:30-1:30) | chant, repeated notes | 96 -> 101 | 86 % -> 88 % | 22 -> 15 |
+| Tarararara trumpet (0:00-1:00), `--part lead`, 6 stems | trumpet, fast repeats | 135 -> 134 | 58 % -> 60 % | 17 -> 13 |
+| Shiva fusion theme (0:30-1:30), `--part lead`, 6 stems | instrumental mix | 216 -> 216 | 64 % -> 64 % | 67 -> 63 |
+
+**Demonstrated failure: the unpitched rule deleted real fast notes.** Almost
+every audible dominant-pitch note that cleanup removed came from the
+"unpitched" rule (<= 120 ms, < 20 % frames with voicing probability >= 0.5).
+In Babam Bam those 38 notes were as harmonic as the notes Tono kept (median
+peak-to-floor 34.1 dB vs 32.8 dB). Inside one of them (Basic Pitch MIDI 60,
+confidence 0.72, attack 0.93) pYIN decoded f0 60.09 on almost every frame
+while its voicing probability stayed 0.01-0.37. The rule now drops a short
+note as unpitched only if pYIN's decoded f0 also fails to match the note's
+pitch (within 0.5 semitone) on at least half its frames. Genuine consonants and
+breath decode no matching pitch and are still removed.
+
+Of the notes this restores, the share whose pitch is the lead's dominant CQT
+pitch: Galliyan 1/1, Babam Bam 46/51 (90 %), Candle 10/10, Gayatri 10/10,
+trumpet 7/9, Shiva 4/6. Replayed on the tuning songs: Poove gains 12 notes,
+and all 15 changed segments match the dominant CQT pitch, including a 70 ms
+ornament. The first pass above treated Poove's short unpitched drops as noise;
+most were real notes. Ek Pyar gains one 81 ms E4 where pYIN shows the pitch
+reaching E4 about 60 ms before the transcribed E4; because that transcribed
+E4 has its own strong attack, the video now shows an extra E4 re-attack.
+
+**Coverage and what the numbers do not show.**
+
+- Vocals (4 recordings) and fast ornaments (Babam Bam, Poove) are covered.
+  Cleanup keeps 93-98 % dominant-pitch agreement on three of them; the chant
+  is lower (88 %).
+- Instrumental leads (trumpet, fusion) are covered but poor: a third or more
+  of kept notes are not the lead stem's dominant pitch, and the fusion
+  melody is barely harmonic (22 dB). `other` holds several instruments;
+  cleanup cannot recover a melody that separation did not isolate. The
+  trumpet has 33 octave-or-larger jumps, only 10 with both notes spectrally
+  supported: accompaniment and harmonics remain in instrumental melodies.
+- Repeated notes occur in every recording (10-52 same-pitch neighbours), but
+  without a score, whether each is a genuine re-attack needs listening,
+  especially the trumpet's fast repeated tonguing.
+- Genuine sung octave jumps: one example (Candle, song time ~54.6 s, MIDI
+  49 -> 61), kept, both notes supported. Too little to claim coverage.
+- The register-outlier rule removed 21 (trumpet) and 25 (fusion) events; they
+  are less harmonic than kept notes (23.4 vs 30.0 dB; 19.8 vs 22.1 dB) and
+  were not flagged as audible dominant pitches, so no real-note loss was
+  demonstrated there.
+- Agreement with a CQT dominant pitch is supporting evidence, not ground
+  truth; it can follow a loud accompaniment in a mixed stem.
+
+Listening material: `tono-practices/melody-validation-20260930/ab-unpitched-rescue/`
+holds before/after pairs around every changed spot (left: separated lead;
+right: notes as tones; file names carry the original song time).
+
+## Repeated same-pitch notes: split or re-attack? (fourth pass)
+
+Prompted by Ek Pyar's extra E4 re-attack, every pair of adjacent same-pitch
+notes (gap <= 150 ms) in the current output of eight recordings was measured
+at its boundary on the separated lead: level dip at 6 ms resolution, timbre
+change (MFCC distance 60 ms either side, compared with the drift inside one
+note of that recording), pYIN voicing through the boundary, and the second
+event's transcriber attack.
+
+| Evidence | Pairs (of 161) |
+| --- | --- |
+| Converging re-attack: dip >= 9 dB and timbre change above in-note drift | 27 |
+| Converging continuous split: no dip, stable timbre, voiced throughout, no gap | 3 |
+| Ambiguous: the measures disagree or are inconclusive | 131 |
+
+The three continuous-looking pairs (Galliyan ~55.75 s and ~90.94 s, Poove
+~29.36 s, song time) stay split because the second event's attack is 0.76-0.82,
+just above the 0.75 repeat threshold. The 27 converging re-attacks have attacks
+of 0.74-0.90 (median 0.83; 70 % below 0.85). Attack strength therefore cannot
+separate the two behaviours: raising the threshold to join the three would
+erase most genuine re-articulations. Level dips and timbre separate only the
+converging cases; vocal syllable changes on one pitch often show no dip, and
+wind/electronic re-tonguing often shows little timbre change.
+
+The Ek Pyar case belongs to 20 pairs where a short first note (<= 120 ms)
+precedes the same pitch. All 20 are ambiguous: one has a 17.7 dB dip (clearly
+re-attacked), others show no dip with low timbre change, many show large
+timbre changes typical of new syllables, and pYIN voicing collapses at almost
+every such boundary. Ek Pyar itself shows no dip and timbre change close to its
+in-note drift, which leans towards an early onset, but that is one ambiguous
+case.
+
+Decision: no merge rule was added. Tono keeps deciding repeats from the
+transcriber's attack and measured silence only; the rescued short notes are
+unchanged. Regression tests now pin a zero-gap re-attack (kept separate), a
+zero-gap split without attack (joined), and the ambiguous short-fragment case
+(kept, documented as a limit).
+
+Listening: `tono-practices/melody-validation-20260930/repeated-notes/` has 32
+clips (the 3 continuous-looking pairs, 9 converging re-attacks including trumpet
+tonguing, and all 20 short-fragment pairs) with `INDEX.md` listing the
+measurements and a verdict column. Human labels on these would be the first
+real ground truth for this question.
+
 ## Remaining limitations
 
 - Measured pitch overrides overlap confidence only in clear cases; short or
@@ -103,6 +213,9 @@ not be validated here.
   evidence; more recordings are needed.
 - The register-outlier rule can drop a genuine, quiet, very short leap of an
   octave or more when the pitch tracker cannot confirm it.
+- Same-pitch repeats: a continuous note split by the transcriber with a
+  moderately strong attack stays two notes (an extra re-attack cue), and
+  audio evidence cannot yet tell such splits from quick re-articulations.
 - `--part lead` selects the model's whole other stem. It cannot reliably identify
   a solo instrument when several instruments remain in that stem, nor follow a
   lead that moves between instruments. With the 4-stem model an instrumental
@@ -111,7 +224,8 @@ not be validated here.
   improve lead removal in `backing.wav`.
 - The pitch tracker uses roughly 93 ms analysis windows. Timing and voicing
   around fast transitions are uncertain, even though its hop is about 23 ms.
-- Thresholds still need more real recordings and musician review. Fewer notes
+- Thresholds still need more real recordings, a reference score for at least
+  one song, and musician review. Fewer notes
   alone are not evidence of a better transcription.
 
 MIDI, MusicXML and JSON imports retain their existing behaviour: imported notes

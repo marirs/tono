@@ -58,6 +58,14 @@ pub struct EvidenceSettings {
     /// Short, audible but unvoiced notes (consonants, breath) are unpitched.
     pub unpitched_max_seconds: f64,
     pub unpitched_max_voiced_fraction: f64,
+    /// ...unless pYIN's decoded f0 matches the note's pitch (within
+    /// `unpitched_pitch_tolerance`) on at least this share of frames. Real
+    /// fast notes can get low voicing probability with the right decoded
+    /// pitch (validation: a 0.93-attack sung note decoded at +0.09 semitone
+    /// with voicing probability 0.01-0.37); consonants and breath decode no
+    /// matching pitch.
+    pub unpitched_rescue_min_pitch_agreement: f64,
+    pub unpitched_pitch_tolerance: f64,
     /// Pitch evidence is trusted only this voiced and this steady.
     pub trusted_voiced_fraction: f64,
     pub trusted_max_spread: f64,
@@ -97,6 +105,8 @@ impl Default for EvidenceSettings {
             bleed_below_loud_db: -35.0,
             unpitched_max_seconds: 0.12,
             unpitched_max_voiced_fraction: 0.2,
+            unpitched_rescue_min_pitch_agreement: 0.5,
+            unpitched_pitch_tolerance: 0.5,
             trusted_voiced_fraction: 0.6,
             trusted_max_spread: 1.0,
             repitch_min_deviation: 0.8,
@@ -251,6 +261,19 @@ impl Evidence<'_> {
     /// long enough slice, trusted (voiced, steady, audible) pitch, a candidate
     /// within tolerance of the measured centre, and stronger voicing for
     /// octave-apart choices. Returns (candidate index, reason).
+    /// pYIN decoded this note's pitch on most of its frames, even if it gave
+    /// them a low voicing probability.
+    fn decoded_pitch_matches(&self, note: &RawNoteEvent) -> bool {
+        self.track
+            .pitch_agreement(
+                note.start,
+                note.end,
+                note.midi,
+                self.settings.unpitched_pitch_tolerance,
+            )
+            .is_some_and(|share| share >= self.settings.unpitched_rescue_min_pitch_agreement)
+    }
+
     /// Long enough for pYIN's ~93 ms window to say anything about it.
     fn resolvable(&self, start: f64, end: f64) -> bool {
         end - start >= self.settings.candidate_min_hops * self.track.hop_seconds
@@ -331,6 +354,7 @@ impl Evidence<'_> {
                     ))
                 } else if note.end - note.start <= self.settings.unpitched_max_seconds
                     && evidence.voiced_fraction < self.settings.unpitched_max_voiced_fraction
+                    && !self.decoded_pitch_matches(note)
                 {
                     Some((
                         "dropped-unpitched",
@@ -1060,6 +1084,64 @@ mod tests {
         assert_eq!(pitches(&outcome.notes), vec![60, 61, 60]);
     }
 
+    // ---- repeated same-pitch notes: split vs re-attack ----
+    //
+    // Validation (161 same-pitch pairs, 8 recordings) found converging audio
+    // evidence for 27 genuine re-attacks (level dip >= 9 dB plus a timbre
+    // change) but only 3 continuous splits; 131 were ambiguous. Tono therefore
+    // decides from the transcriber's attack and measured silence only, and
+    // does not join same-pitch notes on weaker audio cues.
+
+    #[test]
+    fn zero_gap_repeat_with_strong_attack_stays_separate() {
+        // Shape of the clear vocal re-attacks: no transcription gap, strong
+        // onset on the second note, continuous measured pitch.
+        let measured = track(&[(1.0, Some(59.0), LOUD)]);
+        let outcome = clean_with(
+            &[note(0.0, 0.45, 59, 0.8), attacked(0.45, 1.0, 59, 0.9)],
+            &measured,
+        );
+        assert_eq!(outcome.notes.len(), 2);
+        assert_eq!(outcome.notes[1].start, 0.45);
+    }
+
+    #[test]
+    fn zero_gap_split_without_attack_is_joined() {
+        // Shape of the clear continuous splits: no gap, weak onset, steady pitch.
+        let measured = track(&[(1.2, Some(67.0), LOUD)]);
+        let outcome = clean_with(
+            &[note(0.0, 0.8, 67, 0.8), attacked(0.8, 1.2, 67, 0.3)],
+            &measured,
+        );
+        assert_eq!(outcome.notes.len(), 1);
+        assert_eq!((outcome.notes[0].start, outcome.notes[0].end), (0.0, 1.2));
+    }
+
+    #[test]
+    fn short_fragment_before_attacked_same_pitch_note_is_left_separate() {
+        // The ambiguous class (e.g. a rescued fragment where the pitch arrives
+        // before the transcribed onset). Evidence could not tell an early
+        // onset from a quick re-articulation, so both events are kept and the
+        // fragment is not deleted: a documented limit, not a claimed fix.
+        let mut measured = track(&[
+            (0.5, Some(62.0), LOUD),
+            (0.09, Some(64.0), LOUD),
+            (0.5, Some(64.0), LOUD),
+        ]);
+        for i in 50..59 {
+            measured.voiced_probability[i] = 0.1; // low voicing, decoded E4
+        }
+        let outcome = clean_with(
+            &[
+                note(0.0, 0.5, 62, 0.8),
+                attacked(0.5, 0.58, 64, 0.5),
+                attacked(0.59, 1.09, 64, 0.9),
+            ],
+            &measured,
+        );
+        assert_eq!(pitches(&outcome.notes), vec![62, 64, 64]);
+    }
+
     #[test]
     fn continuous_pitch_across_small_gap_still_merges() {
         let measured = track(&[(1.1, Some(60.0), LOUD)]);
@@ -1431,6 +1513,64 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ---- unpitched rule vs pYIN voicing probability ----
+    //
+    // Validation found pYIN decoding the right pitch on fast sung notes while
+    // giving them low voicing probability; the unpitched rule then deleted
+    // strongly attacked real notes. Decoded pitch agreement now keeps them.
+
+    /// Short note with pYIN's decoded f0 at `f0` but voicing probability 0.1.
+    fn low_probability_track(note_f0: Option<f64>) -> PitchTrack {
+        let mut measured = track(&[
+            (0.5, Some(60.0), LOUD),
+            (0.1, note_f0, LOUD),
+            (0.5, Some(60.0), LOUD),
+        ]);
+        for i in 50..60 {
+            measured.voiced_probability[i] = 0.1;
+        }
+        measured
+    }
+
+    fn short_note_between_long_ones(midi: u8) -> Vec<RawNoteEvent> {
+        vec![
+            note(0.0, 0.5, 60, 0.8),
+            attacked(0.5, 0.6, midi, 0.9),
+            note(0.6, 1.1, 60, 0.8),
+        ]
+    }
+
+    #[test]
+    fn short_note_with_matching_decoded_pitch_survives_low_voicing_probability() {
+        for (midi, offset) in [(62, 0.0), (63, 0.09), (62, -0.3)] {
+            let outcome = clean_with(
+                &short_note_between_long_ones(midi),
+                &low_probability_track(Some(midi as f64 + offset)),
+            );
+            assert!(
+                pitches(&outcome.notes).contains(&midi),
+                "MIDI {midi} offset {offset}"
+            );
+            assert!(!actions(&outcome).contains(&"dropped-unpitched"));
+        }
+    }
+
+    #[test]
+    fn short_unvoiced_or_mismatched_event_is_still_unpitched() {
+        // No decoded pitch at all (consonant, breath).
+        let outcome = clean_with(
+            &short_note_between_long_ones(67),
+            &low_probability_track(None),
+        );
+        assert!(actions(&outcome).contains(&"dropped-unpitched"));
+        // Decoded pitch nowhere near the transcribed one.
+        let outcome = clean_with(
+            &short_note_between_long_ones(67),
+            &low_probability_track(Some(62.0)),
+        );
+        assert!(actions(&outcome).contains(&"dropped-unpitched"));
     }
 
     #[test]

@@ -39,11 +39,21 @@ def measure_pitch_track(lead_file: Path) -> dict:
     frame_count = min(len(f0_hz), len(rms))
     f0_midi = librosa.hz_to_midi(f0_hz[:frame_count])
     level_db = 20.0 * np.log10(np.maximum(rms[:frame_count], 1e-9))
+    return pitch_track_document(f0_midi, voiced_probability[:frame_count], level_db)
+
+
+def pitch_track_document(f0_midi, voiced_probability, level_db) -> dict:
+    """The `pitch_track` JSON contract (see src/analysis/evidence.rs).
+
+    Pure function so the contract can be tested without librosa or audio:
+    equal-length frame arrays, unvoiced/undecoded f0 as null, finite values.
+    """
+    frame_count = min(len(f0_midi), len(voiced_probability), len(level_db))
     return {
         "method": "librosa pyin",
         "hop_seconds": HOP_LENGTH / ANALYSIS_SAMPLE_RATE,
         # Frame i is centred at i * hop_seconds (librosa's centred frames).
-        "f0_midi": [None if not np.isfinite(v) else round(float(v), 3) for v in f0_midi],
+        "f0_midi": [None if not np.isfinite(v) else round(float(v), 3) for v in f0_midi[:frame_count]],
         "voiced_probability": [round(float(v), 3) for v in voiced_probability[:frame_count]],
-        "level_db": [round(float(v), 2) for v in level_db],
+        "level_db": [round(float(v), 2) for v in level_db[:frame_count]],
     }
